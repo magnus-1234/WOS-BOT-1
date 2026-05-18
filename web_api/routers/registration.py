@@ -10,10 +10,11 @@ import logging
 import httpx
 
 try:
-    from db.mongo_adapters import PendingConfigAdapter, mongo_enabled
+    from db.mongo_adapters import PendingConfigAdapter, ServerAllianceAdapter, mongo_enabled
 except ImportError:
     mongo_enabled = lambda: False
     PendingConfigAdapter = None
+    ServerAllianceAdapter = None
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/register", tags=["Registration"])
@@ -50,9 +51,38 @@ async def check_registration_status(guild_id: str):
         raise HTTPException(status_code=500, detail="Database not available")
 
     doc = await PendingConfigAdapter.get_by_guild_async(int(guild_id))
+    
+    if doc and doc.get("status") == "approved":
+        safe_doc = {
+            "guild_id": doc.get("guild_id"),
+            "guild_name": doc.get("guild_name"),
+            "alliance_name": doc.get("alliance_name"),
+            "status": "approved",
+            "submitted_at": doc.get("submitted_at"),
+            "discord_username": doc.get("discord_username"),
+        }
+        return {"status": "approved", "data": safe_doc}
+
+    # If not approved in PendingConfigAdapter, check if it has a bot-configured legacy password
+    if ServerAllianceAdapter:
+        stored_password = await ServerAllianceAdapter.get_password_async(int(guild_id))
+        if stored_password:
+            alliance_id = await ServerAllianceAdapter.get_alliance_async(int(guild_id))
+            alliance_name = f"Configured Alliance (ID: {alliance_id})" if alliance_id else "Configured Alliance"
+            return {
+                "status": "approved",
+                "data": {
+                    "guild_id": int(guild_id),
+                    "alliance_name": alliance_name,
+                    "status": "approved",
+                    "legacy_config": True
+                }
+            }
+
+    # Return pending, denied, or none
     if not doc:
         return {"status": "none", "data": None}
-
+        
     safe_doc = {
         "guild_id": doc.get("guild_id"),
         "guild_name": doc.get("guild_name"),

@@ -2799,6 +2799,10 @@ class ServerAllianceAdapter:
         try:
             db = _get_db_main()
             doc = db[ServerAllianceAdapter.COLL].find_one({'_id': str(guild_id)})
+            if not doc: doc = db[ServerAllianceAdapter.COLL].find_one({'_id': int(guild_id)})
+            if not doc: doc = db[ServerAllianceAdapter.COLL].find_one({'id': str(guild_id)})
+            if not doc: doc = db[ServerAllianceAdapter.COLL].find_one({'id': int(guild_id)})
+            
             if doc:
                 return doc.get('member_list_password')
             return None
@@ -2812,6 +2816,10 @@ class ServerAllianceAdapter:
         try:
             db = await _get_db_main_async()
             doc = await db[ServerAllianceAdapter.COLL].find_one({'_id': str(guild_id)})
+            if not doc: doc = await db[ServerAllianceAdapter.COLL].find_one({'_id': int(guild_id)})
+            if not doc: doc = await db[ServerAllianceAdapter.COLL].find_one({'id': str(guild_id)})
+            if not doc: doc = await db[ServerAllianceAdapter.COLL].find_one({'id': int(guild_id)})
+            
             if doc:
                 return doc.get('member_list_password')
             return None

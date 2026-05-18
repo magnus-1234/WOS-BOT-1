@@ -75,7 +75,7 @@ async def get_current_user(request: Request):
         return r.json()
 
 class VerifyPasswordRequest(BaseModel):
-    guild_id: int
+    guild_id: str
     password: str
 
 @router.post("/verify-password")
@@ -84,11 +84,12 @@ async def verify_server_password(request: VerifyPasswordRequest):
     if not mongo_enabled() or not ServerAllianceAdapter:
         raise HTTPException(status_code=500, detail="Database not available")
         
-    stored_password = ServerAllianceAdapter.get_password(request.guild_id)
+    guild_id_int = int(request.guild_id)
+    stored_password = ServerAllianceAdapter.get_password(guild_id_int)
     if not stored_password:
         raise HTTPException(status_code=403, detail="No password configured for this server. Set it via bot first.")
         
-    is_valid = ServerAllianceAdapter.verify_password(request.guild_id, request.password)
+    is_valid = ServerAllianceAdapter.verify_password(guild_id_int, request.password)
     if is_valid:
         return {"success": True}
     else:

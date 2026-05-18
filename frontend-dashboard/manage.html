@@ -2090,16 +2090,11 @@
                     <div id="access-code-error" style="color: #ef4444; font-size: 0.8rem; margin-top: 8px; display: none;">Invalid access code.</div>
                 </div>
             </div>
-            <div class="modal-footer" style="justify-content:space-between;">
-                <button onclick="openRegWizard(true)" class="btn btn-secondary" style="font-size:0.8rem;padding:8px 14px;">
-                    <i data-lucide="settings" style="width:13px;"></i> New Setup
+            <div class="modal-footer">
+                <button onclick="closeAccessCodeModal()" class="btn btn-secondary">Cancel</button>
+                <button onclick="verifyAccessCode()" class="btn btn-primary">
+                    <i data-lucide="unlock" style="width: 15px;"></i> Unlock
                 </button>
-                <div style="display:flex;gap:10px;">
-                    <button onclick="closeAccessCodeModal()" class="btn btn-secondary">Cancel</button>
-                    <button onclick="verifyAccessCode()" class="btn btn-primary">
-                        <i data-lucide="unlock" style="width: 15px;"></i> Unlock
-                    </button>
-                </div>
             </div>
         </div>
     </div>
@@ -2284,7 +2279,7 @@
                 const response = await fetch('/api/auth/verify-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ guild_id: parseInt(guildId), password: input })
+                    body: JSON.stringify({ guild_id: guildId, password: input })
                 });
 
                 if (response.ok) {

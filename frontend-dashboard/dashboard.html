@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
   
   <style>
     :root {
@@ -600,6 +601,11 @@
               View Account
             </a>
           </div>
+          <div id="global-admin-link" style="margin-top:12px; display:none;">
+            <a class="btn" href="admin.html" style="background: rgba(35,198,162,0.14); border: 1px solid rgba(35,198,162,0.28); color: #9ff3df;">
+              Global Admin Panel
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -724,7 +730,8 @@
         }
       },
       getProfile() { return this.fetch('/api/auth/me'); },
-      getGuilds() { return this.fetch('/api/servers'); }
+      getGuilds() { return this.fetch('/api/servers'); },
+      getAdminStatus() { return this.fetch('/api/admin/me'); }
     };
 
     const UI = {
@@ -821,6 +828,15 @@
       try {
         const userData = await API.getProfile();
         UI.setProfileData(userData);
+
+        try {
+          const adminStatus = await API.getAdminStatus();
+          const adminLink = document.getElementById('global-admin-link');
+          if (adminLink && adminStatus.is_global_admin) adminLink.style.display = 'block';
+        } catch (e) {
+          const adminLink = document.getElementById('global-admin-link');
+          if (adminLink) adminLink.style.display = 'none';
+        }
         
         const guildsResponse = await API.getGuilds();
         const guilds = Array.isArray(guildsResponse) ? guildsResponse : (guildsResponse.servers || []);

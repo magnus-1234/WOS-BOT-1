@@ -195,6 +195,13 @@ try:
 except Exception as e:
     logger.error(f"❌ Failed to load registration router: {e}")
 
+try:
+    from web_api.routers.admin import router as admin_router
+    app.include_router(admin_router)
+    logger.info("✅ Admin router loaded")
+except Exception as e:
+    logger.error(f"❌ Failed to load admin router: {e}")
+
 os.makedirs("data/uploads", exist_ok=True)
 app.mount("/api/static", StaticFiles(directory="data/uploads"), name="static")
 

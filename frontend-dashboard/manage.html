@@ -4367,6 +4367,11 @@
                 await loadMonitorSettings();
                 await loadMonitorHistory();
                 await loadMonitoredMembers();
+
+                const requestedTab = urlParams.get('tab');
+                if (requestedTab) {
+                    await switchTab(requestedTab);
+                }
             } catch (e) { console.error('Init error:', e); } finally { showLoading(false); }
 
             // Setup drag-and-drop on upload area (DOM guaranteed ready now)

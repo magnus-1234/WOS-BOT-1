@@ -4,6 +4,7 @@ from typing import Optional, List
 import httpx
 import logging
 import pytz
+import discord
 from datetime import datetime, timezone as dt_timezone
 
 from cogs.reminder_system import ReminderStorage, TimeParser
@@ -26,6 +27,34 @@ class ReminderCreate(BaseModel):
     footer_text: Optional[str] = None
     footer_icon_url: Optional[str] = None
     author_url: Optional[str] = None
+
+def _build_reminder_embed(payload: ReminderCreate, user: dict, *, is_test: bool = False) -> discord.Embed:
+    embed = discord.Embed(
+        title=payload.message or "Reminder",
+        description=payload.body,
+        color=0xb4a7d6
+    )
+    if payload.image_url:
+        embed.set_image(url=payload.image_url)
+    if payload.thumbnail_url:
+        embed.set_thumbnail(url=payload.thumbnail_url)
+    footer_text = payload.footer_text or ("Test reminder preview" if is_test else None)
+    if footer_text or payload.footer_icon_url:
+        embed.set_footer(text=footer_text or "", icon_url=payload.footer_icon_url)
+    if payload.author_url:
+        embed.set_author(
+            name=user.get("global_name") or user.get("username") or "Reminder Author",
+            url=payload.author_url,
+            icon_url=f"https://cdn.discordapp.com/avatars/{user.get('id')}/{user.get('avatar')}.png" if user.get("avatar") else None
+        )
+    return embed
+
+async def _get_discord_user(auth_header: str) -> dict:
+    async with httpx.AsyncClient() as client:
+        r = await client.get('https://discord.com/api/users/@me', headers={"Authorization": auth_header})
+        if r.status_code != 200:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return r.json()
 
 @router.get("/{guild_id}")
 async def get_reminders(request: Request, guild_id: str):
@@ -153,6 +182,57 @@ async def create_reminder(request: Request, guild_id: str, payload: ReminderCrea
         
     return {"status": "success", "reminder_id": reminder_id}
 
+@router.post("/{guild_id}/test")
+async def send_test_reminder(request: Request, guild_id: str, payload: ReminderCreate):
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    user = await _get_discord_user(auth_header)
+
+    bot = getattr(request.app.state, 'bot', None)
+    if not bot:
+        raise HTTPException(status_code=503, detail="Bot is not connected")
+
+    if not payload.channel_id:
+        raise HTTPException(status_code=400, detail="Select a channel before sending a test message.")
+
+    try:
+        channel = bot.get_channel(int(payload.channel_id))
+    except Exception:
+        channel = None
+
+    if not channel:
+        raise HTTPException(status_code=404, detail="Channel not found or not visible to the bot.")
+    if str(getattr(channel.guild, "id", "")) != str(guild_id):
+        raise HTTPException(status_code=400, detail="Selected channel does not belong to this server.")
+
+    mention_text = ""
+    allow_mentions = discord.AllowedMentions.none()
+    if payload.mention == "everyone":
+        mention_text = "[TEST] @everyone"
+    elif payload.mention == "here":
+        mention_text = "[TEST] @here"
+    elif payload.mention == "user":
+        mention_text = f"<@{user['id']}>"
+        allow_mentions = discord.AllowedMentions(users=True)
+
+    embed = _build_reminder_embed(payload, user, is_test=True)
+    try:
+        await channel.send(embed=embed)
+        if mention_text:
+            await channel.send(
+                content=mention_text,
+                allowed_mentions=allow_mentions
+            )
+    except discord.Forbidden:
+        raise HTTPException(status_code=403, detail="The bot cannot send messages in that channel.")
+    except Exception as e:
+        logger.error(f"Failed to send test reminder to guild {guild_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to send test message.")
+
+    return {"status": "success"}
+
 @router.delete("/{guild_id}/{reminder_id}")
 async def delete_reminder(request: Request, guild_id: str, reminder_id: str):
     auth_header = request.headers.get("Authorization")
@@ -241,7 +321,7 @@ async def update_reminder(request: Request, guild_id: str, reminder_id: str, pay
     update_data = {
         "message": payload.message,
         "body": payload.body,
-        "reminder_time": reminder_time,
+        "reminder_time": reminder_time.isoformat(),
         "channel_id": str(payload.channel_id),
         "mention": payload.mention,
         "image_url": payload.image_url,

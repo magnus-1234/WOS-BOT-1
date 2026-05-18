@@ -466,6 +466,47 @@
         .giftcode-source { color:var(--text-muted); font-size:0.76rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .empty-state { text-align:center; padding:42px 20px; color:var(--text-muted); background:#16191f; border:1px solid var(--glass-border); border-radius:12px; }
 
+        /* Reminders */
+        .reminders-toolbar { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:18px; flex-wrap:wrap; }
+        .reminders-toolbar p { color:var(--text-muted); margin-top:6px; font-size:0.9rem; line-height:1.5; }
+        .reminder-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+        .reminder-actions input, .reminder-actions select { width:auto; flex:0 1 220px; background:#232831; color:var(--text-main); border:1px solid var(--glass-border); border-radius:10px; padding:11px 12px; }
+        .reminder-actions .btn { flex:0 0 auto; }
+        .reminder-search { min-width:240px; max-width:320px; }
+        .reminder-dashboard-strip { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:12px; margin-bottom:18px; }
+        .reminder-stat { background:#16191f; border:1px solid var(--glass-border); border-radius:12px; padding:14px; }
+        .reminder-stat span { color:var(--text-muted); font-size:0.75rem; text-transform:uppercase; font-weight:800; letter-spacing:0; }
+        .reminder-stat strong { display:block; margin-top:6px; color:#fff; font-size:1.2rem; }
+        .preset-section { margin-bottom:22px; }
+        .preset-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+        .preset-header h3 { font-size:1rem; margin:0; display:flex; align-items:center; gap:8px; }
+        .preset-header p { color:var(--text-muted); font-size:0.82rem; margin:4px 0 0; }
+        .preset-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:12px; }
+        .preset-card { background:#16191f; border:1px solid var(--glass-border); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; min-width:0; }
+        .preset-thumb { height:112px; background:#232831; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+        .preset-thumb img { width:100%; height:100%; object-fit:cover; }
+        .preset-body { padding:14px; display:flex; flex-direction:column; gap:10px; flex:1; }
+        .preset-title { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+        .preset-title strong { color:#fff; overflow-wrap:anywhere; }
+        .preset-body p { color:var(--text-muted); font-size:0.82rem; line-height:1.45; margin:0; }
+        .reminder-list-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:14px; }
+        .reminder-card { background:#16191f; border:1px solid var(--glass-border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:14px; min-width:0; }
+        .reminder-card-top { display:grid; grid-template-columns:52px 1fr; gap:12px; align-items:start; }
+        .reminder-card-thumb { width:52px; height:52px; border-radius:10px; background:#232831; object-fit:cover; border:1px solid var(--glass-border); }
+        .reminder-card-title { color:#fff; font-weight:800; font-size:1rem; line-height:1.35; overflow-wrap:anywhere; }
+        .reminder-card-body { color:var(--text-muted); font-size:0.84rem; line-height:1.5; margin-top:4px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+        .reminder-detail-grid { display:grid; gap:9px; }
+        .reminder-detail-row { display:grid; grid-template-columns:20px 1fr; gap:8px; color:var(--text-muted); font-size:0.82rem; min-width:0; }
+        .reminder-detail-row i { width:15px; height:15px; color:var(--primary); margin-top:2px; }
+        .reminder-detail-row strong { display:block; color:var(--text-main); font-size:0.74rem; margin-bottom:1px; }
+        .reminder-detail-row span { overflow-wrap:anywhere; }
+        .reminder-card-actions { display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap; margin-top:auto; padding-top:12px; border-top:1px solid var(--glass-border); }
+        .quick-date-row, .preset-chip-row { display:flex; flex-wrap:wrap; gap:8px; }
+        .chip-button { background:#232831; border:1px solid var(--glass-border); color:var(--text-main); border-radius:999px; padding:7px 11px; font-size:0.8rem; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+        .chip-button:hover { border-color:var(--primary); color:#fff; }
+        .form-hint { color:var(--text-muted); font-size:0.76rem; margin-top:6px; line-height:1.45; }
+        #reminder-modal input[type="date"] { background:#232831; color:var(--text-main); border:1px solid var(--glass-border); border-radius:10px; padding:11px 12px; color-scheme:dark; }
+
         /* ── Manual Redemption Styles ───────────────── */
         .manual-redeem-card {
             background: linear-gradient(145deg, #1e2229 0%, #16191f 100%);
@@ -1593,9 +1634,30 @@
 
             <!-- Reminders Tab -->
             <div id="tab-reminders" class="tab-content">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
-                    <h2 class="section-title" style="margin:0;">Manage Reminders</h2>
-                    <button onclick="openReminderModal()" class="btn btn-primary"><i data-lucide="plus"></i> New Reminder</button>
+                <div class="reminders-toolbar">
+                    <div>
+                        <h2 class="section-title" style="margin:0;">Manage Reminders</h2>
+                        <p>Schedule Whiteout Survival events, test Discord output, and reuse event presets.</p>
+                    </div>
+                    <div class="reminder-actions">
+                        <input id="reminder-search" class="reminder-search" type="search" placeholder="Search reminders..." oninput="renderReminders()">
+                        <select id="reminder-filter" onchange="renderReminders()" style="min-width:150px;">
+                            <option value="all">All reminders</option>
+                            <option value="recurring">Recurring</option>
+                            <option value="once">One-time</option>
+                        </select>
+                        <button onclick="openReminderModal()" class="btn btn-primary"><i data-lucide="plus"></i> New Reminder</button>
+                    </div>
+                </div>
+                <div id="reminder-stats" class="reminder-dashboard-strip"></div>
+                <div class="preset-section">
+                    <div class="preset-header">
+                        <div>
+                            <h3><i data-lucide="sparkles"></i> Event presets</h3>
+                            <p>Preview a template, tweak the channel/time, then activate it.</p>
+                        </div>
+                    </div>
+                    <div id="reminder-presets" class="preset-grid"></div>
                 </div>
                 <div id="reminders-list"></div>
             </div>
@@ -1685,7 +1747,7 @@
 
     <!-- Reminder Modal -->
     <div id="reminder-modal" class="modal">
-        <div class="modal-content" style="max-width: 900px;">
+        <div class="modal-content" style="max-width: 1040px;">
             <div class="modal-header">
                 <h3>New Reminder</h3>
                 <button onclick="closeReminderModal()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">
@@ -1695,6 +1757,11 @@
             <div class="modal-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
                 <!-- Left Side: Form -->
                 <div class="reminder-form" style="max-height: 70vh; overflow-y: auto; padding-right: 12px;">
+                    <div class="form-group">
+                        <label>Apply Preset</label>
+                        <div class="preset-chip-row" id="reminder-preset-chips"></div>
+                        <div class="form-hint">Presets fill the message, images, and repeat pattern. You can change anything before saving.</div>
+                    </div>
                     <div class="form-group">
                         <label>Title Message</label>
                         <input type="text" id="reminder-message" placeholder="e.g. Bear Trap starts now!" oninput="updateReminderPreview()">
@@ -1707,6 +1774,11 @@
                         <div class="form-group">
                             <label>Start Date</label>
                             <input type="date" id="reminder-date">
+                            <div class="quick-date-row" style="margin-top:8px;">
+                                <button type="button" class="chip-button" onclick="setReminderDateOffset(0)">Today</button>
+                                <button type="button" class="chip-button" onclick="setReminderDateOffset(1)">Tomorrow</button>
+                                <button type="button" class="chip-button" onclick="setReminderDateOffset(7)">Next week</button>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label>Channel</label>
@@ -1760,6 +1832,7 @@
                             <input type="number" id="reminder-interval" min="1" value="1">
                         </div>
                     </div>
+                    <div class="form-hint" id="reminder-recurrence-hint">One-time reminders are removed after they send.</div>
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
                         <div class="form-group">
                             <label>Mention</label>
@@ -1818,11 +1891,11 @@
                                                 <div class="dc-embed-title" id="reminder-preview-title">Bear Trap starts now!</div>
                                                 <div class="dc-embed-desc" id="reminder-preview-body">Optional detailed text</div>
                                             </div>
-                                            <img id="reminder-preview-thumbnail" src="" style="width: 80px; height: 80px; border-radius: 4px; object-fit: cover; display: none;">
+                                            <img id="reminder-preview-thumbnail" src="" onerror="this.onerror=null;this.src='logo.png';" style="width: 80px; height: 80px; border-radius: 4px; object-fit: cover; display: none;">
                                         </div>
-                                        <img id="reminder-preview-image" class="dc-embed-image" src="" alt="" style="display:none; margin-top: 8px; border-radius: 4px;">
+                                        <img id="reminder-preview-image" class="dc-embed-image" src="" alt="" onerror="this.onerror=null;this.src='logo.png';" style="display:none; margin-top: 8px; border-radius: 4px;">
                                         <div class="dc-embed-footer" id="reminder-preview-footer-container" style="display: none; align-items: center; gap: 8px;">
-                                            <img id="reminder-preview-footer-icon" src="" style="width: 18px; height: 18px; border-radius: 50%; display: none;">
+                                            <img id="reminder-preview-footer-icon" src="" onerror="this.onerror=null;this.style.display='none';" style="width: 18px; height: 18px; border-radius: 50%; display: none;">
                                             <span id="reminder-preview-footer-text"></span>
                                         </div>
                                     </div>
@@ -1840,6 +1913,7 @@
             </div>
             <div class="modal-footer">
                 <button onclick="closeReminderModal()" class="btn btn-secondary">Cancel</button>
+                <button onclick="sendTestReminder()" class="btn btn-secondary"><i data-lucide="send"></i> Send Test</button>
                 <button onclick="createReminder()" class="btn btn-primary">Create Reminder</button>
             </div>
         </div>
@@ -2631,13 +2705,16 @@
             } catch (e) {}
         }
 
+        let guildChannels = [];
+
         async function loadChannels() {
             try {
                 const channels = await fetchData(`/api/guilds/${guildId}/channels`);
+                guildChannels = channels || [];
                 const selects = document.querySelectorAll('#welcome-channel, .guild-channels, #birthday-channel, #source-channel, #target-channel, #ar-log-channel, #ar-register-channel, #ar-poster-channel');
                 selects.forEach(select => {
                     select.innerHTML = '<option value="">Select a channel</option>';
-                    channels.forEach(ch => {
+                    guildChannels.forEach(ch => {
                         const opt = document.createElement('option');
                         opt.value = ch.id;
                         opt.textContent = '#' + ch.name;
@@ -3727,6 +3804,13 @@
         function toggleCustomInterval() {
             const val = document.getElementById('reminder-recurrence').value;
             document.getElementById('custom-interval-group').style.display = (val === 'custom') ? 'block' : 'none';
+            const hint = document.getElementById('reminder-recurrence-hint');
+            if (hint) {
+                if (val === 'daily') hint.textContent = 'Repeats every day at the selected time.';
+                else if (val === 'weekly') hint.textContent = 'Repeats every 7 days from the selected start date.';
+                else if (val === 'custom') hint.textContent = 'Use this for event cycles such as Sunfire Castle every 14 days.';
+                else hint.textContent = 'One-time reminders are removed after they send.';
+            }
         }
         
         function formatDateTimeLocal(dateStr) {
@@ -3739,11 +3823,143 @@
 
         let currentReminderId = null;
         let remindersMap = {};
+        let remindersData = [];
+        let selectedReminderPreset = null;
 
-        function openReminderModal(reminderId = null) {
+        const REMINDER_PRESETS = [
+            {
+                id: 'arena',
+                title: 'ARENA',
+                badge: 'Daily',
+                message: 'ARENA reminder',
+                body: 'Arena attempts reset soon. Finish battles, use remaining attempts, and coordinate rank pushes.',
+                recurrence_type: 'daily',
+                recurrence_interval: 1,
+                mention: 'here',
+                image_url: 'https://i.postimg.cc/Fzq03CJf/a463d7c7-7fc7-47fc-b24d-1324383ee2ff-removebg-preview.png',
+                thumbnail_url: 'https://i.postimg.cc/Fzq03CJf/a463d7c7-7fc7-47fc-b24d-1324383ee2ff-removebg-preview.png',
+                footer_text: 'Whiteout Survival event reminder'
+            },
+            {
+                id: 'sunfire',
+                title: 'Sunfire Castle',
+                badge: 'Every 14 days',
+                message: 'Sunfire Castle starts soon',
+                body: 'Sunfire Castle cycle reminder for State #3063. Confirm rally leads, buffs, marches, and alliance assignments before battle.',
+                recurrence_type: 'custom',
+                recurrence_interval: 14,
+                mention: 'everyone',
+                image_url: 'https://cdn.discordapp.com/attachments/1424082091750068364/1431246283334619136/Gemini_Generated_Image_dqdcnxdqdcnxdqdc-removebg-preview.png?ex=68fcb779&is=68fb65f9&hm=6afcbee2e3dea071f560ea5e1615dc24a691a1e12e123b02cb3c7f0cba2a33db',
+                thumbnail_url: 'https://cdn.discordapp.com/attachments/1424082091750068364/1431246283334619136/Gemini_Generated_Image_dqdcnxdqdcnxdqdc-removebg-preview.png?ex=68fcb779&is=68fb65f9&hm=6afcbee2e3dea071f560ea5e1615dc24a691a1e12e123b02cb3c7f0cba2a33db',
+                footer_text: 'State #3063 cycle preset'
+            },
+            {
+                id: 'crazy-joe',
+                title: 'Crazy Joe',
+                badge: 'Weekly',
+                message: 'Crazy Joe starts soon',
+                body: 'Crazy Joe is coming. Reinforce allies, check troop capacity, and stay online for wave coordination.',
+                recurrence_type: 'weekly',
+                recurrence_interval: 7,
+                mention: 'here',
+                image_url: 'https://cdn.discordapp.com/attachments/1435569370389807144/1465697260829671687/images__7_-removebg-preview.png?ex=697a0c72&is=6978baf2&hm=d0efd4bfa0374b767a0cc9025abbc6d0c5e59e71cc099cccd423a066be8ceed6',
+                thumbnail_url: 'https://cdn.discordapp.com/attachments/1435569370389807144/1465697260829671687/images__7_-removebg-preview.png?ex=697a0c72&is=6978baf2&hm=d0efd4bfa0374b767a0cc9025abbc6d0c5e59e71cc099cccd423a066be8ceed6',
+                footer_text: 'Crazy Joe preset'
+            },
+            {
+                id: 'bear-trap',
+                title: 'Bear Trap',
+                badge: 'Custom',
+                message: 'Bear Trap starts soon',
+                body: 'Bear Trap rally window is near. Use the correct hero setup and be ready for fast rally joins.',
+                recurrence_type: 'custom',
+                recurrence_interval: 2,
+                mention: 'here',
+                image_url: 'https://cdn.discordapp.com/attachments/1435569370389807144/1441474311834832956/0f4d6593f84ba519bd095f077527f9ec-8.gif?ex=69288491&is=69273311&hm=6da152776bc75ea65c0d5ba9f8bbd5bec8baec1c843928df399daf76797382de',
+                thumbnail_url: 'https://cdn.discordapp.com/attachments/1435569370389807144/1441474311834832956/0f4d6593f84ba519bd095f077527f9ec-8.gif?ex=69288491&is=69273311&hm=6da152776bc75ea65c0d5ba9f8bbd5bec8baec1c843928df399daf76797382de',
+                footer_text: 'Bear Trap preset'
+            }
+        ];
+
+        function renderReminderPresets() {
+            const grid = document.getElementById('reminder-presets');
+            const chips = document.getElementById('reminder-preset-chips');
+            if (grid) {
+                grid.innerHTML = REMINDER_PRESETS.map(p => `
+                    <div class="preset-card">
+                        <div class="preset-thumb"><img src="${escapeAttribute(p.thumbnail_url || p.image_url || 'logo.png')}" alt="" onerror="this.onerror=null;this.src='logo.png';"></div>
+                        <div class="preset-body">
+                            <div class="preset-title">
+                                <strong>${escapeHTML(p.title)}</strong>
+                                <span class="status-pill active">${escapeHTML(p.badge)}</span>
+                            </div>
+                            <p>${escapeHTML(p.body)}</p>
+                            <button class="btn btn-secondary" onclick="openReminderModal(null, '${escapeAttribute(p.id)}')">
+                                <i data-lucide="copy-plus"></i> Use preset
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            if (chips) {
+                chips.innerHTML = REMINDER_PRESETS.map(p => `
+                    <button type="button" class="chip-button" onclick="applyReminderPreset('${escapeAttribute(p.id)}')">${escapeHTML(p.title)}</button>
+                `).join('');
+            }
+            lucide.createIcons();
+        }
+
+        function applyReminderPreset(presetId) {
+            const preset = REMINDER_PRESETS.find(p => p.id === presetId);
+            if (!preset) return;
+            selectedReminderPreset = presetId;
+            document.getElementById('reminder-message').value = preset.message || '';
+            document.getElementById('reminder-body').value = preset.body || '';
+            document.getElementById('reminder-recurrence').value = preset.recurrence_type || 'none';
+            document.getElementById('reminder-interval').value = preset.recurrence_interval || 1;
+            document.getElementById('reminder-mention').value = preset.mention || 'everyone';
+            document.getElementById('reminder-image').value = preset.image_url || '';
+            document.getElementById('reminder-thumbnail').value = preset.thumbnail_url || '';
+            document.getElementById('reminder-footer').value = preset.footer_text || '';
+            document.getElementById('reminder-footer-icon').value = preset.footer_icon_url || '';
+            document.getElementById('reminder-author-url').value = preset.author_url || '';
+            toggleCustomInterval();
+            updateReminderPreview();
+        }
+
+        function setReminderDateOffset(days) {
+            const d = new Date();
+            d.setDate(d.getDate() + days);
+            document.getElementById('reminder-date').value = d.toISOString().split('T')[0];
+        }
+
+        function parseReminderDate(value) {
+            if (!value) return null;
+            const text = String(value);
+            const normalized = /Z$|[+-]\d{2}:\d{2}$/.test(text) ? text : `${text}Z`;
+            const d = new Date(normalized);
+            return Number.isNaN(d.getTime()) ? null : d;
+        }
+
+        function channelLabel(channelId) {
+            const found = guildChannels.find(ch => String(ch.id) === String(channelId));
+            return found ? `#${found.name}` : String(channelId || 'No channel');
+        }
+
+        function recurrenceLabel(r) {
+            if (!r || !r.is_recurring) return 'One-time';
+            if (r.recurrence_type === 'daily') return 'Daily';
+            if (r.recurrence_type === 'weekly') return 'Weekly';
+            if (r.recurrence_type === 'custom') return `Every ${r.recurrence_interval || 1} days`;
+            return 'Recurring';
+        }
+
+        function openReminderModal(reminderId = null, presetId = null) {
             currentReminderId = reminderId;
+            selectedReminderPreset = null;
             const titleEl = document.querySelector('#reminder-modal h3');
             const submitBtn = document.querySelector('#reminder-modal .btn-primary');
+            renderReminderPresets();
             
             if (reminderId && remindersMap[reminderId]) {
                 const r = remindersMap[reminderId];
@@ -3751,7 +3967,7 @@
                 submitBtn.textContent = 'Update Reminder';
                 submitBtn.onclick = () => updateReminder(reminderId);
                 
-                const d = new Date(r.reminder_time);
+                const d = parseReminderDate(r.reminder_time) || new Date();
                 document.getElementById('reminder-date').value = d.toISOString().split('T')[0];
                 
                 let h = d.getHours();
@@ -3810,9 +4026,11 @@
                 document.getElementById('reminder-footer').value = '';
                 document.getElementById('reminder-footer-icon').value = '';
                 document.getElementById('reminder-author-url').value = '';
+                if (presetId) applyReminderPreset(presetId);
             }
             document.getElementById('reminder-modal').style.display = 'flex';
             updateReminderPreview();
+            lucide.createIcons();
         }
         function closeReminderModal() { document.getElementById('reminder-modal').style.display = 'none'; }
 
@@ -3935,6 +4153,45 @@
             };
         }
 
+        function reminderPayloadFromRecord(r) {
+            return {
+                message: r.message || 'Reminder',
+                channel_id: String(r.channel_id || ''),
+                body: r.body || null,
+                mention: r.mention || 'everyone',
+                image_url: r.image_url || null,
+                thumbnail_url: r.thumbnail_url || null,
+                footer_text: r.footer_text || null,
+                footer_icon_url: r.footer_icon_url || null,
+                author_url: r.author_url || null,
+                timezone: r.timezone || 'UTC',
+                recurrence_type: r.recurrence_type || 'none',
+                recurrence_interval: parseInt(r.recurrence_interval) || 1,
+                target_time: r.reminder_time || new Date().toISOString()
+            };
+        }
+
+        async function sendTestReminder(reminderId = null) {
+            let data = null;
+            if (reminderId && remindersMap[reminderId]) {
+                data = reminderPayloadFromRecord(remindersMap[reminderId]);
+            } else {
+                data = getReminderFormData();
+            }
+            if (!data) return;
+
+            showLoading(true);
+            try {
+                await fetchData(`/api/reminders/${guildId}/test`, {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                showNotification('Test reminder sent');
+            } catch (e) {
+                showNotification(e.message || 'Failed to send test reminder', true);
+            } finally { showLoading(false); }
+        }
+
         async function createReminder() {
             const data = getReminderFormData();
             if (!data) return;
@@ -3968,55 +4225,108 @@
         async function loadReminders() {
             const list = document.getElementById('reminders-list');
             list.innerHTML = '<div class="empty-state">Loading reminders...</div>';
+            renderReminderPresets();
             try {
                 const data = await fetchData(`/api/reminders/${guildId}`);
-                if (!data.reminders || data.reminders.length === 0) {
-                    list.innerHTML = '<div class="empty-state">No active reminders found.</div>';
-                    return;
-                }
-                
-                list.innerHTML = '';
-                list.className = 'giftcodes-grid'; // Reuse giftcode grid style
+                remindersData = data.reminders || [];
                 remindersMap = {};
-                data.reminders.forEach(r => {
+                remindersData.forEach(r => {
                     remindersMap[r.id] = r;
-                    const div = document.createElement('div');
-                    div.className = 'giftcode-card'; // Reuse style
-                    
-                    const time = new Date(r.reminder_time).toLocaleString();
-                    const recurring = r.is_recurring ? '<span class="status-pill active" style="margin-left: 8px; font-size: 0.7rem;">Recurring</span>' : '';
-                    
-                    div.innerHTML = `
-                        <div class="giftcode-top">
-                            <div class="giftcode-code" style="font-size: 1.1rem;">${escapeHTML(r.message)} ${recurring}</div>
-                        </div>
-                        <div class="giftcode-detail">
-                            <div class="giftcode-detail-row">
-                                <i data-lucide="clock"></i>
-                                <span><strong>Due</strong>${escapeHTML(time)}</span>
-                            </div>
-                            <div class="giftcode-detail-row">
-                                <i data-lucide="hash"></i>
-                                <span><strong>Channel</strong>${escapeHTML(r.channel_id)}</span>
-                            </div>
-                        </div>
-                        <div class="giftcode-actions" style="justify-content: flex-end; gap: 8px;">
-                            <button class="btn btn-secondary" onclick="openReminderModal('${r.id}')" style="padding:8px 12px;">
-                                <i data-lucide="edit-3" style="width:15px;height:15px;"></i>
-                                Edit
-                            </button>
-                            <button class="btn btn-danger" onclick="deleteReminder('${r.id}')" style="padding:8px 12px;">
-                                <i data-lucide="trash-2" style="width:15px;height:15px;"></i>
-                                Delete
-                            </button>
-                        </div>
-                    `;
-                    list.appendChild(div);
                 });
-                lucide.createIcons();
+                renderReminders();
             } catch (e) {
                 list.innerHTML = '<div class="empty-state">Failed to load reminders.</div>';
             }
+        }
+
+        function renderReminderStats(items) {
+            const stats = document.getElementById('reminder-stats');
+            if (!stats) return;
+            const now = Date.now();
+            const recurring = items.filter(r => r.is_recurring).length;
+            const next = items
+                .map(r => parseReminderDate(r.reminder_time))
+                .filter(d => d && d.getTime() >= now)
+                .sort((a, b) => a - b)[0];
+            stats.innerHTML = `
+                <div class="reminder-stat"><span>Active</span><strong>${items.length}</strong></div>
+                <div class="reminder-stat"><span>Recurring</span><strong>${recurring}</strong></div>
+                <div class="reminder-stat"><span>One-time</span><strong>${items.length - recurring}</strong></div>
+                <div class="reminder-stat"><span>Next due</span><strong>${next ? escapeHTML(next.toLocaleString()) : 'None'}</strong></div>
+            `;
+        }
+
+        function renderReminders() {
+            const list = document.getElementById('reminders-list');
+            const search = (document.getElementById('reminder-search')?.value || '').trim().toLowerCase();
+            const filter = document.getElementById('reminder-filter')?.value || 'all';
+            let items = remindersData.slice();
+            if (filter === 'recurring') items = items.filter(r => r.is_recurring);
+            if (filter === 'once') items = items.filter(r => !r.is_recurring);
+            if (search) {
+                items = items.filter(r => [
+                    r.message,
+                    r.body,
+                    channelLabel(r.channel_id),
+                    recurrenceLabel(r)
+                ].join(' ').toLowerCase().includes(search));
+            }
+
+            renderReminderStats(remindersData);
+            if (!items.length) {
+                list.className = '';
+                list.innerHTML = '<div class="empty-state">No reminders match the current view.</div>';
+                return;
+            }
+
+            list.className = 'reminder-list-grid';
+            list.innerHTML = '';
+            items.forEach(r => {
+                const id = String(r.id);
+                const d = parseReminderDate(r.reminder_time);
+                const time = d ? d.toLocaleString() : 'Unknown time';
+                const image = r.thumbnail_url || r.image_url || 'logo.png';
+                const recurring = r.is_recurring ? '<span class="status-pill active">Recurring</span>' : '<span class="status-pill pending">One-time</span>';
+                const div = document.createElement('div');
+                div.className = 'reminder-card';
+                div.innerHTML = `
+                    <div class="reminder-card-top">
+                        <img class="reminder-card-thumb" src="${escapeAttribute(image)}" alt="" onerror="this.onerror=null;this.src='logo.png';">
+                        <div>
+                            <div class="reminder-card-title">${escapeHTML(r.message || 'Untitled reminder')}</div>
+                            <div class="reminder-card-body">${escapeHTML(r.body || 'No description added.')}</div>
+                        </div>
+                    </div>
+                    <div>${recurring}</div>
+                    <div class="reminder-detail-grid">
+                        <div class="reminder-detail-row">
+                            <i data-lucide="clock"></i>
+                            <span><strong>Due</strong>${escapeHTML(time)}</span>
+                        </div>
+                        <div class="reminder-detail-row">
+                            <i data-lucide="repeat-2"></i>
+                            <span><strong>Repeat</strong>${escapeHTML(recurrenceLabel(r))}</span>
+                        </div>
+                        <div class="reminder-detail-row">
+                            <i data-lucide="hash"></i>
+                            <span><strong>Channel</strong>${escapeHTML(channelLabel(r.channel_id))}</span>
+                        </div>
+                    </div>
+                    <div class="reminder-card-actions">
+                        <button class="btn btn-secondary" onclick="sendTestReminder('${escapeAttribute(id)}')" style="padding:8px 12px;">
+                            <i data-lucide="send" style="width:15px;height:15px;"></i> Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="openReminderModal('${escapeAttribute(id)}')" style="padding:8px 12px;">
+                            <i data-lucide="edit-3" style="width:15px;height:15px;"></i> Edit
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteReminder('${escapeAttribute(id)}')" style="padding:8px 12px;">
+                            <i data-lucide="trash-2" style="width:15px;height:15px;"></i> Delete
+                        </button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+            lucide.createIcons();
         }
 
         // ──────────────────────────────────────────────────

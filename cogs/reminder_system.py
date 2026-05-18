@@ -1243,6 +1243,8 @@ class ReminderSystem(commands.Cog):
                     mention_type = reminder.get('mention', 'everyone')
                     if mention_type == 'everyone':
                         mention_text = "@everyone"
+                    elif mention_type == 'here':
+                        mention_text = "@here"
                     elif mention_type == 'user':
                         mention_text = f"<@{reminder['user_id']}>"
 

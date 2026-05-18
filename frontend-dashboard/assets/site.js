@@ -267,11 +267,12 @@
       els.meta.innerHTML = meta.length
         ? meta.map((item) => `<span>${escapeHtml(item)}</span>`).join("")
         : "<span>real bot data only</span><span>waiting for events</span>";
-      const hasAvatarPair = (event.type === "avatar" || event.old_avatar || event.new_avatar) && (event.old_avatar || event.old_value) && (event.new_avatar || event.new_value);
+      const isAvatarEvent = event.type === "avatar" && event.old_avatar && event.new_avatar;
+      const hasAvatarPair = isAvatarEvent ? true : false;
       els.avatarCompare.classList.toggle("is-visible", Boolean(hasAvatarPair));
       if (hasAvatarPair) {
-        els.oldAvatar.src = getAvatarFallback(event.old_avatar || event.old_value);
-        els.newAvatar.src = getAvatarFallback(event.new_avatar || event.new_value);
+        els.oldAvatar.src = getAvatarFallback(event.old_avatar);
+        els.newAvatar.src = getAvatarFallback(event.new_avatar);
       }
       renderHeroEvent(event, hasAvatarPair);
     };
@@ -292,8 +293,8 @@
         els.heroAvatars.classList.toggle("is-visible", Boolean(hasAvatarPair));
       }
       if (hasAvatarPair && els.heroOldAvatar && els.heroNewAvatar) {
-        els.heroOldAvatar.src = getAvatarFallback(event.old_avatar || event.old_value);
-        els.heroNewAvatar.src = getAvatarFallback(event.new_avatar || event.new_value);
+        els.heroOldAvatar.src = getAvatarFallback(event.old_avatar);
+        els.heroNewAvatar.src = getAvatarFallback(event.new_avatar);
       }
     };
     const renderQueue = () => {
@@ -314,7 +315,7 @@
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       };
 
-      els.queue.innerHTML = feedEvents.slice(0, 15).map((event) => {
+      els.queue.innerHTML = feedEvents.slice(0, feedEvents.length).map((event) => {
         const statusClass = getStatusClass(event.status, event.type);
         const time = formatEventTime(event.timestamp);
         const tags = eventTagValues(event).slice(0, 8);
@@ -409,7 +410,17 @@
             else if (visualState === "recent") els.source.textContent = "stored events";
             else els.source.textContent = feed.source === "idle" ? "idle" : "api error";
           }
-          const updatedAt = `updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+          const formatTimeWithUTC = (iso) => {
+            if (!iso) return "syncing";
+            const date = new Date(iso);
+            if (Number.isNaN(date.getTime())) return "syncing";
+            const utc = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZone: "UTC" });
+            const month = date.toLocaleDateString([], { month: "short", timeZone: "UTC" });
+            const day = date.toLocaleDateString([], { day: "2-digit", timeZone: "UTC" });
+            return `${utc} UTC - ${month} ${day}`;
+          };
+          const eventTimestamp = hasRecentEvents && feed.events[0]?.timestamp ? feed.events[0].timestamp : null;
+          const updatedAt = `${formatTimeWithUTC(eventTimestamp)}`;
           if (els.clock) els.clock.textContent = updatedAt;
           if (els.heroTime) els.heroTime.textContent = updatedAt;
           rotate();

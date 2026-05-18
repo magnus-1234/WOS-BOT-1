@@ -909,7 +909,7 @@
                 <button class="nav-item" id="nav-alliance" onclick="switchTab('alliance')">
                     <i data-lucide="shield"></i>
                     <span>Alliance Monitor</span>
-                    <div class="nav-lock-badge" title="Not configured" style="display:none;">
+                    <div class="nav-lock-badge" title="Not configured">
                         <i data-lucide="lock"></i>
                     </div>
                 </button>
@@ -928,7 +928,7 @@
                 <button class="nav-item" id="nav-giftcodes" onclick="switchTab('giftcodes')">
                     <i data-lucide="ticket"></i>
                     <span>Gift Codes</span>
-                    <div class="nav-lock-badge" title="Not configured" style="display:none;">
+                    <div class="nav-lock-badge" title="Not configured">
                         <i data-lucide="lock"></i>
                     </div>
                 </button>
@@ -1566,7 +1566,6 @@
                     <div id="ar-members-list" class="ar-members-grid">
                         <div class="ar-empty-members">Loading members...</div>
                     </div>
-                    </div>
                 </div>
 
                 <div class="auto-redeem-section" id="giftcode-history-section" style="margin-bottom: 32px; padding: 24px;">
@@ -2181,12 +2180,12 @@
                     if (navAlliance) {
                         navAlliance.classList.remove('configured-ok');
                         const lockBadge = navAlliance.querySelector('.nav-lock-badge');
-                        if (lockBadge) lockBadge.style.display = 'flex';
+                        if (lockBadge) lockBadge.style.display = '';
                     }
                     if (navGiftcodes) {
                         navGiftcodes.classList.remove('configured-ok');
                         const lockBadge = navGiftcodes.querySelector('.nav-lock-badge');
-                        if (lockBadge) lockBadge.style.display = 'flex';
+                        if (lockBadge) lockBadge.style.display = '';
                     }
                 }
                 lucide.createIcons();

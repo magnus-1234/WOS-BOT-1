@@ -109,6 +109,17 @@
       padding: 0.85rem 1rem;
       transform: translateY(150%);
       animation: slideUpFeed 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+    }
+    
+    .hero-live-feed:active {
+      cursor: grabbing;
+    }
+    
+    .hero-live-feed.dragging {
+      box-shadow: 0 12px 40px rgba(141, 232, 255, 0.4);
     }
 
     @keyframes slideUpFeed {
@@ -137,18 +148,18 @@
       place-items: center;
       width: 1.5rem;
       height: 1.5rem;
-      border: 0;
+      border: 1px solid rgba(239, 68, 68, 0.3);
       border-radius: 0.35rem;
-      background: transparent;
-      color: rgba(232, 240, 247, 0.5);
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
       cursor: pointer;
-      transition: background 0.2s, color 0.2s;
+      transition: all 0.2s;
       margin-left: auto;
     }
 
     .hero-feed-close:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #ffffff;
+      background: rgba(239, 68, 68, 0.4);
+      border-color: rgba(239, 68, 68, 0.5);
     }
 
     .hero-feed-top b {
@@ -1019,6 +1030,49 @@
   <script src="assets/site-data.js"></script>
   <script src="assets/site.js"></script>
   <script src="snow-effect.js"></script>
+  <script>
+    // Dragging logic for hero-live-feed
+    document.addEventListener("DOMContentLoaded", () => {
+      const liveFeed = document.getElementById('hero-live-feed');
+      if (!liveFeed) return;
+      
+      let isDragging = false;
+      let dragOffset = { x: 0, y: 0 };
+      
+      liveFeed.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.hero-feed-close')) return;
+        isDragging = true;
+        dragOffset.x = e.clientX - liveFeed.getBoundingClientRect().left;
+        dragOffset.y = e.clientY - liveFeed.getBoundingClientRect().top;
+        liveFeed.classList.add('dragging');
+        // Disable animation to prevent conflict with dragging
+        liveFeed.style.animation = 'none';
+        liveFeed.style.transform = 'none';
+      });
+      
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        let x = e.clientX - dragOffset.x;
+        let y = e.clientY - dragOffset.y;
+        
+        // Constrain to viewport
+        x = Math.max(0, Math.min(x, window.innerWidth - liveFeed.offsetWidth));
+        y = Math.max(0, Math.min(y, window.innerHeight - liveFeed.offsetHeight));
+        
+        liveFeed.style.left = x + 'px';
+        liveFeed.style.top = y + 'px';
+        liveFeed.style.bottom = 'auto';
+        liveFeed.style.right = 'auto';
+      });
+      
+      document.addEventListener('mouseup', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        liveFeed.classList.remove('dragging');
+      });
+    });
+  </script>
 </body>
 
 </html>

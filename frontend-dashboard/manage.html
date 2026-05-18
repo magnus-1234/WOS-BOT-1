@@ -2994,30 +2994,32 @@
         async function triggerServerRedeem(code, buttonElement) {
             const originalHtml = buttonElement.innerHTML;
             buttonElement.disabled = true;
-            buttonElement.innerHTML = '<i data-lucide="loader-2" style="width:14px;height:14px; animation: spin 1s linear infinite;"></i> Redeeming...';
+            buttonElement.innerHTML = '<i data-lucide="loader-2" style="width:14px;height:14px; animation: spin 1s linear infinite;"></i> Queuing...';
             lucide.createIcons();
 
             try {
                 const res = await fetchData('/api/giftcodes/trigger-server-redeem', {
                     method: 'POST',
                     body: JSON.stringify({
-                        guild_id: currentGuildId,
+                        guild_id: guildId,
                         code: code
                     })
                 });
 
                 if (res.status === 'success') {
-                    showNotification(`Triggered redeem for ${code} on this server!`);
-                    buttonElement.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;"></i> Queued';
+                    showNotification(`✅ Alliance redeem triggered for code: ${code}`);
+                    buttonElement.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;"></i> Triggered';
                     buttonElement.style.background = 'rgba(16, 185, 129, 0.15)';
                     buttonElement.style.color = '#34d399';
                     buttonElement.style.borderColor = 'rgba(52, 211, 153, 0.3)';
                     lucide.createIcons();
+                    // Refresh history after a short delay so new records show up
+                    setTimeout(() => loadGiftCodeHistory(), 3000);
                 } else {
                     throw new Error(res.message || 'Unknown error');
                 }
             } catch (err) {
-                showNotification(err.message, true);
+                showNotification(err.message || 'Failed to trigger redeem', true);
                 buttonElement.innerHTML = originalHtml;
                 buttonElement.disabled = false;
                 lucide.createIcons();
@@ -3030,7 +3032,7 @@
             
             list.innerHTML = '<div class="empty-state">Loading history...</div>';
             try {
-                const res = await fetchData(`/api/giftcodes/${currentGuildId}/history`);
+                const res = await fetchData(`/api/giftcodes/${guildId}/history`);
                 const history = res.history || [];
                 
                 if (history.length === 0) {
@@ -3138,9 +3140,9 @@
                             </div>
                         </div>
                         <div class="giftcode-actions" style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
-                            <button class="btn trigger-redeem" data-code="${escapeAttribute(codeText)}" style="padding:8px 12px; background: rgba(245, 158, 11, 0.15); color: var(--accent); border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.8rem;">
+                            <button class="btn trigger-redeem" data-code="${escapeAttribute(codeText)}" title="Trigger auto-redeem for all alliance members on this server via the configured auto-redeem channel" style="padding:8px 12px; background: rgba(245, 158, 11, 0.15); color: var(--accent); border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.8rem;">
                                 <i data-lucide="zap" style="width:14px;height:14px;"></i>
-                                Force Redeem
+                                Trigger Redeem for Alliance
                             </button>
                             <button class="btn btn-secondary copy-giftcode" data-code="${escapeAttribute(codeText)}" style="padding:8px 12px; font-size: 0.8rem;">
                                 <i data-lucide="copy" style="width:14px;height:14px;"></i>
@@ -4358,7 +4360,7 @@
                 await loadWelcomeSettings(); // also calls updatePreview() internally
                 await loadBirthdaySettings();
                 await loadTranslateConfigs();
-                await loadGiftCodes();
+                await loadGiftCodes();           // also calls loadGiftCodeHistory() internally
                 await loadAutoRedeemSettings();
                 await loadAutoRedeemMembers();
                 await loadReminders();

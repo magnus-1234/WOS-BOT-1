@@ -763,16 +763,20 @@ async def get_giftcode_history(guild_id: str):
     if not mongo_enabled():
         return {"history": []}
     try:
-        from db.mongo_adapters import _get_db
-        db = _get_db()
-        cursor = db["auto_redeemed_codes"].find({"guild_id": int(guild_id)}).sort("redeemed_at", -1).limit(40)
+        from db.mongo_adapters import _get_db_main_async
+        db = await _get_db_main_async()
+        # Sort by updated_at desc (redeemed_at may not exist on older docs)
+        cursor = db["auto_redeemed_codes"].find(
+            {"guild_id": int(guild_id)}
+        ).sort("updated_at", -1).limit(50)
+        docs = await cursor.to_list(length=50)
         history = []
-        for doc in cursor:
+        for doc in docs:
             history.append({
-                "code": doc.get("giftcode"),
+                "code": doc.get("code") or doc.get("giftcode"),
                 "fid": doc.get("fid"),
                 "status": doc.get("status"),
-                "redeemed_at": doc.get("redeemed_at")
+                "redeemed_at": doc.get("updated_at") or doc.get("redeemed_at") or doc.get("created_at")
             })
         return {"history": history}
     except Exception as e:

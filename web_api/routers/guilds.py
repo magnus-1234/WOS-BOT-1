@@ -76,10 +76,10 @@ async def get_guild_stats(guild_id: int, request: Request):
             stats["alliance_monitor_active"] = bool(monitor and monitor.get('enabled'))
 
             # Active Reminders
-            reminder_storage = getattr(getattr(_bot, "reminder_system", None), "storage", None) if _bot else None
-            if reminder_storage and hasattr(reminder_storage, "get_all_active_reminders"):
-                all_reminders = reminder_storage.get_all_active_reminders()
-            else:
+            try:
+                from web_api.routers.reminders import _collect_active_reminders
+                all_reminders = await _collect_active_reminders(request)
+            except Exception:
                 all_reminders = RemindersAdapter.get_all_active_reminders()
             stats["active_reminders"] = sum(1 for r in all_reminders if str(r.get('guild_id')) == str(guild_id))
 

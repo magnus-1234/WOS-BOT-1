@@ -107,6 +107,67 @@ def _reminder_belongs_to_guild(reminder: dict, guild_id: int, guild_channel_ids:
     r_channel = str(reminder.get("channel_id", ""))
     return r_guild == str(guild_id) or r_channel in guild_channel_ids
 
+def _active_reminder_query() -> dict:
+    return {
+        "$and": [
+            {"$or": [{"is_active": True}, {"is_active": 1}, {"is_active": "1"}, {"is_active": "true"}, {"is_active": "True"}, {"is_active": {"$exists": False}}]},
+            {"$or": [{"is_sent": False}, {"is_sent": 0}, {"is_sent": "0"}, {"is_sent": "false"}, {"is_sent": "False"}, {"is_sent": {"$exists": False}}]},
+        ]
+    }
+
+def _serialize_reminder(reminder: dict) -> dict:
+    item = dict(reminder)
+    for k, v in list(item.items()):
+        if hasattr(v, "isoformat"):
+            item[k] = v.isoformat()
+        elif k == "_id":
+            item[k] = str(v)
+    if "id" not in item and "_id" in item:
+        item["id"] = str(item["_id"])
+    elif "id" in item:
+        item["id"] = str(item["id"])
+    return item
+
+def _dedupe_reminders(reminders: list[dict]) -> list[dict]:
+    deduped = []
+    seen = set()
+    for r in reminders:
+        key = str(r.get("id") or r.get("_id") or "")
+        if not key:
+            key = "|".join(str(r.get(k) or "") for k in ("guild_id", "channel_id", "user_id", "message", "reminder_time"))
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(r)
+    return deduped
+
+async def _collect_active_reminders(request: Request) -> list[dict]:
+    reminders = []
+    storage = _storage(request)
+    try:
+        reminders.extend(_serialize_reminder(r) for r in storage.get_all_active_reminders())
+    except Exception as e:
+        logger.warning(f"Reminder storage list failed: {e}")
+
+    try:
+        from db.mongo_adapters import _get_db_reminders_async, RemindersAdapter
+        db = await _get_db_reminders_async()
+        cursor = db[RemindersAdapter.COLL].find(_active_reminder_query()).sort("reminder_time", 1)
+        reminders.extend(_serialize_reminder(r) for r in await cursor.to_list(length=1000))
+    except Exception as e:
+        logger.warning(f"Reminder adapter DB list failed: {e}")
+
+    try:
+        from db.mongo_client_wrapper import get_mongo_client
+        client = await get_mongo_client()
+        db = client["whiteout_survival_bot"]
+        cursor = db["reminders"].find(_active_reminder_query()).sort("reminder_time", 1)
+        reminders.extend(_serialize_reminder(r) for r in await cursor.to_list(length=1000))
+    except Exception as e:
+        logger.warning(f"Legacy reminder DB list failed: {e}")
+
+    return _dedupe_reminders(reminders)
+
 async def _get_upload_collection():
     try:
         from db.mongo_adapters import _get_db_reminders_async
@@ -250,8 +311,6 @@ async def get_reminders(request: Request, guild_id: int):
             raise HTTPException(status_code=401, detail="Invalid token")
 
     _bot = getattr(request.app.state, 'bot', None)
-    storage = _storage(request)
-
     guild_channel_ids = set()
     try:
         guild_id_int = int(guild_id)
@@ -263,27 +322,11 @@ async def get_reminders(request: Request, guild_id: int):
         if guild:
             guild_channel_ids = {str(c.id) for c in guild.channels}
 
-    # Fetch ALL active reminders (not just for the requesting user)
-    try:
-        all_reminders = storage.get_all_active_reminders()
-    except Exception:
-        all_reminders = []
+    # Fetch ALL active reminders (not just for the requesting user), across bot and legacy Mongo paths.
+    all_reminders = await _collect_active_reminders(request)
 
     server_reminders = []
     for r in all_reminders:
-        # Serialize datetimes and ObjectIds
-        for k, v in list(r.items()):
-            if hasattr(v, 'isoformat'):
-                r[k] = v.isoformat()
-        if "_id" in r:
-            r["_id"] = str(r["_id"])
-        # Ensure 'id' field is a string
-        if "id" in r:
-            r["id"] = str(r["id"])
-
-        r_guild = str(r.get("guild_id")) if r.get("guild_id") else None
-        r_channel = str(r.get("channel_id", ""))
-
         if _reminder_belongs_to_guild(r, guild_id, guild_channel_ids):
             server_reminders.append(r)
 

@@ -489,8 +489,10 @@ class RemindersAdapter:
             now = datetime.utcnow().isoformat()
             
             cursor = db[RemindersAdapter.COLL].find({
-                'is_active': 1, 
-                'is_sent': 0,
+                '$and': [
+                    {'$or': [{'is_active': 1}, {'is_active': True}, {'is_active': '1'}, {'is_active': 'true'}, {'is_active': 'True'}, {'is_active': {'$exists': False}}]},
+                    {'$or': [{'is_sent': 0}, {'is_sent': False}, {'is_sent': '0'}, {'is_sent': 'false'}, {'is_sent': 'False'}, {'is_sent': {'$exists': False}}]},
+                ],
                 'reminder_time': {'$lte': now}
             }).sort('reminder_time', 1)
             
@@ -562,8 +564,10 @@ class RemindersAdapter:
             db = _get_db_reminders()
             cursor = db[RemindersAdapter.COLL].find({
                 'user_id': str(user_id),
-                'is_active': 1,
-                'is_sent': 0
+                '$and': [
+                    {'$or': [{'is_active': 1}, {'is_active': True}, {'is_active': '1'}, {'is_active': 'true'}, {'is_active': 'True'}, {'is_active': {'$exists': False}}]},
+                    {'$or': [{'is_sent': 0}, {'is_sent': False}, {'is_sent': '0'}, {'is_sent': 'false'}, {'is_sent': 'False'}, {'is_sent': {'$exists': False}}]},
+                ],
             }).sort('reminder_time', 1).limit(limit)
             docs = list(cursor)
             for doc in docs:
@@ -600,8 +604,10 @@ class RemindersAdapter:
         try:
             db = _get_db_reminders()
             cursor = db[RemindersAdapter.COLL].find({
-                'is_active': 1,
-                'is_sent': 0
+                '$and': [
+                    {'$or': [{'is_active': 1}, {'is_active': True}, {'is_active': '1'}, {'is_active': 'true'}, {'is_active': 'True'}, {'is_active': {'$exists': False}}]},
+                    {'$or': [{'is_sent': 0}, {'is_sent': False}, {'is_sent': '0'}, {'is_sent': 'false'}, {'is_sent': 'False'}, {'is_sent': {'$exists': False}}]},
+                ],
             }).sort('reminder_time', 1)
             docs = list(cursor)
             for doc in docs:

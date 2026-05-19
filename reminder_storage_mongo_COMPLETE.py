@@ -67,8 +67,10 @@ class ReminderStorageMongo:
         try:
             now = datetime.utcnow()
             reminders = list(self.col.find({
-                'is_active': True,
-                'is_sent': False,
+                '$and': [
+                    {'$or': [{'is_active': True}, {'is_active': 1}, {'is_active': '1'}, {'is_active': 'true'}, {'is_active': 'True'}, {'is_active': {'$exists': False}}]},
+                    {'$or': [{'is_sent': False}, {'is_sent': 0}, {'is_sent': '0'}, {'is_sent': 'false'}, {'is_sent': 'False'}, {'is_sent': {'$exists': False}}]},
+                ],
                 'reminder_time': {'$lte': now}
             }).sort('reminder_time', 1))
             
@@ -140,8 +142,10 @@ class ReminderStorageMongo:
         try:
             reminders = list(self.col.find({
                 'user_id': user_id,
-                'is_active': True,
-                'is_sent': False
+                '$and': [
+                    {'$or': [{'is_active': True}, {'is_active': 1}, {'is_active': '1'}, {'is_active': 'true'}, {'is_active': 'True'}, {'is_active': {'$exists': False}}]},
+                    {'$or': [{'is_sent': False}, {'is_sent': 0}, {'is_sent': '0'}, {'is_sent': 'false'}, {'is_sent': 'False'}, {'is_sent': {'$exists': False}}]},
+                ],
             }).sort('reminder_time', 1).limit(limit))
             
             # Convert ObjectId to string and datetime for consistency
@@ -186,8 +190,10 @@ class ReminderStorageMongo:
         """Get ALL active reminders in the system"""
         try:
             reminders = list(self.col.find({
-                'is_active': True,
-                'is_sent': False
+                '$and': [
+                    {'$or': [{'is_active': True}, {'is_active': 1}, {'is_active': '1'}, {'is_active': 'true'}, {'is_active': 'True'}, {'is_active': {'$exists': False}}]},
+                    {'$or': [{'is_sent': False}, {'is_sent': 0}, {'is_sent': '0'}, {'is_sent': 'false'}, {'is_sent': 'False'}, {'is_sent': {'$exists': False}}]},
+                ],
             }).sort('reminder_time', 1))
             
             # Convert ObjectId to string for consistency

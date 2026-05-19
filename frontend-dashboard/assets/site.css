@@ -53,9 +53,9 @@ svg {
 }
 
 .container {
-  width: min(100%, 74rem);
+  width: min(100%, 90rem);
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding: 0 2rem;
 }
 
 .site-header {
@@ -76,10 +76,10 @@ svg {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: min(100%, 74rem);
+  width: min(100%, 90rem);
   min-height: 5rem;
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding: 0 2rem;
   gap: 1rem;
 }
 
@@ -387,9 +387,10 @@ svg {
   position: absolute;
   width: 6.2rem;
   height: 6.2rem;
-  border: 1px solid rgba(209, 234, 255, 0.08);
-  background: rgba(5, 5, 5, 0.82);
-  backdrop-filter: blur(1px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
 }
 
 .hero-art-tiles span:nth-child(1) { left: 0; top: 0; }
@@ -1988,13 +1989,27 @@ h3 {
   .header-inner {
     height: auto;
     min-height: 4rem;
-    flex-wrap: wrap;
-    padding-top: 0.75rem;
-    padding-bottom: 0.75rem;
+    flex-wrap: nowrap;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    justify-content: space-between;
+  }
+
+  .brand {
+    font-size: 0.95rem;
+    gap: 0.4rem;
+  }
+
+  .brand-mark {
+    width: 1.85rem;
+    height: 1.85rem;
+    border-radius: 0.4rem;
   }
 
   .ghost-link {
-    display: none;
+    display: inline-flex;
+    font-size: 0.82rem;
+    padding: 0.35rem 0.75rem;
   }
 
   .hero {

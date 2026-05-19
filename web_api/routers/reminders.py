@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File
 from pydantic import BaseModel
 from typing import Optional, List
 import httpx
@@ -6,6 +6,7 @@ import logging
 import pytz
 import discord
 import uuid
+import os
 from datetime import datetime, timezone as dt_timezone
 
 from cogs.reminder_system import ReminderStorage, TimeParser
@@ -457,12 +458,17 @@ async def upload_reminder_image(request: Request, file: UploadFile = File(...)):
     with open(filepath, "wb") as f:
         f.write(content)
 
-    # Use the request's base URL to construct the public URL
-    base_url = str(request.base_url).rstrip("/")
-    if "vercel.app" in base_url or "localhost" in base_url:
-        # Fallback to the production API URL if the base_url is from the frontend proxy
-        # But wait, request.base_url from FastAPI is usually the bot API url.
-        pass
+    # Use the request's base URL and headers to construct the public URL
+    scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
+    forwarded_host = request.headers.get("X-Forwarded-Host")
+    if forwarded_host:
+        base_url = f"{scheme}://{forwarded_host}"
+    else:
+        host = request.headers.get("Host")
+        if host:
+            base_url = f"{scheme}://{host}"
+        else:
+            base_url = str(request.base_url).rstrip("/")
         
     public_url = f"{base_url}/api/static/{filename}"
     return {"status": "success", "url": public_url}

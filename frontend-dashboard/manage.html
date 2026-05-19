@@ -945,6 +945,44 @@
         .timezone-select:focus {
             border-color: var(--primary);
         }
+
+        /* Custom Switch for Presets and Uploads */
+        .custom-switch-container {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+        .custom-switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #232831;
+            border: 1px solid var(--glass-border);
+            transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 24px;
+        }
+        .custom-switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #9ca3af;
+            transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 50%;
+        }
+        input:checked + .custom-switch-slider {
+            background-color: rgba(139, 92, 246, 0.2);
+            border-color: var(--primary);
+        }
+        input:checked + .custom-switch-slider:before {
+            transform: translateX(20px);
+            background-color: var(--primary);
+            box-shadow: 0 0 8px var(--primary);
+        }
     </style>
 </head>
 
@@ -2029,15 +2067,36 @@
                     </div>
 
                     <!-- Save as Preset Section -->
-                    <div class="form-group" style="margin-top: 12px; padding: 16px; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.15); border-radius: 12px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 0;">
-                            <input type="checkbox" id="reminder-save-as-preset" style="width: 18px; height: 18px;" onchange="document.getElementById('preset-title-group').style.display = this.checked ? 'block' : 'none'">
-                            <span style="font-weight: 700; color: #c4b5fd;">Save this reminder as a community preset</span>
-                        </label>
-                        <div id="preset-title-group" style="display: none; margin-top: 12px;">
-                            <label style="font-size: 0.75rem; color: var(--text-muted);">Preset Title</label>
-                            <input type="text" id="reminder-preset-title" placeholder="e.g. Bear Trap Template" style="margin-top: 4px;">
-                            <div class="form-hint">Community presets help others set up similar events quickly.</div>
+                    <div class="preset-save-container" style="margin-top: 16px; padding: 18px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.04) 0%, rgba(30, 27, 75, 0.2) 100%); border: 1px solid rgba(139, 92, 246, 0.15); border-radius: 16px; transition: all 0.3s ease; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);" onclick="toggleSavePresetCheckbox(event)">
+                        <div style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="background: rgba(139, 92, 246, 0.15); width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #a78bfa;">
+                                    <i data-lucide="share-2" style="width: 20px; height: 20px;"></i>
+                                </div>
+                                <div>
+                                    <h4 style="margin: 0; font-size: 0.92rem; font-weight: 700; color: #c4b5fd; font-family: 'Outfit', sans-serif;">Save as Community Preset</h4>
+                                    <p style="margin: 2px 0 0 0; font-size: 0.76rem; color: var(--text-muted);">Share this layout so other alliances can use it instantly</p>
+                                </div>
+                            </div>
+                            <!-- Styled Switch toggle -->
+                            <div class="custom-switch-container">
+                                <input type="checkbox" id="reminder-save-as-preset" style="display:none;" onchange="handleSavePresetChange(this)">
+                                <span class="custom-switch-slider"></span>
+                            </div>
+                        </div>
+                        
+                        <div id="preset-title-group" style="max-height: 0px; overflow: hidden; opacity: 0; transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1); margin-top: 0;">
+                            <div style="padding-top: 16px; border-top: 1px dashed rgba(139, 92, 246, 0.15); margin-top: 14px;">
+                                <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 6px;">Preset Template Title</label>
+                                <div style="position: relative;">
+                                    <i data-lucide="tag" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: rgba(139, 92, 246, 0.6);"></i>
+                                    <input type="text" id="reminder-preset-title" placeholder="e.g. Bear Trap Standard Schedule" style="padding-left: 42px; background: #16191f; border-color: rgba(139, 92, 246, 0.2); width: 100%;">
+                                </div>
+                                <div class="form-hint" style="color: rgba(167, 139, 250, 0.7); display: flex; align-items: center; gap: 4px; margin-top: 8px;">
+                                    <i data-lucide="sparkles" style="width: 12px; height: 12px;"></i>
+                                    Saved templates automatically appear in the global Community Presets directory!
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -4083,6 +4142,41 @@
             finally { showLoading(false); input.value = ''; }
         }
 
+        function toggleSavePresetCheckbox(e) {
+            if (e && (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL' || e.target.closest('#preset-title-group'))) {
+                return;
+            }
+            const chk = document.getElementById('reminder-save-as-preset');
+            if (chk) {
+                chk.checked = !chk.checked;
+                handleSavePresetChange(chk);
+            }
+        }
+
+        function handleSavePresetChange(chk) {
+            const group = document.getElementById('preset-title-group');
+            const container = document.querySelector('.preset-save-container');
+            if (group) {
+                if (chk.checked) {
+                    group.style.maxHeight = '200px';
+                    group.style.opacity = '1';
+                    group.style.marginTop = '12px';
+                    if (container) {
+                        container.style.borderColor = 'rgba(139, 92, 246, 0.4)';
+                        container.style.boxShadow = '0 8px 30px rgba(139, 92, 246, 0.15)';
+                    }
+                } else {
+                    group.style.maxHeight = '0px';
+                    group.style.opacity = '0';
+                    group.style.marginTop = '0px';
+                    if (container) {
+                        container.style.borderColor = 'rgba(139, 92, 246, 0.15)';
+                        container.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.15)';
+                    }
+                }
+            }
+        }
+
         
         function formatDateTimeLocal(dateStr) {
             if (!dateStr) return '';
@@ -4368,7 +4462,7 @@
                 // Reset preset fields
                 document.getElementById('reminder-save-as-preset').checked = false;
                 document.getElementById('reminder-preset-title').value = '';
-                document.getElementById('preset-title-group').style.display = 'none';
+                handleSavePresetChange(document.getElementById('reminder-save-as-preset'));
             } else {
                 titleEl.textContent = 'New Reminder';
                 submitBtn.textContent = 'Create Reminder';
@@ -4406,7 +4500,7 @@
                 // Reset preset fields
                 document.getElementById('reminder-save-as-preset').checked = false;
                 document.getElementById('reminder-preset-title').value = '';
-                document.getElementById('preset-title-group').style.display = 'none';
+                handleSavePresetChange(document.getElementById('reminder-save-as-preset'));
                 
                 if (presetId) applyReminderPreset(presetId);
             }

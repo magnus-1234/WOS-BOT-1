@@ -619,13 +619,62 @@ async def delete_reminder(request: Request, guild_id: int, reminder_id: str):
             guild = _bot.get_guild(guild_id)
             if guild:
                 guild_channel_ids = {str(c.id) for c in guild.channels}
+        
+        # 1. Try to delete/deactivate in the main storage admin-style
         try:
             all_reminders = storage.get_all_active_reminders()
             target = next((r for r in all_reminders if str(r.get("id") or r.get("_id")) == str(reminder_id)), None)
             if target and _reminder_belongs_to_guild(target, guild_id, guild_channel_ids):
                 success = storage.update_reminder_fields(_normalize_reminder_id(reminder_id), {"is_active": False})
         except Exception as e:
-            logger.error(f"Failed admin-style reminder delete for {reminder_id}: {e}")
+            logger.error(f"Failed admin-style reminder delete in main storage for {reminder_id}: {e}")
+
+        # 2. Try to deactivate directly in MongoDB RemindersAdapter database if it was not done
+        if not success:
+            try:
+                from db.mongo_adapters import _get_db_reminders_async, RemindersAdapter
+                from bson import ObjectId
+                db = await _get_db_reminders_async()
+                query_id = reminder_id
+                try:
+                    query_id = ObjectId(reminder_id)
+                except Exception:
+                    pass
+                
+                target = await db[RemindersAdapter.COLL].find_one({"$or": [{"_id": query_id}, {"id": reminder_id}]})
+                if target and _reminder_belongs_to_guild(target, guild_id, guild_channel_ids):
+                    res = await db[RemindersAdapter.COLL].update_one(
+                        {"$or": [{"_id": query_id}, {"id": reminder_id}]},
+                        {"$set": {"is_active": 0, "is_active_legacy": False}}
+                    )
+                    if res.modified_count > 0:
+                        success = True
+            except Exception as e:
+                logger.error(f"Failed direct MongoDB RemindersAdapter deactivation for {reminder_id}: {e}")
+
+        # 3. Try to deactivate directly in the legacy database `whiteout_survival_bot`
+        if not success:
+            try:
+                from db.mongo_client_wrapper import get_mongo_client
+                from bson import ObjectId
+                client = await get_mongo_client()
+                db = client["whiteout_survival_bot"]
+                query_id = reminder_id
+                try:
+                    query_id = ObjectId(reminder_id)
+                except Exception:
+                    pass
+                
+                target = await db["reminders"].find_one({"$or": [{"_id": query_id}, {"id": reminder_id}]})
+                if target and _reminder_belongs_to_guild(target, guild_id, guild_channel_ids):
+                    res = await db["reminders"].update_one(
+                        {"$or": [{"_id": query_id}, {"id": reminder_id}]},
+                        {"$set": {"is_active": False, "is_active_legacy": False, "is_active_str": "false"}}
+                    )
+                    if res.modified_count > 0:
+                        success = True
+            except Exception as e:
+                logger.error(f"Failed direct legacy database deactivation for {reminder_id}: {e}")
 
     if success:
         return {"status": "success"}

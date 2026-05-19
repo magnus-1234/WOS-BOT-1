@@ -133,10 +133,11 @@ logger = logging.getLogger(__name__)
 # Reminder image URLs - synced with images.js
 REMINDER_IMAGES = {
     'set': 'https://i.postimg.cc/Fzq03CJf/a463d7c7-7fc7-47fc-b24d-1324383ee2ff-removebg-preview.png',  # Logo when setting a reminder
-    'alert': 'https://cdn.discordapp.com/attachments/1424082091750068364/1431246283334619136/Gemini_Generated_Image_dqdcnxdqdcnxdqdc-removebg-preview.png?ex=68fcb779&is=68fb65f9&hm=6afcbee2e3dea071f560ea5e1615dc24a691a1e12e123b02cb3c7f0cba2a33db',  # Logo when receiving a reminder
-    'Bear trap': 'https://cdn.discordapp.com/attachments/1435569370389807144/1441474311834832956/0f4d6593f84ba519bd095f077527f9ec-8.gif?ex=69288491&is=69273311&hm=6da152776bc75ea65c0d5ba9f8bbd5bec8baec1c843928df399daf76797382de',
-    'Crazy Joe': 'https://cdn.discordapp.com/attachments/1435569370389807144/1465697260829671687/images__7_-removebg-preview.png?ex=697a0c72&is=6978baf2&hm=d0efd4bfa0374b767a0cc9025abbc6d0c5e59e71cc099cccd423a066be8ceed6'
+    'alert': 'https://i.postimg.cc/Fzq03CJf/a463d7c7-7fc7-47fc-b24d-1324383ee2ff-removebg-preview.png',  # Logo when receiving a reminder
+    'Bear trap': 'https://i.postimg.cc/Xq0GQvXM/bear-event.png',
+    'Crazy Joe': 'https://i.postimg.cc/Jz0Tz3Ht/crazy-joe-event.png'
 }
+
 
 def get_accurate_utc_time() -> datetime:
     """

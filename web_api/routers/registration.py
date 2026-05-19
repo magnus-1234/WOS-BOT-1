@@ -29,6 +29,7 @@ class SubmitRegistrationRequest(BaseModel):
     guild_name: str
     alliance_name: str = Field(..., min_length=1, max_length=100)
     access_code: str = Field(..., min_length=4, max_length=64)
+    state: int = Field(..., ge=1)
     discord_user_id: str
     discord_username: str
 
@@ -57,6 +58,7 @@ async def check_registration_status(guild_id: str):
             "guild_id": doc.get("guild_id"),
             "guild_name": doc.get("guild_name"),
             "alliance_name": doc.get("alliance_name"),
+            "state": doc.get("state"),
             "status": "approved",
             "submitted_at": doc.get("submitted_at"),
             "discord_username": doc.get("discord_username"),
@@ -87,6 +89,7 @@ async def check_registration_status(guild_id: str):
         "guild_id": doc.get("guild_id"),
         "guild_name": doc.get("guild_name"),
         "alliance_name": doc.get("alliance_name"),
+        "state": doc.get("state"),
         "status": doc.get("status"),
         "submitted_at": doc.get("submitted_at"),
         "discord_username": doc.get("discord_username"),
@@ -149,6 +152,7 @@ async def submit_registration(body: SubmitRegistrationRequest, request: Request)
         access_code=body.access_code,
         discord_user_id=int(body.discord_user_id),
         discord_username=body.discord_username,
+        state=body.state
     )
     if not ok:
         raise HTTPException(status_code=500, detail="Failed to save registration request")
@@ -201,6 +205,7 @@ async def get_pending_registrations(request: Request):
             "guild_id": doc.get("guild_id"),
             "guild_name": doc.get("guild_name"),
             "alliance_name": doc.get("alliance_name"),
+            "state": doc.get("state"),
             "discord_username": doc.get("discord_username"),
             "discord_user_id": doc.get("discord_user_id"),
             "submitted_at": doc.get("submitted_at"),

@@ -1089,6 +1089,13 @@
                     </div>
                     <div class="overview-stat-box" style="justify-content: space-between;">
                         <div class="stat-data" style="text-align: left;">
+                            <p style="text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; font-size: 0.75rem;">State</p>
+                            <h3 id="stat-state" style="font-size: 1.1rem; margin-top: 4px;">Not Set</h3>
+                        </div>
+                        <div class="stat-icon" style="color:#60a5fa; background:rgba(96,165,250,0.1);"><i data-lucide="map-pin"></i></div>
+                    </div>
+                    <div class="overview-stat-box" style="justify-content: space-between;">
+                        <div class="stat-data" style="text-align: left;">
                             <p style="text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; font-size: 0.75rem;">Server Age</p>
                             <h3 id="stat-server-age" style="font-size: 1.1rem; margin-top: 4px;">Unknown</h3>
                         </div>
@@ -2173,9 +2180,15 @@
                 <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px;line-height:1.5;">
                     Enter your in-game alliance name. It will be linked to this Discord server.
                 </p>
-                <div class="form-group" style="margin-bottom:0;">
+                <div class="form-group" style="margin-bottom:12px;">
                     <label>Alliance Name</label>
                     <input type="text" id="reg-alliance-name" placeholder="e.g. Dragon Knights" maxlength="100"
+                           style="font-size:1rem;"
+                           onkeydown="if(event.key==='Enter') regStep1Next()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>State (Number Only)</label>
+                    <input type="number" id="reg-state" placeholder="e.g. 123" min="1" max="99999"
                            style="font-size:1rem;"
                            onkeydown="if(event.key==='Enter') regStep1Next()">
                     <div id="reg-step1-error" style="color:#ef4444;font-size:0.8rem;margin-top:8px;display:none;"></div>
@@ -2331,6 +2344,7 @@
 
         // â”€â”€ Registration Wizard State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         let _regWizardAllianceName = '';
+        let _regWizardState = '';
         let _regServerName = '';
         let _discordUserId = null;
         let _discordUsername = null;
@@ -2529,6 +2543,7 @@
             } else {
                 // Reset wizard to step 1
                 document.getElementById('reg-alliance-name').value = '';
+                document.getElementById('reg-state').value = '';
                 document.getElementById('reg-access-code').value = '';
                 document.getElementById('reg-access-code-confirm').value = '';
                 document.getElementById('reg-step1-error').style.display = 'none';
@@ -2572,6 +2587,7 @@
 
         function regStep1Next() {
             const val = document.getElementById('reg-alliance-name').value.trim();
+            const stateVal = document.getElementById('reg-state').value.trim();
             const errEl = document.getElementById('reg-step1-error');
             if (!val) {
                 errEl.textContent = 'Please enter your alliance name.';
@@ -2583,9 +2599,15 @@
                 errEl.style.display = 'block';
                 return;
             }
+            if (!stateVal || isNaN(parseInt(stateVal))) {
+                errEl.textContent = 'Please enter a valid state number.';
+                errEl.style.display = 'block';
+                return;
+            }
             errEl.style.display = 'none';
             _regWizardAllianceName = val;
-            document.getElementById('reg-alliance-preview').textContent = val;
+            _regWizardState = parseInt(stateVal);
+            document.getElementById('reg-alliance-preview').textContent = val + ' (#' + _regWizardState + ')';
             regGoToStep(2);
             setTimeout(() => document.getElementById('reg-access-code').focus(), 80);
         }
@@ -2634,6 +2656,7 @@
                         guild_name: _regServerName || guildId,
                         alliance_name: _regWizardAllianceName,
                         access_code: code,
+                        state: _regWizardState,
                         discord_user_id: _discordUserId || '0',
                         discord_username: _discordUsername || 'Unknown'
                     })
@@ -2830,6 +2853,7 @@
                 
                 if(document.getElementById('stat-server-age')) document.getElementById('stat-server-age').textContent = stats.server_age || 'Unknown';
                 if(document.getElementById('stat-alliance')) document.getElementById('stat-alliance').textContent = stats.alliance_name || 'Not Set';
+                if(document.getElementById('stat-state')) document.getElementById('stat-state').textContent = stats.state || 'Not Set';
                 if(document.getElementById('stat-active-reminders')) document.getElementById('stat-active-reminders').textContent = stats.active_reminders || 0;
                 
                 const updateBadge = (id, active) => {

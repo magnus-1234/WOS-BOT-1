@@ -5933,6 +5933,14 @@ class BotOperations(commands.Cog):
                         max_length=64,
                         required=True
                     )
+                    state_number = discord.ui.TextInput(
+                        label="State (Number only)",
+                        placeholder="e.g. 123",
+                        style=discord.TextStyle.short,
+                        min_length=1,
+                        max_length=5,
+                        required=True
+                    )
                     async def on_submit(self, modal_interaction: discord.Interaction):
                         await modal_interaction.response.defer(ephemeral=True)
                         try:
@@ -5950,6 +5958,11 @@ class BotOperations(commands.Cog):
                                 )
                                 return
 
+                            state_val = self.state_number.value.strip()
+                            if not state_val.isdigit():
+                                await modal_interaction.followup.send("❌ State must be a valid number.", ephemeral=True)
+                                return
+
                             ok = await PendingConfigAdapter.submit_async(
                                 guild_id=guild_id,
                                 guild_name=modal_interaction.guild.name,
@@ -5957,6 +5970,7 @@ class BotOperations(commands.Cog):
                                 access_code=self.access_code.value.strip(),
                                 discord_user_id=user_id,
                                 discord_username=username,
+                                state=int(state_val)
                             )
                             if not ok:
                                 await modal_interaction.followup.send("❌ Failed to save registration request. Try again later.", ephemeral=True)
@@ -5971,6 +5985,7 @@ class BotOperations(commands.Cog):
                                         msg = (
                                             f"📋 **New Server Registration Request (Via Bot)**\n\n"
                                             f"**Server:** {modal_interaction.guild.name} (`{guild_id}`)\n"
+                                            f"**State:** `{state_val}`\n"
                                             f"**Alliance Name:** `{self.alliance_name.value.strip()}`\n"
                                             f"**Requested by:** {username} (`{user_id}`)\n"
                                             f"**Access Code:** ||`{self.access_code.value.strip()}`||\n\n"

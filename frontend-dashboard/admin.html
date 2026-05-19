@@ -556,7 +556,7 @@
         <div class="table-row">
           <div>
             <strong>${escapeHTML(item.guild_name || item.guild_id)}</strong>
-            <div class="muted">Alliance: ${escapeHTML(item.alliance_name)} | Requested by ${escapeHTML(item.discord_username)} (${escapeHTML(item.discord_user_id)})</div>
+            <div class="muted">Alliance: ${escapeHTML(item.alliance_name)} (State: ${escapeHTML(item.state || 'N/A')}) | Requested by ${escapeHTML(item.discord_username)} (${escapeHTML(item.discord_user_id)})</div>
           </div>
           <div class="row-actions">
             <button class="btn small success" onclick="reviewRegistration('${escapeHTML(item.guild_id)}','approve')">Approve</button>

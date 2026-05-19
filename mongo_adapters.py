@@ -2856,6 +2856,38 @@ class ServerAllianceAdapter:
             logger.error(f'Failed to verify password (async) for server {guild_id}: {e}')
             return False
 
+    @staticmethod
+    def get_state(guild_id: int) -> Optional[int]:
+        """Get the assigned state number for a Discord server"""
+        try:
+            db = _get_db_main()
+            doc = db[ServerAllianceAdapter.COLL].find_one({'_id': str(guild_id)})
+            if not doc: doc = db[ServerAllianceAdapter.COLL].find_one({'_id': int(guild_id)})
+            if not doc: doc = db[ServerAllianceAdapter.COLL].find_one({'id': str(guild_id)})
+            if not doc: doc = db[ServerAllianceAdapter.COLL].find_one({'id': int(guild_id)})
+            if doc:
+                return doc.get('state')
+            return None
+        except Exception as e:
+            logger.error(f'Failed to get state for server {guild_id}: {e}')
+            return None
+
+    @staticmethod
+    async def get_state_async(guild_id: int) -> Optional[int]:
+        """Get the assigned state number for a Discord server asynchronously"""
+        try:
+            db = await _get_db_main_async()
+            doc = await db[ServerAllianceAdapter.COLL].find_one({'_id': str(guild_id)})
+            if not doc: doc = await db[ServerAllianceAdapter.COLL].find_one({'_id': int(guild_id)})
+            if not doc: doc = await db[ServerAllianceAdapter.COLL].find_one({'id': str(guild_id)})
+            if not doc: doc = await db[ServerAllianceAdapter.COLL].find_one({'id': int(guild_id)})
+            if doc:
+                return doc.get('state')
+            return None
+        except Exception as e:
+            logger.error(f'Failed to get state (async) for server {guild_id}: {e}')
+            return None
+
 
 class AuthSessionsAdapter:
     """Adapter for managing authentication sessions for /manage command"""
@@ -4162,7 +4194,7 @@ class PendingConfigAdapter:
     @staticmethod
     async def submit_async(guild_id: int, guild_name: str, alliance_name: str,
                            access_code: str, discord_user_id: int,
-                           discord_username: str) -> bool:
+                           discord_username: str, state: int = None) -> bool:
         """Submit a new pending config request."""
         try:
             db = await _get_db_main_async()
@@ -4177,6 +4209,7 @@ class PendingConfigAdapter:
                         'access_code': str(access_code),
                         'discord_user_id': str(discord_user_id),
                         'discord_username': str(discord_username),
+                        'state': state,
                         'status': 'pending',
                         'submitted_at': now,
                         'updated_at': now
@@ -4246,6 +4279,7 @@ class PendingConfigAdapter:
                     '$set': {
                         'id': int(guild_id),
                         'alliance_name': doc['alliance_name'],
+                        'state': doc.get('state'),
                         'member_list_password': doc['access_code'],
                         'password_set_by': int(admin_user_id),
                         'password_set_at': now,

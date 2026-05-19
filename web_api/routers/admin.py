@@ -215,6 +215,7 @@ async def _pending_registrations() -> List[Dict[str, Any]]:
             "guild_id": str(doc.get("guild_id", "")),
             "guild_name": doc.get("guild_name", ""),
             "alliance_name": doc.get("alliance_name", ""),
+            "state": doc.get("state"),
             "discord_user_id": str(doc.get("discord_user_id", "")),
             "discord_username": doc.get("discord_username", ""),
             "submitted_at": doc.get("submitted_at", ""),

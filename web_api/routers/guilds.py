@@ -37,6 +37,7 @@ async def get_guild_stats(guild_id: int, request: Request):
         "icon_url": None,
         "server_age": "Unknown",
         "alliance_name": "Not Set",
+        "state": "Not Set",
         "active_reminders": 0,
         "auto_redeem_active": False,
         "alliance_monitor_active": False,
@@ -80,6 +81,11 @@ async def get_guild_stats(guild_id: int, request: Request):
                 target_alliance = next((a for a in all_alliances if str(a.get('alliance_id')) == str(alliance_id)), None)
                 if target_alliance and target_alliance.get('name'):
                     stats["alliance_name"] = target_alliance.get('name')
+            
+            # State
+            state = await ServerAllianceAdapter.get_state_async(guild_id)
+            if state:
+                stats["state"] = state
         except Exception as e:
             logger.error(f"Error fetching overview stats for {guild_id}: {e}")
             

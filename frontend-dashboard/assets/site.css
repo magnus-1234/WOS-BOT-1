@@ -1,6 +1,6 @@
 :root {
   --radius: 0.5rem;
-  --background: #050505;
+  --background: #060f26;
   --foreground: #f7f6fb;
   --card: #111014;
   --primary: #9a63f0;
@@ -354,8 +354,8 @@ svg {
 
 .hero-art::before {
   background:
-    linear-gradient(to right, var(--background) 0%, rgba(5, 5, 5, 0.96) 12%, rgba(5, 5, 5, 0.66) 31%, rgba(5, 5, 5, 0.1) 58%, rgba(5, 5, 5, 0.4) 100%),
-    linear-gradient(to bottom, rgba(5, 5, 5, 0.42), rgba(5, 5, 5, 0.02) 45%, rgba(5, 5, 5, 0.64));
+    linear-gradient(to right, var(--background) 0%, rgba(6, 15, 38, 0.96) 12%, rgba(6, 15, 38, 0.66) 31%, rgba(6, 15, 38, 0.1) 58%, rgba(6, 15, 38, 0.4) 100%),
+    linear-gradient(to bottom, rgba(6, 15, 38, 0.0) 0%, rgba(6, 15, 38, 0.02) 45%, rgba(6, 15, 38, 0.75) 100%);
 }
 
 .hero-art::after {
@@ -368,9 +368,9 @@ svg {
 
 .hero-art img {
   position: absolute;
-  inset: 4.5rem -8rem 0 auto;
+  inset: 0 -8rem 0 auto;
   width: min(80rem, 90vw);
-  height: calc(100% - 4.5rem);
+  height: 100%;
   object-fit: cover;
   object-position: center right;
   filter: saturate(0.98) contrast(1.05);

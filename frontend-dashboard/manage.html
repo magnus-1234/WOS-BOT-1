@@ -4183,6 +4183,39 @@
             document.getElementById('create-preset-modal').style.display = 'flex';
         }
 
+        function openSaveAsPresetModal() {
+            // Prefill create-preset modal from current reminder form values
+            try {
+                const titleInput = document.getElementById('reminder-preset-title');
+                const messageInput = document.getElementById('reminder-message');
+                const bodyInput = document.getElementById('reminder-body');
+                const recurrence = document.getElementById('reminder-recurrence');
+                const interval = document.getElementById('reminder-interval');
+                const mention = document.getElementById('reminder-mention');
+                const image = document.getElementById('reminder-image');
+                const thumbnail = document.getElementById('reminder-thumbnail');
+                const footer = document.getElementById('reminder-footer');
+                const footerIcon = document.getElementById('reminder-footer-icon');
+
+                document.getElementById('cp-title').value = (titleInput && titleInput.value.trim()) || (messageInput && messageInput.value.trim()) || '';
+                document.getElementById('cp-message').value = (messageInput && messageInput.value.trim()) || '';
+                document.getElementById('cp-body').value = (bodyInput && bodyInput.value.trim()) || '';
+                document.getElementById('cp-recurrence').value = (recurrence && recurrence.value) || 'none';
+                document.getElementById('cp-interval').value = (interval && interval.value) || '1';
+                document.getElementById('cp-mention').value = (mention && mention.value) || 'everyone';
+                document.getElementById('cp-image').value = (image && image.value.trim()) || '';
+                document.getElementById('cp-thumbnail').value = (thumbnail && thumbnail.value.trim()) || '';
+                document.getElementById('cp-footer').value = (footer && footer.value.trim()) || '';
+                document.getElementById('cp-footer-icon').value = (footerIcon && footerIcon.value.trim()) || '';
+
+                updatePresetPreview();
+                document.getElementById('create-preset-modal').style.display = 'flex';
+            } catch (e) {
+                console.error('Failed to open Save As Preset modal:', e);
+                showNotification('Could not open preset editor', true);
+            }
+        }
+
         function closeCreatePresetModal() {
             document.getElementById('create-preset-modal').style.display = 'none';
         }
@@ -4568,6 +4601,14 @@
         async function createReminder() {
             const data = getReminderFormData();
             if (!data) return;
+
+            // If user requested to save as preset but didn't provide a preset title inline,
+            // open the preset editor prefilled so they can pick a title/preview first.
+            if (data.save_as_preset && !data.preset_title) {
+                showNotification('Please provide a title for the community preset. Opening preset editor to complete it.');
+                openSaveAsPresetModal();
+                return;
+            }
             
             showLoading(true);
             try {
@@ -4575,9 +4616,12 @@
                     method: 'POST', 
                     body: JSON.stringify(data) 
                 });
-                
-                if (data.save_as_preset) {
+
+                // Prefer backend-confirmed preset creation message when available
+                if (res && res.preset) {
                     showNotification('Reminder created and saved as preset!');
+                } else if (data.save_as_preset) {
+                    showNotification('Reminder created and preset requested.');
                 } else {
                     showNotification('Reminder created!');
                 }

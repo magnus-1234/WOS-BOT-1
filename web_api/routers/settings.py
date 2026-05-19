@@ -189,11 +189,6 @@ async def get_birthday_records(guild_id: int, request: Request):
                 if str(guild_id) == g_id_str:
                     is_match = True
                     user_id_str = u_id_str
-        else:
-            # Legacy/global record: match if user is in this guild
-            user_id_str = key
-            if guild and guild.get_member(int(user_id_str)):
-                is_match = True
 
         if is_match:
             try:

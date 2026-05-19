@@ -1245,7 +1245,7 @@ class BirthdayDashboardView(discord.ui.View):
                             await modal_interaction.followup.send("❌ Invalid date!", ephemeral=True)
                             return
                         
-                        success = self.birthday_system.add_birthday(modal_interaction.user.id, day, month, pid)
+                        success = self.birthday_system.add_birthday(modal_interaction.guild_id, modal_interaction.user.id, day, month, pid)
                         if success:
                             # Don't reload - add_birthday already updated the cache with player_id
                             import calendar
@@ -1343,7 +1343,7 @@ class BirthdayDashboardView(discord.ui.View):
                                     await modal_interaction.followup.send("❌ Invalid date!", ephemeral=True)
                                     return
                                 
-                                success = self.birthday_system.add_birthday(self.target_user.id, day, month, pid)
+                                success = self.birthday_system.add_birthday(modal_interaction.guild_id, self.target_user.id, day, month, pid)
                                 if success:
                                     # Don't reload - add_birthday already updated the cache with player_id
                                     import calendar

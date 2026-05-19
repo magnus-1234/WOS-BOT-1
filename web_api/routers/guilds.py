@@ -106,7 +106,7 @@ async def get_guild_stats(guild_id: int, request: Request):
             # State
             state = await ServerAllianceAdapter.get_state_async(guild_id)
             if state:
-                stats["state"] = state
+                stats["state"] = f"#{state}"
                 try:
                     from cogs.server_age import fetch_server_age_data
                     age_data = await asyncio.wait_for(fetch_server_age_data(int(state)), timeout=18)

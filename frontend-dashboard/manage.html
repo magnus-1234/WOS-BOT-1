@@ -1115,7 +1115,7 @@
                 </div>
 
                 <h3 style="margin-top:24px; margin-bottom:12px; font-family:'Outfit', sans-serif; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
-                    <i data-lucide="activity" style="color:var(--primary); width:18px;"></i> Bot Integration & Features
+                    <i data-lucide="activity" style="color:var(--primary); width:18px;"></i> Information
                 </h3>
                 <div class="overview-stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
                     <div class="overview-stat-box" style="justify-content: space-between;">
@@ -1123,14 +1123,20 @@
                             <p style="text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; font-size: 0.75rem;">Assigned Alliance</p>
                             <h3 id="stat-alliance" style="font-size: 1.1rem; margin-top: 4px;">Not Set</h3>
                         </div>
-                        <div class="stat-icon" style="color:#a78bfa; background:rgba(167,139,250,0.1);"><i data-lucide="shield"></i></div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <button class="btn btn-secondary" onclick="editBotInformation('alliance')" title="Edit alliance name" style="width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;"><i data-lucide="pencil" style="width:15px;height:15px;"></i></button>
+                            <div class="stat-icon" style="color:#a78bfa; background:rgba(167,139,250,0.1);"><i data-lucide="shield"></i></div>
+                        </div>
                     </div>
                     <div class="overview-stat-box" style="justify-content: space-between;">
                         <div class="stat-data" style="text-align: left;">
                             <p style="text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; font-size: 0.75rem;">State</p>
                             <h3 id="stat-state" style="font-size: 1.1rem; margin-top: 4px;">Not Set</h3>
                         </div>
-                        <div class="stat-icon" style="color:#60a5fa; background:rgba(96,165,250,0.1);"><i data-lucide="map-pin"></i></div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <button class="btn btn-secondary" onclick="editBotInformation('state')" title="Edit state number" style="width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;"><i data-lucide="pencil" style="width:15px;height:15px;"></i></button>
+                            <div class="stat-icon" style="color:#60a5fa; background:rgba(96,165,250,0.1);"><i data-lucide="map-pin"></i></div>
+                        </div>
                     </div>
                     <div class="overview-stat-box" style="justify-content: space-between;">
                         <div class="stat-data" style="text-align: left;">
@@ -1805,6 +1811,13 @@
                          <p style="font-size:0.9rem;">No community presets found. Be the first to create one!</p>
                      </div>
                  </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:20px 0 10px;">
+                    <div>
+                        <h3 style="font-size:1rem;margin:0;font-family:'Outfit',sans-serif;">Active Bot Reminders</h3>
+                        <p style="font-size:0.82rem;color:var(--text-muted);margin-top:4px;">All active reminders saved by the bot in MongoDB for this server.</p>
+                    </div>
+                    <button onclick="loadReminders()" class="btn btn-secondary" style="padding:8px 12px;"><i data-lucide="refresh-cw" style="width:15px;height:15px;"></i> Refresh</button>
+                </div>
                 <div id="reminders-list"></div>
             </div>
         </div>
@@ -2021,8 +2034,10 @@
                             <label for="upload-reminder-image" class="btn btn-secondary" style="padding:0 12px;cursor:pointer;display:flex;align-items:center;height:42px;flex-shrink:0;" title="Upload local image">
                                 <i data-lucide="image" style="width:16px;height:16px;"></i>
                             </label>
+                            <button type="button" class="btn btn-secondary" onclick="importImageUrlForReminder('reminder-image')" style="padding:0 12px;height:42px;flex-shrink:0;" title="Import the typed image URL into Mongo"><i data-lucide="cloud-upload" style="width:16px;height:16px;"></i></button>
                             <input type="file" id="upload-reminder-image" accept="image/*" style="display:none;" onchange="uploadImageForReminder(this,'reminder-image')">
                         </div>
+                        <div class="form-hint">Max 8MB. Use the image button for local/Drive-synced files, or paste a public Drive/CDN URL and click the cloud button to store it in Mongo.</div>
                     </div>
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
                         <div class="form-group">
@@ -2033,6 +2048,7 @@
                                 <label for="upload-reminder-thumbnail" class="btn btn-secondary" style="padding:0 10px;cursor:pointer;display:flex;align-items:center;height:42px;flex-shrink:0;" title="Upload">
                                     <i data-lucide="image" style="width:15px;"></i>
                                 </label>
+                                <button type="button" class="btn btn-secondary" onclick="importImageUrlForReminder('reminder-thumbnail')" style="padding:0 10px;height:42px;flex-shrink:0;" title="Import typed URL"><i data-lucide="cloud-upload" style="width:15px;"></i></button>
                                 <input type="file" id="upload-reminder-thumbnail" accept="image/*" style="display:none;" onchange="uploadImageForReminder(this,'reminder-thumbnail')">
                             </div>
                         </div>
@@ -2050,6 +2066,7 @@
                                 <label for="upload-reminder-footer-icon" class="btn btn-secondary" style="padding:0 10px;cursor:pointer;display:flex;align-items:center;height:42px;flex-shrink:0;" title="Upload">
                                     <i data-lucide="image" style="width:15px;"></i>
                                 </label>
+                                <button type="button" class="btn btn-secondary" onclick="importImageUrlForReminder('reminder-footer-icon')" style="padding:0 10px;height:42px;flex-shrink:0;" title="Import typed URL"><i data-lucide="cloud-upload" style="width:15px;"></i></button>
                                 <input type="file" id="upload-reminder-footer-icon" accept="image/*" style="display:none;" onchange="uploadImageForReminder(this,'reminder-footer-icon')">
                             </div>
                         </div>
@@ -2909,7 +2926,14 @@
                         ...(options.headers || {})
                     }
                 });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) {
+                    let message = `HTTP error! status: ${response.status}`;
+                    try {
+                        const err = await response.json();
+                        message = err.detail || err.message || message;
+                    } catch(e) {}
+                    throw new Error(message);
+                }
                 return await response.json();
             } catch (e) {
                 showNotification(e.message, true);
@@ -2953,6 +2977,40 @@
                 updateBadge('status-autoredeem', stats.auto_redeem_active);
 
             } catch (e) {}
+        }
+
+        async function editBotInformation(type) {
+            const currentAlliance = document.getElementById('stat-alliance')?.textContent || '';
+            const currentState = document.getElementById('stat-state')?.textContent || '';
+            const payload = {};
+
+            if (type === 'alliance') {
+                const next = prompt('Alliance name', currentAlliance === 'Not Set' ? '' : currentAlliance);
+                if (next === null) return;
+                const value = next.trim();
+                if (!value) { showNotification('Alliance name is required', true); return; }
+                payload.alliance_name = value;
+            } else if (type === 'state') {
+                const next = prompt('State number', currentState === 'Not Set' ? '' : currentState);
+                if (next === null) return;
+                const value = parseInt(next, 10);
+                if (!value || value < 1) { showNotification('Enter a valid state number', true); return; }
+                payload.state = value;
+            }
+
+            showLoading(true);
+            try {
+                await fetchData(`/api/guilds/${guildId}/bot-settings`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(payload)
+                });
+                showNotification('Information updated');
+                await loadGuildStats();
+            } catch(e) {
+                showNotification(e.message || 'Failed to update information', true);
+            } finally {
+                showLoading(false);
+            }
         }
 
         async function loadGiftStats() {
@@ -4118,6 +4176,7 @@
             if (!input.files || input.files.length === 0) return;
             const file = input.files[0];
             if (file.size > 8 * 1024 * 1024) { showNotification('Image too large (max 8MB)', true); return; }
+            if (!file.type || !file.type.startsWith('image/')) { showNotification('Please select an image file', true); return; }
             showLoading(true);
             try {
                 const formData = new FormData();
@@ -4128,7 +4187,14 @@
                     headers: { 'Authorization': `Bearer ${token}` },
                     body: formData
                 });
-                if (!response.ok) throw new Error('Upload failed (' + response.status + ')');
+                if (!response.ok) {
+                    let message = 'Upload failed (' + response.status + ')';
+                    try {
+                        const err = await response.json();
+                        message = err.detail || err.message || message;
+                    } catch(e) {}
+                    throw new Error(message);
+                }
                 const data = await response.json();
                 if (data.url) {
                     const targetInput = document.getElementById(targetId);
@@ -4140,6 +4206,35 @@
                 } else { throw new Error(data.message || 'Upload failed'); }
             } catch (e) { showNotification(e.message, true); }
             finally { showLoading(false); input.value = ''; }
+        }
+
+        async function importImageUrlForReminder(targetId) {
+            const targetInput = document.getElementById(targetId);
+            const sourceUrl = (targetInput?.value || '').trim();
+            if (!sourceUrl) {
+                showNotification('Paste an image URL first', true);
+                return;
+            }
+            if (!/^https?:\/\//i.test(sourceUrl)) {
+                showNotification('Use a public http(s) image URL', true);
+                return;
+            }
+
+            showLoading(true);
+            try {
+                const data = await fetchData('/api/reminders/upload-url', {
+                    method: 'POST',
+                    body: JSON.stringify({ url: sourceUrl })
+                });
+                if (!data.url) throw new Error(data.message || 'Import failed');
+                targetInput.value = data.url;
+                targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                showNotification('Image imported to Mongo');
+            } catch (e) {
+                showNotification(e.message || 'Image import failed', true);
+            } finally {
+                showLoading(false);
+            }
         }
 
         function toggleSavePresetCheckbox(e) {
@@ -4573,6 +4668,7 @@
                 showNotification('Reminder updated!');
                 closeReminderModal();
                 loadReminders();
+                loadGuildStats();
             } catch (e) {
                 showNotification(e.message || 'Failed to update reminder', true);
             } finally { showLoading(false); }
@@ -4678,6 +4774,7 @@
                 
                 closeReminderModal();
                 loadReminders();
+                loadGuildStats();
                 if (data.save_as_preset) loadCommunityPresets(); // Refresh presets
             } catch (e) {
                 showNotification(e.message || 'Failed to create reminder', true);
@@ -4691,6 +4788,7 @@
                 await fetchData(`/api/reminders/${guildId}/${id}`, { method: 'DELETE' });
                 showNotification('Deleted');
                 loadReminders();
+                loadGuildStats();
             } catch (e) {
                 showNotification('Failed to delete reminder', true);
             } finally { showLoading(false); }

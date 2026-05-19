@@ -28,7 +28,8 @@ class ReminderStorageMongo:
     def add_reminder(self, user_id: str, channel_id: str, guild_id: str, message: str, reminder_time: datetime,
                     body: str = None, is_recurring: bool = False, recurrence_type: str = None, recurrence_interval: int = None,
                     original_pattern: str = None, mention: str = 'everyone', image_url: str = None,
-                    thumbnail_url: str = None, footer_text: str = None, footer_icon_url: str = None, author_url: str = None) -> Union[str, int]:
+                    thumbnail_url: str = None, footer_text: str = None, footer_icon_url: str = None, author_url: str = None,
+                    recurrence_days: List[int] = None) -> Union[str, int]:
         """Add a new reminder to MongoDB"""
         try:
             reminder_doc = {
@@ -44,6 +45,7 @@ class ReminderStorageMongo:
                 'is_recurring': is_recurring,
                 'recurrence_type': recurrence_type,
                 'recurrence_interval': recurrence_interval,
+                'recurrence_days': recurrence_days,
                 'original_time_pattern': original_pattern,
                 'mention': mention,
                 'image_url': image_url,
@@ -105,7 +107,12 @@ class ReminderStorageMongo:
         if not fields:
             return False
         
-        allowed = {'image_url', 'thumbnail_url', 'body', 'footer_text', 'footer_icon_url', 'mention', 'reminder_time'}
+        allowed = {
+            'image_url', 'thumbnail_url', 'body', 'footer_text', 'footer_icon_url',
+            'mention', 'reminder_time', 'author_url', 'message', 'channel_id',
+            'is_recurring', 'recurrence_type', 'recurrence_interval', 'recurrence_days',
+            'original_time_pattern', 'is_active', 'is_sent'
+        }
         to_update = {k: v for k, v in fields.items() if k in allowed}
         
         if not to_update:

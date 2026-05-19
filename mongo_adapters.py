@@ -538,7 +538,7 @@ class RemindersAdapter:
                 'image_url', 'thumbnail_url', 'body', 'footer_text', 'footer_icon_url',
                 'mention', 'reminder_time', 'author_url', 'message', 'channel_id',
                 'guild_id', 'is_recurring', 'recurrence_type', 'recurrence_interval',
-                'original_time_pattern'
+                'recurrence_days', 'original_time_pattern', 'is_active', 'is_sent'
             }
             updates = {k: v for k, v in fields.items() if k in allowed}
             

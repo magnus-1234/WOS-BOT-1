@@ -43,6 +43,30 @@ async def get_nonce(session: aiohttp.ClientSession) -> str:
         logger.error(f"Failed to fetch nonce: {e}")
     return None
 
+async def fetch_server_age_data(state_number: int) -> dict:
+    """Fetch and parse the live Whiteout Survival state timeline data."""
+    server_id = str(state_number)
+    async with aiohttp.ClientSession(headers=HEADERS) as session:
+        nonce = await get_nonce(session)
+        if not nonce:
+            raise RuntimeError("Failed to connect to server timeline (nonce error).")
+
+        data = {
+            "action": "stp_get_timeline",
+            "nonce": nonce,
+            "server_id": server_id,
+        }
+        async with session.post(AJAX_URL, data=data, timeout=15) as resp:
+            if resp.status != 200:
+                raise RuntimeError(f"Failed to fetch server timeline (status {resp.status}).")
+            text = await resp.text()
+
+        try:
+            json_data = json.loads(text)
+            return parse_response(json_data, server_id=server_id)
+        except json.JSONDecodeError:
+            return parse_response(text, server_id=server_id)
+
 class ServerAge(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -65,32 +89,7 @@ class ServerAge(commands.Cog):
         # If days is NOT provided, fetch live data
         if days is None:
             try:
-                async with aiohttp.ClientSession(headers=HEADERS) as session:
-                    # 1. Get Nonce
-                    nonce = await get_nonce(session)
-                    if not nonce:
-                        await interaction.followup.send("❌ Failed to connect to server timeline (nonce error).", ephemeral=True)
-                        return
-
-                    # 2. Fetch Data
-                    data = {
-                        "action": "stp_get_timeline",
-                        "nonce": nonce,
-                        "server_id": server_id,
-                    }
-                    async with session.post(AJAX_URL, data=data, timeout=15) as resp:
-                        if resp.status != 200:
-                            await interaction.followup.send(f"❌ Failed to fetch data (Status {resp.status}).", ephemeral=True)
-                            return
-                        text = await resp.text()
-                        
-                        # 3. Parse Data
-                        try:
-                            json_data = json.loads(text)
-                            parsed_data = parse_response(json_data, server_id=server_id)
-                        except json.JSONDecodeError:
-                            parsed_data = parse_response(text, server_id=server_id)
-                            
+                parsed_data = await fetch_server_age_data(state_number)
             except Exception as e:
                 logger.error(f"Error fetching server timeline: {e}")
                 if interaction.response.is_done():

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File
+from fastapi.responses import Response
 from pydantic import BaseModel
 from typing import Optional, List
 import httpx
@@ -6,8 +7,7 @@ import logging
 import pytz
 import discord
 import uuid
-import os
-from datetime import datetime, timezone as dt_timezone
+from datetime import datetime
 
 from cogs.reminder_system import ReminderStorage, TimeParser
 
@@ -32,6 +32,14 @@ class ReminderCreate(BaseModel):
     author_url: Optional[str] = None
     save_as_preset: bool = False
     preset_title: Optional[str] = None
+
+MAX_REMINDER_IMAGE_BYTES = 8 * 1024 * 1024
+ALLOWED_REMINDER_IMAGE_TYPES = {
+    "image/png",
+    "image/jpeg",
+    "image/gif",
+    "image/webp",
+}
 
 def _build_reminder_embed(payload: ReminderCreate, user: dict, *, is_test: bool = False) -> discord.Embed:
     embed = discord.Embed(
@@ -61,8 +69,152 @@ async def _get_discord_user(auth_header: str) -> dict:
             raise HTTPException(status_code=401, detail="Invalid token")
         return r.json()
 
-@router.get("/{guild_id}")
-async def get_reminders(request: Request, guild_id: str):
+def _storage(request: Request):
+    _bot = getattr(request.app.state, 'bot', None)
+    return getattr(_bot, 'reminder_system', None).storage if _bot and hasattr(_bot, 'reminder_system') else ReminderStorage()
+
+def _normalize_reminder_id(reminder_id: str):
+    try:
+        return int(reminder_id)
+    except Exception:
+        return reminder_id
+
+def _reminder_belongs_to_guild(reminder: dict, guild_id: int, guild_channel_ids: set[str]) -> bool:
+    r_guild = str(reminder.get("guild_id")) if reminder.get("guild_id") else None
+    r_channel = str(reminder.get("channel_id", ""))
+    return r_guild == str(guild_id) or r_channel in guild_channel_ids
+
+async def _get_upload_collection():
+    try:
+        from db.mongo_adapters import _get_db_reminders_async
+        db = await _get_db_reminders_async()
+        return db["reminder_uploads"]
+    except Exception as e:
+        logger.error(f"Mongo reminder upload storage unavailable: {e}")
+        raise HTTPException(status_code=503, detail="Image storage is not available.")
+
+def _public_upload_url(request: Request, image_id: str) -> str:
+    scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
+    forwarded_host = request.headers.get("X-Forwarded-Host")
+    host = forwarded_host or request.headers.get("Host")
+    base_url = f"{scheme}://{host}" if host else str(request.base_url).rstrip("/")
+    return f"{base_url}/api/reminders/uploads/{image_id}"
+
+async def _save_uploaded_image(request: Request, *, filename: str, content_type: str, content: bytes, source: str, user_id: str) -> str:
+    if not content:
+        raise HTTPException(status_code=400, detail="No image data received.")
+    if len(content) > MAX_REMINDER_IMAGE_BYTES:
+        raise HTTPException(status_code=400, detail="Image too large (max 8MB).")
+    if content_type not in ALLOWED_REMINDER_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Only PNG, JPG, GIF, and WebP images are supported.")
+
+    image_id = uuid.uuid4().hex
+    col = await _get_upload_collection()
+    await col.insert_one({
+        "_id": image_id,
+        "filename": filename or f"reminder_{image_id}",
+        "content_type": content_type,
+        "size": len(content),
+        "data": content,
+        "source": source,
+        "created_by": str(user_id),
+        "created_at": datetime.utcnow(),
+    })
+    return _public_upload_url(request, image_id)
+
+@router.post("/upload")
+async def upload_reminder_image(request: Request, file: UploadFile = File(...)):
+    """Uploads an image for a reminder into MongoDB and returns a public retrieval URL."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user = await _get_discord_user(auth_header)
+
+    if not file:
+        raise HTTPException(status_code=400, detail="No file uploaded")
+
+    content = await file.read()
+    content_type = (file.content_type or "").lower()
+    if not content_type or content_type == "application/octet-stream":
+        ext = (file.filename or "").rsplit(".", 1)[-1].lower()
+        content_type = {
+            "png": "image/png",
+            "jpg": "image/jpeg",
+            "jpeg": "image/jpeg",
+            "gif": "image/gif",
+            "webp": "image/webp",
+        }.get(ext, "")
+
+    url = await _save_uploaded_image(
+        request,
+        filename=file.filename or "",
+        content_type=content_type,
+        content=content,
+        source="file",
+        user_id=user["id"],
+    )
+    return {"status": "success", "url": url, "max_size_mb": 8}
+
+class ReminderImageUrlImport(BaseModel):
+    url: str
+
+@router.post("/upload-url")
+async def upload_reminder_image_from_url(request: Request, payload: ReminderImageUrlImport):
+    """Imports an image URL into MongoDB so remote Drive/CDN images remain available later."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    user = await _get_discord_user(auth_header)
+
+    source_url = (payload.url or "").strip()
+    if not source_url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="Enter a valid http(s) image URL.")
+
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=20.0) as client:
+            async with client.stream("GET", source_url) as resp:
+                if resp.status_code != 200:
+                    raise HTTPException(status_code=400, detail=f"Could not fetch image (status {resp.status_code}).")
+                content_type = (resp.headers.get("content-type") or "").split(";", 1)[0].lower()
+                chunks = []
+                size = 0
+                async for chunk in resp.aiter_bytes():
+                    size += len(chunk)
+                    if size > MAX_REMINDER_IMAGE_BYTES:
+                        raise HTTPException(status_code=400, detail="Image too large (max 8MB).")
+                    chunks.append(chunk)
+                content = b"".join(chunks)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to import reminder image URL {source_url}: {e}")
+        raise HTTPException(status_code=400, detail="Could not import that image URL.")
+
+    filename = source_url.rsplit("/", 1)[-1].split("?", 1)[0] or "remote-image"
+    url = await _save_uploaded_image(
+        request,
+        filename=filename,
+        content_type=content_type,
+        content=content,
+        source=source_url,
+        user_id=user["id"],
+    )
+    return {"status": "success", "url": url, "max_size_mb": 8}
+
+@router.get("/uploads/{image_id}")
+async def get_uploaded_reminder_image(image_id: str):
+    col = await _get_upload_collection()
+    doc = await col.find_one({"_id": image_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Image not found.")
+    return Response(
+        content=doc.get("data") or b"",
+        media_type=doc.get("content_type") or "application/octet-stream",
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
+
+@router.get("/{guild_id:int}")
+async def get_reminders(request: Request, guild_id: int):
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -73,7 +225,7 @@ async def get_reminders(request: Request, guild_id: str):
             raise HTTPException(status_code=401, detail="Invalid token")
 
     _bot = getattr(request.app.state, 'bot', None)
-    storage = getattr(_bot, 'reminder_system', None).storage if _bot and hasattr(_bot, 'reminder_system') else ReminderStorage()
+    storage = _storage(request)
 
     guild_channel_ids = set()
     try:
@@ -107,15 +259,13 @@ async def get_reminders(request: Request, guild_id: str):
         r_guild = str(r.get("guild_id")) if r.get("guild_id") else None
         r_channel = str(r.get("channel_id", ""))
 
-        if r_guild == str(guild_id):
-            server_reminders.append(r)
-        elif r_channel in guild_channel_ids:
+        if _reminder_belongs_to_guild(r, guild_id, guild_channel_ids):
             server_reminders.append(r)
 
     return {"reminders": server_reminders}
 
-@router.post("/{guild_id}")
-async def create_reminder(request: Request, guild_id: str, payload: ReminderCreate):
+@router.post("/{guild_id:int}")
+async def create_reminder(request: Request, guild_id: int, payload: ReminderCreate):
     logger.info(f"Creating reminder for guild {guild_id}: {payload.json()}")
     auth_header = request.headers.get("Authorization")
     if not auth_header:
@@ -175,8 +325,7 @@ async def create_reminder(request: Request, guild_id: str, payload: ReminderCrea
     if not reminder_time:
         raise HTTPException(status_code=400, detail="Invalid time format. Please select a date/time or provide a time string.")
 
-    _bot = getattr(request.app.state, 'bot', None)
-    storage = getattr(_bot, 'reminder_system', None).storage if _bot and hasattr(_bot, 'reminder_system') else ReminderStorage()
+    storage = _storage(request)
     
     reminder_id = storage.add_reminder(
         user_id=str(user_id),
@@ -236,8 +385,8 @@ async def create_reminder(request: Request, guild_id: str, payload: ReminderCrea
             
     return {"status": "success", "reminder_id": reminder_id}
 
-@router.post("/{guild_id}/test")
-async def send_test_reminder(request: Request, guild_id: str, payload: ReminderCreate):
+@router.post("/{guild_id:int}/test")
+async def send_test_reminder(request: Request, guild_id: int, payload: ReminderCreate):
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -287,8 +436,8 @@ async def send_test_reminder(request: Request, guild_id: str, payload: ReminderC
 
     return {"status": "success"}
 
-@router.delete("/{guild_id}/{reminder_id}")
-async def delete_reminder(request: Request, guild_id: str, reminder_id: str):
+@router.delete("/{guild_id:int}/{reminder_id}")
+async def delete_reminder(request: Request, guild_id: int, reminder_id: str):
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -301,27 +450,38 @@ async def delete_reminder(request: Request, guild_id: str, reminder_id: str):
         user_id = user["id"]
 
     _bot = getattr(request.app.state, 'bot', None)
-    storage = getattr(_bot, 'reminder_system', None).storage if _bot and hasattr(_bot, 'reminder_system') else ReminderStorage()
+    storage = _storage(request)
     
     success = storage.delete_reminder(reminder_id, str(user_id))
-    
+
+    if not success:
+        guild_channel_ids = set()
+        if _bot:
+            guild = _bot.get_guild(guild_id)
+            if guild:
+                guild_channel_ids = {str(c.id) for c in guild.channels}
+        try:
+            all_reminders = storage.get_all_active_reminders()
+            target = next((r for r in all_reminders if str(r.get("id") or r.get("_id")) == str(reminder_id)), None)
+            if target and _reminder_belongs_to_guild(target, guild_id, guild_channel_ids):
+                success = storage.update_reminder_fields(_normalize_reminder_id(reminder_id), {"is_active": False})
+        except Exception as e:
+            logger.error(f"Failed admin-style reminder delete for {reminder_id}: {e}")
+
     if success:
         return {"status": "success"}
     else:
         raise HTTPException(status_code=400, detail="Failed to delete reminder. It may not exist or does not belong to you.")
 
-@router.patch("/{guild_id}/{reminder_id}")
-async def update_reminder(request: Request, guild_id: str, reminder_id: str, payload: ReminderCreate):
+@router.patch("/{guild_id:int}/{reminder_id}")
+async def update_reminder(request: Request, guild_id: int, reminder_id: str, payload: ReminderCreate):
     logger.info(f"Updating reminder {reminder_id} for guild {guild_id}: {payload.json()}")
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         raise HTTPException(status_code=401, detail="Unauthorized")
     
     # reminder_id can be int or ObjectId string
-    try:
-        rid = int(reminder_id)
-    except:
-        rid = reminder_id
+    rid = _normalize_reminder_id(reminder_id)
         
     async with httpx.AsyncClient() as client:
         r = await client.get('https://discord.com/api/users/@me', headers={"Authorization": auth_header})
@@ -369,8 +529,7 @@ async def update_reminder(request: Request, guild_id: str, reminder_id: str, pay
     if not reminder_time:
          raise HTTPException(status_code=400, detail="Invalid time format.")
 
-    _bot = getattr(request.app.state, 'bot', None)
-    storage = getattr(_bot, 'reminder_system', None).storage if _bot and hasattr(_bot, 'reminder_system') else ReminderStorage()
+    storage = _storage(request)
     
     update_data = {
         "message": payload.message,
@@ -428,50 +587,6 @@ def _get_presets_collection():
         logger.warning(f"MongoDB presets collection unavailable: {e}")
         return None
 
-
-
-# ─── Upload Image ─────────────────────────────────────────────────────────────
-
-@router.post("/upload")
-async def upload_reminder_image(request: Request, file: UploadFile = File(...)):
-    """Uploads a local image for a reminder and returns its public URL."""
-    auth_header = request.headers.get("Authorization")
-    if not auth_header:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-    if not file:
-        raise HTTPException(status_code=400, detail="No file uploaded")
-
-    content = await file.read()
-    if len(content) > 8 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="Image too large (max 8MB)")
-
-    ext = file.filename.split('.')[-1].lower() if '.' in file.filename else 'png'
-    if ext not in ['png', 'jpg', 'jpeg', 'gif', 'webp']:
-        ext = 'png'
-
-    filename = f"reminder_{uuid.uuid4().hex}.{ext}"
-    upload_dir = "data/uploads"
-    os.makedirs(upload_dir, exist_ok=True)
-    
-    filepath = os.path.join(upload_dir, filename)
-    with open(filepath, "wb") as f:
-        f.write(content)
-
-    # Use the request's base URL and headers to construct the public URL
-    scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
-    forwarded_host = request.headers.get("X-Forwarded-Host")
-    if forwarded_host:
-        base_url = f"{scheme}://{forwarded_host}"
-    else:
-        host = request.headers.get("Host")
-        if host:
-            base_url = f"{scheme}://{host}"
-        else:
-            base_url = str(request.base_url).rstrip("/")
-        
-    public_url = f"{base_url}/api/static/{filename}"
-    return {"status": "success", "url": public_url}
 
 @router.get("/presets")
 async def get_community_presets(request: Request, q: Optional[str] = None):

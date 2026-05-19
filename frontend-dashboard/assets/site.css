@@ -347,9 +347,9 @@ svg {
 
 .hero-art {
   position: absolute;
-  inset: 0 0 0 auto;
+  inset: 0;
   z-index: 1;
-  width: min(78rem, 76vw);
+  width: 100%;
   pointer-events: none;
   overflow: hidden;
 }
@@ -364,7 +364,7 @@ svg {
 
 .hero-art::before {
   background:
-    linear-gradient(to right, #060f26 0%, rgba(6, 15, 38, 0.95) 15%, rgba(6, 15, 38, 0.6) 35%, rgba(6, 15, 38, 0.1) 60%, rgba(6, 15, 38, 0.3) 100%),
+    linear-gradient(to right, #060f26 0%, rgba(6, 15, 38, 0.9) 20%, rgba(6, 15, 38, 0.3) 55%, rgba(6, 15, 38, 0.15) 75%, rgba(6, 15, 38, 0.4) 100%),
     linear-gradient(to bottom, rgba(6, 15, 38, 0) 0%, rgba(6, 15, 38, 0) 50%, #060f26 100%);
 }
 
@@ -378,14 +378,12 @@ svg {
 
 .hero-art img {
   position: absolute;
-  inset: 0 -8rem 0 auto;
-  width: min(80rem, 90vw);
+  inset: 0;
+  width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center right;
+  object-position: center center;
   filter: saturate(0.98) contrast(1.05);
-  mask-image: linear-gradient(to right, transparent 0%, black 28%, black 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 28%, black 100%);
 }
 
 .hero-art-tiles {

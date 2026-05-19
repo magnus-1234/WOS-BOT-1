@@ -38,8 +38,12 @@
             background-color: var(--bg-dark);
             color: var(--text-main);
             height: 100vh;
+            height: 100dvh;
             display: flex;
             overflow: hidden;
+            margin: 0;
+            padding: 0;
+            width: 100%;
         }
 
         /* Sidebar Styling */
@@ -50,7 +54,47 @@
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
-            z-index: 100;
+            z-index: 1000;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+        }
+
+        @media (max-width: 900px) {
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                top: 0;
+                bottom: 0;
+                transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+            }
+            .sidebar.mobile-open {
+                left: 0;
+            }
+            .mobile-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.6);
+                backdrop-filter: blur(4px);
+                z-index: 900;
+            }
+            .mobile-overlay.active {
+                display: block;
+            }
+            .mobile-menu-btn {
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+            }
+            .content-area {
+                padding: 16px;
+            }
+            .top-bar {
+                padding: 0 16px;
+            }
         }
 
         .sidebar-brand {
@@ -1387,6 +1431,7 @@
 </head>
 
 <body>
+    <div class="mobile-overlay" onclick="toggleMobileMenu()"></div>
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-brand">
@@ -1463,8 +1508,10 @@
     <!-- Main Container -->
     <div class="main-container">
         <header class="top-bar">
-            <div class="top-bar-left">
-                <!-- Breadcrumbs or similar -->
+            <div class="top-bar-left" style="display: flex; align-items: center; gap: 16px;">
+                <button class="mobile-menu-btn" style="background: transparent; border: none; color: #fff; cursor: pointer; padding: 4px;" onclick="toggleMobileMenu()">
+                    <i data-lucide="menu"></i>
+                </button>
             </div>
             <div class="top-bar-right">
                 <div class="user-profile-wrapper" id="user-profile-wrapper">
@@ -2931,6 +2978,21 @@
         if (!guildId) { window.location.href = 'dashboard.html'; }
 
         lucide.createIcons();
+
+        function toggleMobileMenu() {
+            document.querySelector('.sidebar').classList.toggle('mobile-open');
+            document.querySelector('.mobile-overlay').classList.toggle('active');
+        }
+
+        // Close sidebar on link click for mobile
+        document.querySelectorAll('.nav-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (window.innerWidth <= 900) {
+                    document.querySelector('.sidebar').classList.remove('mobile-open');
+                    document.querySelector('.mobile-overlay').classList.remove('active');
+                }
+            });
+        });
 
         let pendingTabToUnlock = null;
 

@@ -147,6 +147,176 @@ async def save_birthday_settings(guild_id: int, settings: BirthdaySettings):
     channel_id = int(settings.channel_id) if settings.channel_id else 0
     if channel_id:
         await BirthdayChannelAdapter.set_async(guild_id, channel_id)
+    else:
+        await BirthdayChannelAdapter.remove_async(guild_id)
+    return {"status": "success"}
+
+
+# ─────────────────────────────────────────
+# Birthday Records Directory
+# ─────────────────────────────────────────
+class BirthdayRecordInput(BaseModel):
+    user_id: str
+    day: int
+    month: int
+    player_id: Optional[str] = None
+
+
+@router.get("/birthday/{guild_id}/records")
+async def get_birthday_records(guild_id: int, request: Request):
+    if not mongo_enabled() or not BirthdaysAdapter:
+        return []
+
+    bot = getattr(request.app.state, "bot", None)
+    guild = bot.get_guild(guild_id) if bot else None
+
+    # Load all birthdays
+    all_bdays = await BirthdaysAdapter.load_all_async()
+    records = []
+
+    import calendar
+    now = datetime.utcnow()
+    current_year = now.year
+
+    for key, data in all_bdays.items():
+        is_match = False
+        user_id_str = ""
+
+        if "_" in key:
+            parts = key.split("_")
+            if len(parts) >= 2:
+                g_id_str, u_id_str = parts[0], parts[1]
+                if str(guild_id) == g_id_str:
+                    is_match = True
+                    user_id_str = u_id_str
+        else:
+            # Legacy/global record: match if user is in this guild
+            user_id_str = key
+            if guild and guild.get_member(int(user_id_str)):
+                is_match = True
+
+        if is_match:
+            try:
+                user_id = int(user_id_str)
+            except ValueError:
+                continue
+
+            day = data.get("day", 1)
+            month = data.get("month", 1)
+            player_id = data.get("player_id")
+
+            # Resolve member avatar and username
+            username = f"User {user_id}"
+            avatar_url = "https://cdn.discordapp.com/embed/avatars/0.png"
+
+            if guild:
+                member = guild.get_member(user_id)
+                if member:
+                    username = member.display_name
+                    avatar_url = str(member.display_avatar.url) if member.display_avatar else avatar_url
+                elif bot:
+                    try:
+                        user = bot.get_user(user_id) or await bot.fetch_user(user_id)
+                        if user:
+                            username = user.name
+                            avatar_url = str(user.display_avatar.url) if user.display_avatar else avatar_url
+                    except Exception:
+                        pass
+
+            # Calculate countdown
+            try:
+                bday_this_year = datetime(current_year, month, day)
+            except ValueError:
+                bday_this_year = datetime(current_year, 3, 1)
+
+            if bday_this_year.date() < now.date():
+                try:
+                    bday_next_year = datetime(current_year + 1, month, day)
+                except ValueError:
+                    bday_next_year = datetime(current_year + 1, 3, 1)
+                days_until = (bday_next_year.date() - now.date()).days
+            else:
+                days_until = (bday_this_year.date() - now.date()).days
+
+            month_name = calendar.month_name[month]
+            date_str = f"{month_name} {day}"
+
+            records.append({
+                "user_id": user_id_str,
+                "username": username,
+                "avatar": avatar_url,
+                "day": day,
+                "month": month,
+                "player_id": player_id or "",
+                "days_until": days_until,
+                "date_str": date_str
+            })
+
+    # Sort by days_until ascending
+    records.sort(key=lambda x: x["days_until"])
+    return records
+
+
+@router.post("/birthday/{guild_id}/records")
+async def register_birthday_record(guild_id: int, payload: BirthdayRecordInput, request: Request):
+    if not mongo_enabled() or not BirthdaysAdapter:
+        raise HTTPException(status_code=503, detail="MongoDB is not enabled.")
+
+    try:
+        user_id = int(payload.user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid User ID format.")
+
+    day = payload.day
+    month = payload.month
+    
+    try:
+        datetime(2000, month, day)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid birthday date details.")
+
+    pid = payload.player_id.strip() if payload.player_id else None
+    if pid:
+        if not pid.isdigit() or len(pid) != 9:
+            raise HTTPException(status_code=400, detail="Player ID must be exactly 9 digits.")
+
+    success = await BirthdaysAdapter.set_async(guild_id, user_id, day, month, pid)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to save birthday record to database.")
+
+    bot = getattr(request.app.state, "bot", None)
+    if bot:
+        birthday_cog = bot.get_cog("BirthdaySystem")
+        if birthday_cog:
+            try:
+                birthday_cog.load_birthdays()
+            except Exception as e:
+                logger.error(f"Failed to reload bot birthday cache: {e}")
+
+    return {"status": "success"}
+
+
+@router.delete("/birthday/{guild_id}/records/{user_id}")
+async def delete_birthday_record(guild_id: int, user_id: int, request: Request):
+    if not mongo_enabled() or not BirthdaysAdapter:
+        raise HTTPException(status_code=503, detail="MongoDB is not enabled.")
+
+    success = await BirthdaysAdapter.remove_async(guild_id, user_id)
+    if not success:
+        # Fallback delete
+        success = await BirthdaysAdapter.remove_async(None, user_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Birthday record not found.")
+
+    bot = getattr(request.app.state, "bot", None)
+    if bot:
+        birthday_cog = bot.get_cog("BirthdaySystem")
+        if birthday_cog:
+            try:
+                birthday_cog.load_birthdays()
+            except Exception as e:
+                logger.error(f"Failed to reload bot birthday cache: {e}")
+
     return {"status": "success"}
 
 

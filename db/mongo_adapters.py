@@ -180,35 +180,73 @@ class BirthdaysAdapter:
     COLL = 'birthdays'
 
     @staticmethod
-    def load_all() -> Dict[str, Any]:
+    def load_all() -> dict:
         try:
             db = _get_db_main()
             docs = db[BirthdaysAdapter.COLL].find({})
-            return {str(d['_id']): {'day': int(d.get('day')), 'month': int(d.get('month'))} for d in docs}
+            result = {}
+            for d in docs:
+                guild_id = d.get('guild_id')
+                user_id = d.get('user_id') or d.get('_id')
+                if guild_id:
+                    key = f"{guild_id}_{user_id}"
+                else:
+                    key = str(user_id)
+                result[key] = {
+                    'day': int(d.get('day')),
+                    'month': int(d.get('month')),
+                    'player_id': d.get('player_id')
+                }
+            return result
         except Exception as e:
             logger.error(f'Failed to load birthdays from Mongo: {e}')
             return {}
 
     @staticmethod
-    def get(user_id: str):
+    def get(guild_id, user_id) -> dict:
         try:
             db = _get_db_main()
-            d = db[BirthdaysAdapter.COLL].find_one({'_id': str(user_id)})
+            query = {'user_id': int(user_id)}
+            if guild_id:
+                query['guild_id'] = int(guild_id)
+            else:
+                query = {'_id': str(user_id)}
+            
+            d = db[BirthdaysAdapter.COLL].find_one(query)
             if not d:
-                return None
-            return {'day': int(d['day']), 'month': int(d['month'])}
+                if guild_id:
+                    d = db[BirthdaysAdapter.COLL].find_one({'_id': f"{guild_id}_{user_id}"})
+                if not d:
+                    return None
+            
+            d.pop('_id', None)
+            return d
         except Exception as e:
             logger.error(f'Failed to get birthday for {user_id}: {e}')
             return None
 
     @staticmethod
-    def set(user_id: str, day: int, month: int) -> bool:
+    def set(guild_id, user_id, day: int, month: int, player_id=None) -> bool:
         try:
             db = _get_db_main()
+            data = {
+                'day': int(day),
+                'month': int(month),
+                'user_id': int(user_id),
+                'updated_at': datetime.utcnow().isoformat()
+            }
+            if guild_id:
+                data['guild_id'] = int(guild_id)
+                doc_id = f"{guild_id}_{user_id}"
+            else:
+                doc_id = str(user_id)
+
+            if player_id:
+                data['player_id'] = str(player_id)
+                
             db[BirthdaysAdapter.COLL].update_one(
-                {'_id': str(user_id)},
-                {'$set': {'day': int(day), 'month': int(month), 'updated_at': datetime.utcnow().isoformat()},
-                 '$setOnInsert': {'created_at': datetime.utcnow().isoformat()}},
+                {'_id': doc_id},
+                {'$set': data, '$setOnInsert': {'created_at': datetime.utcnow().isoformat()}},
                 upsert=True
             )
             return True
@@ -217,35 +255,86 @@ class BirthdaysAdapter:
             return False
 
     @staticmethod
-    def remove(user_id: str) -> bool:
+    def remove(guild_id, user_id) -> bool:
         try:
             db = _get_db_main()
-            res = db[BirthdaysAdapter.COLL].delete_one({'_id': str(user_id)})
+            if guild_id:
+                query = {'_id': f"{guild_id}_{user_id}"}
+            else:
+                query = {'_id': str(user_id)}
+            res = db[BirthdaysAdapter.COLL].delete_one(query)
             return res.deleted_count > 0
         except Exception as e:
             logger.error(f'Failed to remove birthday for {user_id}: {e}')
             return False
 
     @staticmethod
-    async def get_async(user_id: str):
+    async def load_all_async() -> dict:
         try:
             db = await _get_db_main_async()
-            d = await db[BirthdaysAdapter.COLL].find_one({'_id': str(user_id)})
+            result = {}
+            async for d in db[BirthdaysAdapter.COLL].find({}):
+                guild_id = d.get('guild_id')
+                user_id = d.get('user_id') or d.get('_id')
+                if guild_id:
+                    key = f"{guild_id}_{user_id}"
+                else:
+                    key = str(user_id)
+                result[key] = {
+                    'day': int(d.get('day')),
+                    'month': int(d.get('month')),
+                    'player_id': d.get('player_id')
+                }
+            return result
+        except Exception as e:
+            logger.error(f'Failed to load birthdays (async) from Mongo: {e}')
+            return {}
+
+    @staticmethod
+    async def get_async(guild_id, user_id) -> dict:
+        try:
+            db = await _get_db_main_async()
+            query = {'user_id': int(user_id)}
+            if guild_id:
+                query['guild_id'] = int(guild_id)
+            else:
+                query = {'_id': str(user_id)}
+            
+            d = await db[BirthdaysAdapter.COLL].find_one(query)
             if not d:
-                return None
-            return {'day': int(d['day']), 'month': int(d['month'])}
+                if guild_id:
+                    d = await db[BirthdaysAdapter.COLL].find_one({'_id': f"{guild_id}_{user_id}"})
+                if not d:
+                    return None
+            
+            d.pop('_id', None)
+            return d
         except Exception as e:
             logger.error(f'Failed to get birthday (async) for {user_id}: {e}')
             return None
 
     @staticmethod
-    async def set_async(user_id: str, day: int, month: int) -> bool:
+    async def set_async(guild_id, user_id, day: int, month: int, player_id=None) -> bool:
         try:
             db = await _get_db_main_async()
+            data = {
+                'day': int(day),
+                'month': int(month),
+                'user_id': int(user_id),
+                'updated_at': datetime.utcnow().isoformat()
+            }
+            if guild_id:
+                data['guild_id'] = int(guild_id)
+                doc_id = f"{guild_id}_{user_id}"
+            else:
+                doc_id = str(user_id)
+
+            if player_id:
+                data['player_id'] = str(player_id)
+                
             await db[BirthdaysAdapter.COLL].update_one(
-                {'_id': str(user_id)},
-                {'$set': {'day': int(day), 'month': int(month), 'updated_at': datetime.utcnow().isoformat()},
-                 '$setOnInsert': {'created_at': datetime.utcnow().isoformat()}},
+                {'_id': doc_id},
+                {'$set': data, '$setOnInsert': {'created_at': datetime.utcnow().isoformat()}},
                 upsert=True
             )
             return True
@@ -254,13 +343,93 @@ class BirthdaysAdapter:
             return False
 
     @staticmethod
-    async def remove_async(user_id: str) -> bool:
+    async def remove_async(guild_id, user_id) -> bool:
         try:
             db = await _get_db_main_async()
-            res = await db[BirthdaysAdapter.COLL].delete_one({'_id': str(user_id)})
+            if guild_id:
+                query = {'_id': f"{guild_id}_{user_id}"}
+            else:
+                query = {'_id': str(user_id)}
+            res = await db[BirthdaysAdapter.COLL].delete_one(query)
             return res.deleted_count > 0
         except Exception as e:
             logger.error(f'Failed to remove birthday (async) for {user_id}: {e}')
+            return False
+
+
+class BirthdayChannelAdapter:
+    COLL = 'birthday_channels'
+
+    @staticmethod
+    def get(guild_id) -> int:
+        try:
+            db = _get_db_main()
+            d = db[BirthdayChannelAdapter.COLL].find_one({'_id': str(guild_id)})
+            if d:
+                return d.get('channel_id')
+            return None
+        except Exception as e:
+            logger.error(f'Failed to get birthday channel for guild {guild_id}: {e}')
+            return None
+
+    @staticmethod
+    def set(guild_id, channel_id) -> bool:
+        try:
+            db = _get_db_main()
+            db[BirthdayChannelAdapter.COLL].update_one(
+                {'_id': str(guild_id)},
+                {'$set': {'channel_id': int(channel_id)}},
+                upsert=True
+            )
+            return True
+        except Exception as e:
+            logger.error(f'Failed to set birthday channel for guild {guild_id}: {e}')
+            return False
+
+    @staticmethod
+    def remove(guild_id) -> bool:
+        try:
+            db = _get_db_main()
+            res = db[BirthdayChannelAdapter.COLL].delete_one({'_id': str(guild_id)})
+            return res.deleted_count > 0
+        except Exception as e:
+            logger.error(f'Failed to remove birthday channel for guild {guild_id}: {e}')
+            return False
+
+    @staticmethod
+    async def get_async(guild_id) -> int:
+        try:
+            db = await _get_db_main_async()
+            d = await db[BirthdayChannelAdapter.COLL].find_one({'_id': str(guild_id)})
+            if d:
+                return d.get('channel_id')
+            return None
+        except Exception as e:
+            logger.error(f'Failed to get birthday channel (async) for guild {guild_id}: {e}')
+            return None
+
+    @staticmethod
+    async def set_async(guild_id, channel_id) -> bool:
+        try:
+            db = await _get_db_main_async()
+            await db[BirthdayChannelAdapter.COLL].update_one(
+                {'_id': str(guild_id)},
+                {'$set': {'channel_id': int(channel_id)}},
+                upsert=True
+            )
+            return True
+        except Exception as e:
+            logger.error(f'Failed to set birthday channel (async) for guild {guild_id}: {e}')
+            return False
+
+    @staticmethod
+    async def remove_async(guild_id) -> bool:
+        try:
+            db = await _get_db_main_async()
+            res = await db[BirthdayChannelAdapter.COLL].delete_one({'_id': str(guild_id)})
+            return res.deleted_count > 0
+        except Exception as e:
+            logger.error(f'Failed to remove birthday channel (async) for guild {guild_id}: {e}')
             return False
 
 
@@ -2424,6 +2593,26 @@ class BirthdayChannelAdapter:
             return True
         except Exception as e:
             logger.error(f'Failed to set birthday channel (async) for guild {guild_id}: {e}')
+            return False
+
+    @staticmethod
+    def remove(guild_id: int) -> bool:
+        try:
+            db = _get_db_main()
+            db[BirthdayChannelAdapter.COLL].delete_one({'_id': str(guild_id)})
+            return True
+        except Exception as e:
+            logger.error(f'Failed to remove birthday channel for guild {guild_id}: {e}')
+            return False
+
+    @staticmethod
+    async def remove_async(guild_id: int) -> bool:
+        try:
+            db = await _get_db_main_async()
+            await db[BirthdayChannelAdapter.COLL].delete_one({'_id': str(guild_id)})
+            return True
+        except Exception as e:
+            logger.error(f'Failed to remove birthday channel (async) for guild {guild_id}: {e}')
             return False
 
 class AdminsAdapter:

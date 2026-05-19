@@ -538,7 +538,6 @@ class BirthdaySystem(commands.Cog):
     def get_birthday_channel(self, guild_id: int) -> Optional[int]:
         """Get birthday channel ID for a guild (MongoDB first, then JSON file, then env variable fallback)"""
         try:
-            # Try MongoDB first (per-guild configuration)
             if mongo_enabled() and BirthdayChannelAdapter:
                 channel_id = BirthdayChannelAdapter.get(guild_id)
                 if channel_id:
@@ -546,7 +545,6 @@ class BirthdaySystem(commands.Cog):
         except Exception as e:
             logger.debug(f"Failed to get birthday channel from MongoDB: {e}")
         
-        # Try JSON file (per-guild configuration)
         try:
             guild_id_str = str(guild_id)
             if guild_id_str in self.birthday_channels_cache:
@@ -554,7 +552,6 @@ class BirthdaySystem(commands.Cog):
         except Exception as e:
             logger.debug(f"Failed to get birthday channel from JSON: {e}")
         
-        # Fallback to environment variable (global configuration)
         try:
             env_channel = os.getenv('BIRTHDAY_CHANNEL_ID')
             if env_channel:
@@ -567,7 +564,6 @@ class BirthdaySystem(commands.Cog):
     def set_birthday_channel(self, guild_id: int, channel_id: int) -> bool:
         """Set birthday channel ID for a guild"""
         try:
-            # Try MongoDB first
             if mongo_enabled() and BirthdayChannelAdapter:
                 success = BirthdayChannelAdapter.set(guild_id, channel_id)
                 if success:
@@ -576,7 +572,6 @@ class BirthdaySystem(commands.Cog):
         except Exception as e:
             logger.debug(f"Failed to save birthday channel to MongoDB: {e}")
         
-        # Fallback to JSON file
         try:
             self.birthday_channels_cache[str(guild_id)] = channel_id
             self.save_birthday_channels()
@@ -652,94 +647,199 @@ class BirthdaySystem(commands.Cog):
         sent_date = self.sent_wishes_cache.get(user_id_str)
         return sent_date == today
 
-
-    def add_birthday(self, user_id: int, day: int, month: int, player_id: Optional[str] = None) -> bool:
-        """Add or update a user's birthday"""
+    def add_birthday(self, arg1: int, arg2: int, arg3: int, arg4=None, player_id=None) -> bool:
+        """
+        Add or update a user's birthday.
+        Supports both:
+        - add_birthday(user_id, day, month, player_id=None)
+        - add_birthday(guild_id, user_id, day, month, player_id=None)
+        """
         try:
-            user_id_str = str(user_id)
-            
+            if arg4 is not None and isinstance(arg4, int):
+                # New signature: add_birthday(guild_id, user_id, day, month, player_id)
+                guild_id = arg1
+                user_id = arg2
+                day = arg3
+                month = arg4
+                pid = player_id
+            else:
+                # Old signature: add_birthday(user_id, day, month, player_id)
+                guild_id = None
+                user_id = arg1
+                day = arg2
+                month = arg3
+                pid = arg4 if arg4 else player_id
+                
             # Update cache
+            user_id_str = str(user_id)
+            key = f"{guild_id}_{user_id}" if guild_id else user_id_str
             birthday_data = {"day": day, "month": month}
-            if player_id:
-                birthday_data["player_id"] = player_id
-            self.birthdays_cache[user_id_str] = birthday_data
+            if pid:
+                birthday_data["player_id"] = pid
+            self.birthdays_cache[key] = birthday_data
             
             # Save to MongoDB or JSON
             if mongo_enabled() and BirthdaysAdapter:
-                try:
-                    # Try to save with player_id (new signature)
-                    success = BirthdaysAdapter.set(user_id_str, day, month, player_id)
-                except TypeError:
-                    # Fallback for old MongoDB adapter that doesn't support player_id
-                    logger.warning(f"MongoDB adapter doesn't support player_id yet, saving without it")
-                    success = BirthdaysAdapter.set(user_id_str, day, month)
-                
+                success = BirthdaysAdapter.set(guild_id, user_id, day, month, pid)
                 if success:
-                    logger.info(f"✅ Saved birthday for user {user_id} to MongoDB")
+                    logger.info(f"✅ Saved birthday for user {user_id} (Guild: {guild_id}) to MongoDB")
             else:
                 self.save_birthdays()
                 logger.info(f"✅ Saved birthday for user {user_id} to JSON")
                 success = True
             
-            # Check if birthday is today and send wish immediately if not already sent
+            # Check if birthday is today and send wish immediately
             if success:
                 now = datetime.utcnow()
                 if day == now.day and month == now.month:
                     if not self.was_wish_sent_today(user_id):
-                        # Schedule immediate wish sending
                         asyncio.create_task(self._send_immediate_birthday_wish(user_id))
                         logger.info(f"🎂 Birthday is today! Scheduling immediate wish for user {user_id}")
-                    else:
-                        logger.debug(f"⏭️ Birthday wish already sent today for user {user_id}")
             
             return success
         except Exception as e:
-            logger.error(f"❌ Failed to add birthday for user {user_id}: {e}")
+            logger.error(f"❌ Failed to add birthday: {e}")
             return False
 
-    def remove_birthday(self, user_id: int) -> bool:
-        """Remove a user's birthday"""
+    def remove_birthday(self, arg1: int, arg2=None) -> bool:
+        """
+        Remove a user's birthday.
+        Supports:
+        - remove_birthday(user_id)
+        - remove_birthday(guild_id, user_id)
+        """
         try:
-            user_id_str = str(user_id)
-            
+            if arg2 is None:
+                guild_id = None
+                user_id = arg1
+            else:
+                guild_id = arg1
+                user_id = arg2
+
             # Remove from cache
-            if user_id_str in self.birthdays_cache:
-                del self.birthdays_cache[user_id_str]
+            key = f"{guild_id}_{user_id}" if guild_id else str(user_id)
+            if key in self.birthdays_cache:
+                del self.birthdays_cache[key]
             
+            # Legacy pure user_id key cleanup
+            if str(user_id) in self.birthdays_cache:
+                del self.birthdays_cache[str(user_id)]
+
             # Remove from MongoDB or JSON
             if mongo_enabled() and BirthdaysAdapter:
-                success = BirthdaysAdapter.remove(user_id_str)
+                success = BirthdaysAdapter.remove(guild_id, user_id)
                 if success:
-                    logger.info(f"✅ Removed birthday for user {user_id} from MongoDB")
+                    logger.info(f"✅ Removed birthday for user {user_id} (Guild: {guild_id}) from MongoDB")
                 return success
             else:
                 self.save_birthdays()
                 logger.info(f"✅ Removed birthday for user {user_id} from JSON")
                 return True
         except Exception as e:
-            logger.error(f"❌ Failed to remove birthday for user {user_id}: {e}")
+            logger.error(f"❌ Failed to remove birthday: {e}")
             return False
 
-    def get_birthday(self, user_id: int) -> Optional[dict]:
-        """Get a user's birthday"""
-        user_id_str = str(user_id)
-        return self.birthdays_cache.get(user_id_str)
+    def get_birthday(self, arg1: int, arg2=None) -> Optional[dict]:
+        """
+        Get a user's birthday.
+        Supports:
+        - get_birthday(user_id)
+        - get_birthday(guild_id, user_id)
+        """
+        if arg2 is None:
+            guild_id = None
+            user_id = arg1
+        else:
+            guild_id = arg1
+            user_id = arg2
+
+        if guild_id:
+            key = f"{guild_id}_{user_id}"
+            if key in self.birthdays_cache:
+                return self.birthdays_cache[key]
+
+        return self.birthdays_cache.get(str(user_id))
 
     def is_valid_date(self, day: int, month: int) -> bool:
         """Validate if the day and month form a valid date"""
         try:
             if month < 1 or month > 12:
                 return False
-            max_day = calendar.monthrange(2024, month)[1]  # Use 2024 (leap year) for Feb 29
+            max_day = calendar.monthrange(2024, month)[1]  # Leap year check
             return 1 <= day <= max_day
         except Exception:
             return False
 
+    async def migrate_json_to_mongodb(self):
+        """Migrate legacy birthdays.json records to MongoDB"""
+        if not mongo_enabled() or not BirthdaysAdapter:
+            return
+
+        if not BIRTHDAYS_FILE.exists():
+            return
+
+        try:
+            with BIRTHDAYS_FILE.open('r', encoding='utf-8') as f:
+                legacy_data = json.load(f)
+            
+            if not legacy_data:
+                return
+
+            logger.info(f"⚠️ Found {len(legacy_data)} legacy birthdays to migrate to MongoDB...")
+            migrated_count = 0
+
+            for user_id_str, data in legacy_data.items():
+                try:
+                    user_id = int(user_id_str)
+                except ValueError:
+                    continue
+
+                day = data.get("day")
+                month = data.get("month")
+                player_id = data.get("player_id")
+
+                if day is None or month is None:
+                    continue
+
+                mutual_guilds = []
+                for guild in self.bot.guilds:
+                    if guild.get_member(user_id):
+                        mutual_guilds.append(guild)
+
+                if mutual_guilds:
+                    for guild in mutual_guilds:
+                        success = await BirthdaysAdapter.set_async(guild.id, user_id, day, month, player_id)
+                        if success:
+                            migrated_count += 1
+                else:
+                    success = await BirthdaysAdapter.set_async(None, user_id, day, month, player_id)
+                    if success:
+                        migrated_count += 1
+
+            logger.info(f"✅ Successfully migrated {migrated_count} birthday records to MongoDB!")
+            
+            backup_path = BIRTHDAYS_FILE.with_suffix(".json.bak")
+            try:
+                import shutil
+                shutil.copy2(BIRTHDAYS_FILE, backup_path)
+                BIRTHDAYS_FILE.unlink()
+                logger.info(f"📦 Legacy birthdays.json backed up to birthdays.json.bak and deleted.")
+            except Exception as e:
+                logger.error(f"Failed to backup/delete legacy file: {e}")
+
+            self.load_birthdays()
+
+        except Exception as e:
+            logger.error(f"❌ Error during birthday migration: {e}")
+
     @commands.Cog.listener()
     async def on_ready(self):
-        """Initialize the daily check task when bot is ready"""
+        """Initialize the daily check task and migrate JSON when bot is ready"""
         if not hasattr(self, '_check_task_started'):
             self._check_task_started = True
+            
+        # Trigger MongoDB migration in the background
+        asyncio.create_task(self.migrate_json_to_mongodb())
 
     @tasks.loop(time=time(hour=0, minute=0))  # Run at 0:00 UTC daily
     async def check_birthdays(self):
@@ -751,51 +851,12 @@ class BirthdaySystem(commands.Cog):
             
             logger.info(f"🎂 Checking birthdays for {today_month}/{today_day}")
             
-            # Reload birthdays and sent wishes to get latest data
             self.load_birthdays()
             self.load_sent_wishes()
             
-            # Find users with birthdays today who haven't received wishes yet
-            birthday_users = []
-            skipped_users = []
-            
-            for user_id_str, birthday_data in self.birthdays_cache.items():
-                if birthday_data.get('day') == today_day and birthday_data.get('month') == today_month:
-                    try:
-                        user_id = int(user_id_str)
-                        
-                        # Check if wish was already sent today
-                        if self.was_wish_sent_today(user_id):
-                            skipped_users.append(user_id)
-                            logger.debug(f"⏭️ Skipping user {user_id} - wish already sent today")
-                            continue
-                        
-                        # Try to use get_user to avoid unnecessary API calls
-                        user = self.bot.get_user(user_id)
-                        if not user:
-                            try:
-                                user = await self.bot.fetch_user(user_id)
-                            except discord.NotFound:
-                                logger.warning(f"⚠️ User {user_id} not found on Discord.")
-                                continue
-                                
-                        if user:
-                            birthday_users.append(user)
-                    except Exception as e:
-                        logger.error(f"❌ Failed to fetch user {user_id_str}: {e}")
-            
-            # Log skipped users
-            if skipped_users:
-                logger.info(f"⏭️ Skipped {len(skipped_users)} user(s) - wishes already sent today")
-            
-            if not birthday_users:
-                if not skipped_users:
-                    logger.info("📅 No birthdays today")
-                return
-
             wishes_sent_to_anyone = False
+            wished_users_today = set()
 
-            # For each guild the bot is in, check if it has a birthday channel
             for guild in self.bot.guilds:
                 birthday_channel_id = self.get_birthday_channel(guild.id)
                 if not birthday_channel_id:
@@ -805,26 +866,59 @@ class BirthdaySystem(commands.Cog):
                 if not channel:
                     continue
                     
-                # Find which birthday users are in this guild
                 guild_birthday_users = []
-                for user in birthday_users:
-                    member = guild.get_member(user.id)
-                    if member:
-                        guild_birthday_users.append(user)
                 
+                for key, data in self.birthdays_cache.items():
+                    if data.get('day') != today_day or data.get('month') != today_month:
+                        continue
+                        
+                    is_match = False
+                    user_id_str = ""
+                    
+                    if "_" in key:
+                        parts = key.split("_")
+                        if len(parts) >= 2:
+                            g_id_str, u_id_str = parts[0], parts[1]
+                            if str(guild.id) == g_id_str:
+                                is_match = True
+                                user_id_str = u_id_str
+                    else:
+                        user_id_str = key
+                        if guild.get_member(int(user_id_str)):
+                            is_match = True
+                            
+                    if is_match:
+                        try:
+                            user_id = int(user_id_str)
+                            if self.was_wish_sent_today(user_id):
+                                continue
+                                
+                            member = guild.get_member(user_id)
+                            if not member:
+                                try:
+                                    member = await guild.fetch_member(user_id)
+                                except discord.NotFound:
+                                    continue
+                                    
+                            if member:
+                                guild_birthday_users.append(member)
+                        except Exception as e:
+                            logger.error(f"Error processing user {user_id_str} in guild {guild.id}: {e}")
+
                 if guild_birthday_users:
                     try:
                         await self.send_birthday_wishes(channel, guild_birthday_users)
                         wishes_sent_to_anyone = True
-                        logger.info(f"🎉 Sent birthday wishes in guild {guild.name} ({guild.id})")
+                        for u in guild_birthday_users:
+                            wished_users_today.add(u.id)
+                        logger.info(f"🎉 Sent birthday wishes in guild {guild.name} ({guild.id}) for {len(guild_birthday_users)} member(s)")
                     except Exception as e:
                         logger.error(f"❌ Failed to send birthday wishes in guild {guild.id}: {e}")
 
-            # Mark wishes as sent globally if we attempted to send them
-            if wishes_sent_to_anyone:
-                for user in birthday_users:
-                    self.mark_wish_sent(user.id)
-                logger.info(f"🎉 Marked birthday wishes as sent for {len(birthday_users)} user(s) across applicable guilds.")
+            if wished_users_today:
+                for uid in wished_users_today:
+                    self.mark_wish_sent(uid)
+                logger.info(f"🎉 Marked birthday wishes as sent for {len(wished_users_today)} user(s).")
                 
         except Exception as e:
             logger.error(f"❌ Error in birthday check task: {e}")
@@ -834,11 +928,9 @@ class BirthdaySystem(commands.Cog):
         """Wait until bot is ready and calculate time until next 0 UTC"""
         await self.bot.wait_until_ready()
         
-        # Calculate time until next 0:00 UTC
         now = datetime.utcnow()
         next_run = now.replace(hour=0, minute=0, second=0, microsecond=0)
         
-        # If it's already past 0:00 UTC today, schedule for tomorrow
         if now.hour >= 0 and now.minute > 0:
             next_run += timedelta(days=1)
         
@@ -850,7 +942,6 @@ class BirthdaySystem(commands.Cog):
     async def _send_immediate_birthday_wish(self, user_id: int):
         """Send birthday wish immediately for a user whose birthday is today"""
         try:
-            # Fetch user
             user = self.bot.get_user(user_id)
             if not user:
                 try:
@@ -861,7 +952,6 @@ class BirthdaySystem(commands.Cog):
             
             wishes_sent_to_anyone = False
 
-            # For each guild the bot is in, check if it has a birthday channel
             for guild in self.bot.guilds:
                 birthday_channel_id = self.get_birthday_channel(guild.id)
                 if not birthday_channel_id:
@@ -870,22 +960,28 @@ class BirthdaySystem(commands.Cog):
                 channel = guild.get_channel(int(birthday_channel_id))
                 if not channel:
                     continue
+                
+                is_registered = False
+                key = f"{guild.id}_{user_id}"
+                if key in self.birthdays_cache:
+                    is_registered = True
+                elif str(user_id) in self.birthdays_cache:
+                    is_registered = True
                     
-                # Check if user is in this guild
-                member = guild.get_member(user_id)
-                if member:
-                    try:
-                        await self.send_birthday_wishes(channel, [user])
-                        wishes_sent_to_anyone = True
-                        logger.info(f"🎉 Sent immediate birthday wish for user {user_id} in guild {guild.name} ({guild.id})")
-                    except Exception as e:
-                        logger.error(f"❌ Failed to send immediate birthday wish in guild {guild.id}: {e}")
+                if is_registered:
+                    member = guild.get_member(user_id)
+                    if member:
+                        try:
+                            await self.send_birthday_wishes(channel, [member])
+                            wishes_sent_to_anyone = True
+                            logger.info(f"🎉 Sent immediate birthday wish for user {user_id} in guild {guild.name} ({guild.id})")
+                        except Exception as e:
+                            logger.error(f"❌ Failed to send immediate birthday wish in guild {guild.id}: {e}")
             
             if wishes_sent_to_anyone:
-                # Mark as sent globally
                 self.mark_wish_sent(user_id)
             else:
-                logger.warning(f"⚠️ Could not send immediate wish for user {user_id} - user not found in any guild with a configured birthday channel.")
+                logger.warning(f"⚠️ Could not send immediate wish for user {user_id} - not registered or not in guild.")
                 
         except Exception as e:
             logger.error(f"❌ Failed to send immediate birthday wish for user {user_id}: {e}")

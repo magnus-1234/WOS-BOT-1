@@ -1217,6 +1217,172 @@
                 transform: translateY(0);
             }
         }
+
+        /* Birthday Grid Styles */
+        .bday-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .bday-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .bday-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(139, 92, 246, 0.3);
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.1);
+        }
+
+        .bday-card.today {
+            border-color: rgba(245, 158, 11, 0.5);
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+            background: linear-gradient(135deg, rgba(30,34,41,0.8), rgba(245,158,11,0.05));
+        }
+
+        .bday-card.today::before {
+            content: '🎂 TODAY!';
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--accent);
+            color: #000;
+            font-size: 0.7rem;
+            font-weight: bold;
+            padding: 4px 10px;
+            border-bottom-left-radius: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .bday-avatar-wrapper {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            flex-shrink: 0;
+            margin-right: 16px;
+        }
+
+        .bday-avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: #111;
+        }
+
+        .bday-card.today .bday-avatar {
+            border-color: var(--accent);
+        }
+
+        .bday-info {
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .bday-name {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: var(--text-main);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .bday-userid {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+        }
+
+        .bday-date-badge {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 3px 8px;
+            font-size: 0.8rem;
+            color: var(--text-main);
+        }
+
+        .bday-date-badge i {
+            margin-right: 4px;
+            color: var(--primary);
+        }
+
+        .bday-action {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .bday-card:hover .bday-action {
+            opacity: 1;
+        }
+
+        .bday-delete-btn {
+            background: transparent;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bday-delete-btn:hover {
+            background: rgba(239, 68, 68, 0.1);
+            transform: scale(1.1);
+        }
+
+        .countdown-badge {
+            font-size: 0.7rem;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+            text-transform: uppercase;
+        }
+
+        .countdown-imminent {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .countdown-normal {
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .countdown-today {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
     </style>
 </head>
 
@@ -1729,18 +1895,97 @@
                 <div id="translate-configs-list"></div>
             </div>
 
-            <!-- Birthday Tab -->
+                        <!-- Birthday Tab -->
             <div id="tab-birthday" class="tab-content">
                 <h2 class="section-title">Birthday Celebrations</h2>
-                <section class="card">
-                    <div class="form-group">
-                        <label>Announcement Channel</label>
-                        <select id="birthday-channel" class="guild-channels">
-                            <option value="">Select Channel</option>
-                        </select>
+                
+                <div class="settings-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+                    <!-- Settings Card -->
+                    <section class="card glass-card">
+                        <h3 class="card-title"><i data-lucide="bell" style="width: 18px; height: 18px; margin-right: 8px; vertical-align: middle;"></i>Config & Notification</h3>
+                        <p style="color: var(--text-muted); margin-bottom: 16px; font-size: 0.9rem;">
+                            Configure the channel where the bot will announce and wish users a happy birthday.
+                        </p>
+                        <div class="form-group">
+                            <label>Wish Announcement Channel</label>
+                            <select id="birthday-channel" class="guild-channels">
+                                <option value="">Select Channel</option>
+                            </select>
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; margin-top: 20px;">
+                            <button onclick="saveBirthdaySettings()" class="btn btn-primary" id="btn-save-birthday">
+                                <i data-lucide="save" style="width: 16px; height: 16px; margin-right: 6px;"></i>Save Settings
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- Add Birthday Card -->
+                    <section class="card glass-card">
+                        <h3 class="card-title"><i data-lucide="user-plus" style="width: 18px; height: 18px; margin-right: 8px; vertical-align: middle;"></i>Add Birthday Record</h3>
+                        <p style="color: var(--text-muted); margin-bottom: 16px; font-size: 0.9rem;">
+                            Manually register or update a birthday for a member in this server.
+                        </p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                            <div class="form-group">
+                                <label>Discord User ID</label>
+                                <input type="text" id="bday-user-id" placeholder="850786361572720661" style="width: 100%;">
+                            </div>
+                            <div class="form-group">
+                                <label>Player ID (Optional)</label>
+                                <input type="text" id="bday-player-id" placeholder="9-digit WOS ID" style="width: 100%;">
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div class="form-group">
+                                <label>Month</label>
+                                <select id="bday-month" style="width: 100%;">
+                                    <option value="1">January</option>
+                                    <option value="2">February</option>
+                                    <option value="3">March</option>
+                                    <option value="4">April</option>
+                                    <option value="5">May</option>
+                                    <option value="6">June</option>
+                                    <option value="7">July</option>
+                                    <option value="8">August</option>
+                                    <option value="9">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Day</label>
+                                <select id="bday-day" style="width: 100%;">
+                                    <!-- Populated via JS -->
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; margin-top: 20px;">
+                            <button onclick="registerBirthday()" class="btn btn-success" id="btn-add-birthday">
+                                <i data-lucide="plus-circle" style="width: 16px; height: 16px; margin-right: 6px;"></i>Add Birthday
+                            </button>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Birthday Records Card -->
+                <section class="card glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 class="card-title" style="margin: 0;">
+                            <i data-lucide="calendar" style="width: 18px; height: 18px; margin-right: 8px; vertical-align: middle;"></i>
+                            Server Birthdays <span id="bday-count-badge" class="badge badge-info" style="margin-left: 8px;">0</span>
+                        </h3>
+                        <div class="search-box" style="display: flex; align-items: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 4px 12px; width: 250px;">
+                            <i data-lucide="search" style="width: 16px; height: 16px; color: var(--text-muted); margin-right: 8px;"></i>
+                            <input type="text" id="bday-search" placeholder="Search members..." oninput="filterBirthdays()" style="background: transparent; border: none; color: #fff; width: 100%; outline: none; font-size: 0.9rem;">
+                        </div>
                     </div>
-                    <div style="display:flex; justify-content:flex-end;">
-                        <button onclick="saveBirthdaySettings()" class="btn btn-primary">Save Birthday Config</button>
+
+                    <div id="bday-records-grid" class="bday-grid">
+                        <div class="loading-placeholder" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            <div class="spinner" style="border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid var(--accent); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 12px;"></div>
+                            Loading server birthdays...
+                        </div>
                     </div>
                 </section>
             </div>
@@ -3566,11 +3811,28 @@
             }
         }
 
+                const escapeHtml = str => str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        let _birthdayRecords = [];
+
         async function loadBirthdaySettings() {
             try {
                 const settings = await fetchData(`/api/settings/birthday/${guildId}`);
                 document.getElementById('birthday-channel').value = settings.channel_id || '';
-            } catch (e) { }
+                
+                const daySelect = document.getElementById('bday-day');
+                if (daySelect && daySelect.children.length === 0) {
+                    for (let i = 1; i <= 31; i++) {
+                        const opt = document.createElement('option');
+                        opt.value = i;
+                        opt.textContent = i;
+                        daySelect.appendChild(opt);
+                    }
+                }
+                
+                await loadBirthdayRecords();
+            } catch (e) {
+                console.error("Error loading birthday settings:", e);
+            }
         }
 
         async function saveBirthdaySettings() {
@@ -3581,7 +3843,169 @@
                     body: JSON.stringify({ channel_id: document.getElementById('birthday-channel').value })
                 });
                 showNotification('Birthday settings saved!');
-            } catch (e) { } finally { showLoading(false); }
+            } catch (e) {
+                showNotification('Failed to save settings', true);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function loadBirthdayRecords() {
+            const grid = document.getElementById('bday-records-grid');
+            if (!grid) return;
+            
+            try {
+                const records = await fetchData(`/api/settings/birthday/${guildId}/records`);
+                _birthdayRecords = records || [];
+                renderBirthdayRecords(_birthdayRecords);
+            } catch (e) {
+                grid.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);"><i data-lucide="alert-triangle" style="width:24px;height:24px;margin-bottom:8px;color:#ef4444;"></i><br>Failed to load birthday records.</div>';
+                lucide.createIcons();
+            }
+        }
+
+        function renderBirthdayRecords(records) {
+            const grid = document.getElementById('bday-records-grid');
+            const countBadge = document.getElementById('bday-count-badge');
+            
+            if (countBadge) {
+                countBadge.textContent = records.length;
+            }
+            
+            if (!grid) return;
+            grid.innerHTML = '';
+            
+            if (records.length === 0) {
+                grid.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted); grid-column: 1 / -1;"><i data-lucide="cake" style="width:32px;height:32px;margin-bottom:8px;color:var(--text-muted);"></i><br>No registered birthdays in this server yet.</div>';
+                lucide.createIcons();
+                return;
+            }
+            
+            records.forEach(rec => {
+                const isToday = rec.days_until === 0;
+                const card = document.createElement('div');
+                card.className = `bday-card ${isToday ? 'today' : ''}`;
+                card.setAttribute('data-user-id', rec.user_id);
+                card.setAttribute('data-username', rec.username.toLowerCase());
+                
+                let countdownClass = 'countdown-normal';
+                let countdownText = `In ${rec.days_until} days`;
+                
+                if (isToday) {
+                    countdownClass = 'countdown-today';
+                    countdownText = 'TODAY! 🎂';
+                } else if (rec.days_until <= 7) {
+                    countdownClass = 'countdown-imminent';
+                    countdownText = `In ${rec.days_until} days 🔥`;
+                }
+                
+                card.innerHTML = `
+                    <div class="bday-avatar-wrapper">
+                        <img class="bday-avatar" src="${rec.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" alt="${rec.username}" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
+                    </div>
+                    <div class="bday-info">
+                        <h4 class="bday-name">${escapeHtml(rec.username)}</h4>
+                        <div class="bday-userid">
+                            ID: ${rec.user_id}
+                            <span class="countdown-badge ${countdownClass}">${countdownText}</span>
+                        </div>
+                        <div class="bday-date-badge">
+                            <i data-lucide="calendar" style="width:12px;height:12px;margin-right:4px;"></i>
+                            ${rec.date_str}
+                            ${rec.player_id ? ` <span style="color:var(--text-muted);margin-left:8px;font-size:0.75rem;">(Player: ${rec.player_id})</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="bday-action">
+                        <button onclick="deleteBirthday('${rec.user_id}')" class="bday-delete-btn" title="Delete record">
+                            <i data-lucide="trash-2" style="width:16px;height:16px;"></i>
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            
+            lucide.createIcons();
+        }
+
+        async function registerBirthday() {
+            const userIdInput = document.getElementById('bday-user-id');
+            const playerIdInput = document.getElementById('bday-player-id');
+            const monthSelect = document.getElementById('bday-month');
+            const daySelect = document.getElementById('bday-day');
+            const btn = document.getElementById('btn-add-birthday');
+            
+            const user_id = userIdInput.value.trim();
+            const player_id = playerIdInput.value.trim();
+            const month = parseInt(monthSelect.value);
+            const day = parseInt(daySelect.value);
+            
+            if (!user_id || !/^\d+$/.test(user_id)) {
+                showNotification('Please enter a valid numeric Discord User ID', true);
+                return;
+            }
+            
+            if (player_id && (!/^\d+$/.test(player_id) || player_id.length !== 9)) {
+                showNotification('Player ID must be exactly 9 digits', true);
+                return;
+            }
+            
+            showLoading(true);
+            btn.disabled = true;
+            
+            try {
+                await fetchData(`/api/settings/birthday/${guildId}/records`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        user_id: user_id,
+                        player_id: player_id || null,
+                        day: day,
+                        month: month
+                    })
+                });
+                
+                showNotification('Birthday record registered successfully!');
+                userIdInput.value = '';
+                playerIdInput.value = '';
+                await loadBirthdayRecords();
+            } catch (e) {
+                showNotification(e.message || 'Failed to register birthday record', true);
+            } finally {
+                showLoading(false);
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteBirthday(userId) {
+            if (!confirm('Are you sure you want to delete this birthday record?')) return;
+            
+            showLoading(true);
+            try {
+                await fetchData(`/api/settings/birthday/${guildId}/records/${userId}`, {
+                    method: 'DELETE'
+                });
+                showNotification('Birthday record deleted.');
+                await loadBirthdayRecords();
+            } catch (e) {
+                showNotification('Failed to delete birthday record', true);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function filterBirthdays() {
+            const query = document.getElementById('bday-search').value.toLowerCase().trim();
+            const cards = document.querySelectorAll('#bday-records-grid .bday-card');
+            
+            cards.forEach(card => {
+                const username = card.getAttribute('data-username') || '';
+                const userId = card.getAttribute('data-user-id') || '';
+                
+                if (username.includes(query) || userId.includes(query)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
         }
 
         async function loadTranslateConfigs() {

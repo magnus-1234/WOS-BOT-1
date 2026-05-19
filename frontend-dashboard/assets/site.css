@@ -1,6 +1,6 @@
 :root {
   --radius: 0.5rem;
-  --background: #060f26;
+  --background: #050505;
   --foreground: #f7f6fb;
   --card: #111014;
   --primary: #9a63f0;
@@ -25,11 +25,21 @@ html {
   scroll-behavior: smooth;
 }
 
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+main {
+  animation: pageFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 body {
   margin: 0;
   background:
     radial-gradient(circle at 78% 8%, rgba(72, 170, 213, 0.12), transparent 32rem),
     radial-gradient(circle at 16% 28%, rgba(141, 232, 255, 0.08), transparent 28rem),
+    linear-gradient(to bottom, #060f26 0%, var(--background) 50rem),
     var(--background);
   color: var(--foreground);
   font-family: var(--font-body);

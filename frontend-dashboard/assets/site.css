@@ -29,7 +29,7 @@ body {
   margin: 0;
   background:
     radial-gradient(circle at 78% 8%, rgba(72, 170, 213, 0.12), transparent 32rem),
-    radial-gradient(circle at 16% 28%, rgba(154, 99, 240, 0.08), transparent 28rem),
+    radial-gradient(circle at 16% 28%, rgba(141, 232, 255, 0.08), transparent 28rem),
     var(--background);
   color: var(--foreground);
   font-family: var(--font-body);
@@ -299,7 +299,7 @@ svg {
   inset-inline: 0;
   top: 0;
   height: 520px;
-  background: radial-gradient(60% 50% at 50% 0%, rgba(154, 99, 240, 0.25), transparent 70%);
+  background: radial-gradient(60% 50% at 50% 0%, rgba(141, 232, 255, 0.28), transparent 70%);
 }
 
 .grid-bg {
@@ -2506,4 +2506,40 @@ body,
 }
 [data-theme="light"] .live-process-header {
   border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Premium Footer Brand styling */
+.footer-brand {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.9rem !important;
+  font-family: var(--font-display) !important;
+  font-size: 2.2rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #ffffff 10%, #8de8ff 60%, #4da6ff 100%);
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  filter: drop-shadow(0 4px 12px rgba(141, 232, 255, 0.25));
+  transition: filter 0.3s ease, transform 0.3s ease;
+}
+
+.footer-brand:hover {
+  transform: translateY(-2px);
+  filter: drop-shadow(0 6px 20px rgba(141, 232, 255, 0.45));
+}
+
+.footer-brand .brand-mark {
+  width: 3.4rem !important;
+  height: 3.4rem !important;
+  border-radius: 0.85rem !important;
+  border: 1.5px solid rgba(141, 232, 255, 0.4) !important;
+  box-shadow: 0 0 20px rgba(141, 232, 255, 0.3) !important;
+}
+
+.footer-brand .brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }

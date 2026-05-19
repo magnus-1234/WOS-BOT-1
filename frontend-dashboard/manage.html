@@ -57,12 +57,25 @@
             height: var(--top-bar-height);
             display: flex;
             align-items: center;
-            padding: 0 24px;
-            gap: 12px;
+            padding: 0 16px;
+            gap: 8px;
+            white-space: nowrap;
+            overflow: hidden;
         }
 
-        .sidebar-brand img { width: 32px; height: 32px; }
-        .sidebar-brand h1 { font-family: 'Outfit', sans-serif; font-size: 1.3rem; font-weight: 800; }
+        .sidebar-brand img { width: 32px; height: 32px; flex-shrink: 0; }
+        .sidebar-brand h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+            margin: 0;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
 
         .server-selection-container {
             padding: 0 16px 16px 16px;
@@ -985,6 +998,225 @@
             background-color: var(--primary);
             box-shadow: 0 0 8px var(--primary);
         }
+
+        /* Custom Premium Server Selector Dropdown */
+        .custom-select-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .custom-select-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            background: rgba(30, 34, 41, 0.6);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 10px 14px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .custom-select-trigger:hover {
+            border-color: rgba(139, 92, 246, 0.4);
+            background: rgba(35, 40, 49, 0.8);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .selected-server-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .mini-guild-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            object-fit: cover;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        #selected-guild-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chevron-icon {
+            width: 16px;
+            height: 16px;
+            color: var(--text-muted);
+            transition: transform 0.2s ease;
+        }
+
+        .custom-select-wrapper.open .chevron-icon {
+            transform: rotate(180deg);
+        }
+
+        .custom-select-options {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            width: 100%;
+            background: rgba(22, 25, 31, 0.95);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            max-height: 280px;
+            overflow-y: auto;
+            display: none;
+            z-index: 500;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            padding: 6px;
+        }
+
+        .custom-select-options.show {
+            display: block;
+            animation: fadeInDropdown 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .custom-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            color: var(--text-muted);
+            font-size: 0.88rem;
+            min-width: 0;
+        }
+
+        .custom-option:hover {
+            background: rgba(139, 92, 246, 0.1);
+            color: #fff;
+        }
+
+        .custom-option.selected {
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        /* Premium Profile Dropdown Styling */
+        .user-profile-wrapper {
+            position: relative;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            padding: 6px 14px;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            user-select: none;
+        }
+
+        .user-profile:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .user-profile img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .profile-dropdown {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            width: 220px;
+            background: rgba(22, 25, 31, 0.95);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 600;
+            padding: 8px;
+        }
+
+        .profile-dropdown.show {
+            display: block;
+            animation: fadeInDropdown 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
+
+        .dropdown-item i {
+            width: 16px;
+            height: 16px;
+            opacity: 0.7;
+        }
+
+        .dropdown-item:hover i {
+            opacity: 1;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: var(--glass-border);
+            margin: 6px 0;
+        }
+
+        .logout-btn {
+            color: #f87171 !important;
+        }
+
+        .logout-btn:hover {
+            background: rgba(239, 68, 68, 0.1) !important;
+            color: #f87171 !important;
+        }
+
+        .logout-btn i {
+            color: #f87171;
+        }
+
+        @keyframes fadeInDropdown {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 
@@ -996,16 +1228,24 @@
             <h1>Whiteout Survival Bot</h1>
         </div>
 
-        <div class="sidebar-label">Server selection</div>
+        <div class="sidebar-label">Server Selection</div>
         <div class="server-selection-container">
-            <select id="server-selector" onchange="window.location.href='manage.html?id='+this.value">
-                <option value="">Loading servers...</option>
-            </select>
+            <div class="custom-select-wrapper" id="custom-server-select-wrapper">
+                <div class="custom-select-trigger" id="custom-server-select-trigger">
+                    <div class="selected-server-info">
+                        <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="mini-guild-icon" id="selected-guild-icon" alt="">
+                        <span id="selected-guild-name">Select Server...</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="chevron-icon"></i>
+                </div>
+                <div class="custom-select-options" id="custom-server-select-options">
+                    <!-- populated dynamically by JS -->
+                </div>
+            </div>
         </div>
 
         <div class="sidebar-nav">
             <div class="nav-group">
-                <div class="sidebar-label">Server</div>
                 <button class="nav-item active" onclick="switchTab('overview')">
                     <i data-lucide="layout"></i>
                     <span>Overview</span>
@@ -1024,7 +1264,6 @@
             </div>
 
             <div class="nav-group">
-                <div class="sidebar-label">Translations</div>
                 <button class="nav-item" onclick="switchTab('translate')">
                     <i data-lucide="languages"></i>
                     <span>Auto-Translation</span>
@@ -1062,11 +1301,30 @@
                 <!-- Breadcrumbs or similar -->
             </div>
             <div class="top-bar-right">
-                <span style="color:var(--text-muted); cursor:pointer;">Need Support?</span>
-                <div class="user-profile">
-                    <img id="user-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="User">
-                    <span id="user-name" style="font-weight:600;">User</span>
-                    <i data-lucide="chevron-down" style="width:16px;"></i>
+                <div class="user-profile-wrapper" id="user-profile-wrapper">
+                    <div class="user-profile" id="user-profile-trigger">
+                        <img id="user-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="User">
+                        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px;">
+                            <span id="user-name" style="font-weight: 600; font-size: 0.95rem; color: #fff;">User</span>
+                            <span id="user-id-display" style="font-size: 0.72rem; color: var(--text-muted);">ID: -</span>
+                        </div>
+                        <i data-lucide="chevron-down" style="width:16px; color: var(--text-muted);"></i>
+                    </div>
+                    <div class="profile-dropdown" id="profile-dropdown-menu">
+                        <a href="dashboard.html" class="dropdown-item">
+                            <i data-lucide="layout-grid"></i>
+                            <span>Change Server</span>
+                        </a>
+                        <a href="https://discord.gg/bP5JQFH2M5" target="_blank" class="dropdown-item">
+                            <i data-lucide="help-circle"></i>
+                            <span>Support Server</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <button onclick="logout()" class="dropdown-item logout-btn" style="width: 100%; border: none; background: none; text-align: left; font-family: inherit;">
+                            <i data-lucide="log-out"></i>
+                            <span>Logout</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </header>
@@ -1079,9 +1337,8 @@
                 <div class="overview-card">
                     <img id="overview-server-icon" src="" alt="" class="server-big-icon">
                     <div class="server-details">
-                        <h2 id="overview-server-name">Loading... <span class="plan-badge">Free plan</span></h2>
+                        <h2 id="overview-server-name">Loading...</h2>
                         <p>ID: <span id="overview-server-id">-</span> <span style="color:var(--primary); margin-left:12px; cursor:pointer;"><i data-lucide="copy" style="width:14px; display:inline-block; vertical-align:middle; margin-right:4px;"></i> Copy ID</span></p>
-                        <p style="margin-top:8px; font-size:0.8rem;">This server is on the free plan.</p>
                     </div>
                 </div>
 
@@ -1189,16 +1446,6 @@
                     </div>
                 </div>
 
-                <div class="progress-card">
-                    <div class="progress-header">
-                        <div class="progress-title">Gift Code Attempts</div>
-                        <div style="color:var(--text-muted); font-size:0.9rem;"><span id="gift-count-text">0</span>/5000 Monthly Limit</div>
-                    </div>
-                    <div class="progress-bar-bg">
-                        <div id="gift-progress-fill" class="progress-bar-fill" style="width: 0%"></div>
-                    </div>
-                    <p style="font-size:0.85rem; color:var(--text-muted);">Attempts this month. <span style="color:var(--primary); cursor:pointer;">Upgrade for unlimited</span></p>
-                </div>
             </div>
 
             <!-- Welcome Tab -->
@@ -2480,6 +2727,12 @@
         }
         _loadDiscordUser();
 
+        function logout() {
+            localStorage.removeItem('discord_access_token');
+            localStorage.removeItem('discord_user');
+            window.location.href = 'index.html';
+        }
+
         // â”€â”€ Update lock status on nav items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         async function updateNavLockStatus() {
             try {
@@ -3031,9 +3284,13 @@
             try {
                 const stats = await fetchData(`/api/giftcodes/${guildId}/stats`);
                 const total = stats.total_attempts || 0;
-                document.getElementById('gift-count-text').textContent = total;
-                const percent = Math.min(100, (total / 5000) * 100);
-                document.getElementById('gift-progress-fill').style.width = percent + '%';
+                const countTextEl = document.getElementById('gift-count-text');
+                if (countTextEl) countTextEl.textContent = total;
+                const progressFillEl = document.getElementById('gift-progress-fill');
+                if (progressFillEl) {
+                    const percent = Math.min(100, (total / 5000) * 100);
+                    progressFillEl.style.width = percent + '%';
+                }
             } catch (e) {}
         }
 
@@ -5283,32 +5540,79 @@
             initTimeWheels();
             showLoading(true);
             try {
-                // User info
+                // User info & user profile dropdown setup
                 const user = await fetchData('/api/auth/me');
                 if (user) {
                     document.getElementById('user-name').textContent = user.username;
                     document.getElementById('user-avatar').src = user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png';
+                    document.getElementById('user-id-display').textContent = `ID: ${user.id}`;
                 }
 
-                // Servers list
+                // User Profile Dropdown Toggle
+                const profileTrigger = document.getElementById('user-profile-trigger');
+                const profileMenu = document.getElementById('profile-dropdown-menu');
+                if (profileTrigger && profileMenu) {
+                    profileTrigger.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        profileMenu.classList.toggle('show');
+                    });
+
+                    document.addEventListener('click', () => {
+                        profileMenu.classList.remove('show');
+                    });
+                }
+
+                // Servers list (Custom Dropdown)
                 const guildsResponse = await fetchData('/api/servers');
                 const guilds = guildsResponse.servers || [];
-                const selector = document.getElementById('server-selector');
-                selector.innerHTML = '';
-                guilds.forEach(g => {
-                    const opt = document.createElement('option');
-                    opt.value = g.id;
-                    opt.textContent = g.name;
-                    if (g.id === guildId) {
-                        opt.selected = true;
-                        document.getElementById('overview-server-name').innerHTML = g.name + ' <span class="plan-badge">Free plan</span>';
-                        // Update preview server name after we know the server
-                        SAMPLE.server = g.name;
-                        // Make server name available to the registration wizard
-                        _setRegServerName(g.name);
+                
+                const customOptionsContainer = document.getElementById('custom-server-select-options');
+                if (customOptionsContainer) {
+                    customOptionsContainer.innerHTML = '';
+                    guilds.forEach(g => {
+                        const iconUrl = g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png';
+                        
+                        const optionDiv = document.createElement('div');
+                        optionDiv.className = `custom-option ${g.id === guildId ? 'selected' : ''}`;
+                        optionDiv.dataset.value = g.id;
+                        optionDiv.innerHTML = `
+                            <img src="${iconUrl}" class="mini-guild-icon" alt="">
+                            <span>${escapeHTML(g.name)}</span>
+                        `;
+                        
+                        optionDiv.addEventListener('click', () => {
+                            window.location.href = `manage.html?id=${g.id}`;
+                        });
+                        
+                        if (g.id === guildId) {
+                            document.getElementById('selected-guild-icon').src = iconUrl;
+                            document.getElementById('selected-guild-name').textContent = g.name;
+                            document.getElementById('overview-server-name').textContent = g.name;
+                            SAMPLE.server = g.name;
+                            _setRegServerName(g.name);
+                        }
+                        
+                        customOptionsContainer.appendChild(optionDiv);
+                    });
+                    
+                    // Setup trigger toggle
+                    const trigger = document.getElementById('custom-server-select-trigger');
+                    const wrapper = document.getElementById('custom-server-select-wrapper');
+                    
+                    if (trigger && wrapper) {
+                        trigger.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            wrapper.classList.toggle('open');
+                            customOptionsContainer.classList.toggle('show');
+                        });
+                        
+                        // Close on click outside
+                        document.addEventListener('click', () => {
+                            wrapper.classList.remove('open');
+                            customOptionsContainer.classList.remove('show');
+                        });
                     }
-                    selector.appendChild(opt);
-                });
+                }
 
                 await loadChannels();
                 await loadGuildStats();

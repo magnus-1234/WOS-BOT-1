@@ -128,6 +128,92 @@ def _serialize_reminder(reminder: dict) -> dict:
         item["id"] = str(item["id"])
     return item
 
+def _is_discord_url_expired(url: str) -> bool:
+    if not url:
+        return False
+    if "cdn.discordapp.com" not in url and "media.discordapp.net" not in url:
+        return False
+    import time
+    import urllib.parse
+    try:
+        parsed = urllib.parse.urlparse(url)
+        query = urllib.parse.parse_qs(parsed.query)
+        ex_hex = query.get("ex", [None])[0]
+        if not ex_hex:
+            return True
+        ex_time = int(ex_hex, 16)
+        if ex_time - time.time() < 7200:  # Expired or expiring within 2 hours
+            return True
+    except Exception:
+        return True
+    return False
+
+async def _refresh_discord_urls(urls: list[str]) -> dict[str, str]:
+    if not urls:
+        return {}
+    import os
+    token = os.getenv("DISCORD_TOKEN")
+    if not token:
+        logger.warning("No DISCORD_TOKEN found; cannot refresh Discord attachment URLs.")
+        return {}
+        
+    discord_urls = list(set(u for u in urls if u and ("cdn.discordapp.com/attachments" in u or "media.discordapp.net/attachments" in u)))
+    if not discord_urls:
+        return {}
+        
+    endpoint = "https://discord.com/api/v10/attachments/refresh-urls"
+    headers = {
+        "Authorization": f"Bot {token}",
+        "Content-Type": "application/json",
+        "User-Agent": "FastAPI-WebDashboard/1.0"
+    }
+    payload = {
+        "attachment_urls": discord_urls
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(endpoint, json=payload, headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                refreshed_list = data.get("refreshed_urls", [])
+                mapping = {}
+                for item in refreshed_list:
+                    orig = item.get("original")
+                    ref = item.get("refreshed")
+                    if orig and ref:
+                        mapping[orig] = ref
+                return mapping
+            else:
+                logger.error(f"Failed to refresh Discord URLs (status {resp.status_code}): {resp.text}")
+    except Exception as e:
+        logger.error(f"Error calling Discord refresh-urls endpoint: {e}")
+        
+    return {}
+
+async def _refresh_items_discord_urls(items: list[dict]) -> list[dict]:
+    """
+    Given a list of reminder/preset dicts, automatically identify and refresh
+    any expired or expiring Discord CDN links in their thumbnail_url, image_url, or footer_icon_url fields.
+    """
+    expired_urls = []
+    for item in items:
+        for field in ("thumbnail_url", "image_url", "footer_icon_url"):
+            val = item.get(field)
+            if val and _is_discord_url_expired(val):
+                expired_urls.append(val)
+                
+    if expired_urls:
+        mapping = await _refresh_discord_urls(expired_urls)
+        if mapping:
+            for item in items:
+                for field in ("thumbnail_url", "image_url", "footer_icon_url"):
+                    val = item.get(field)
+                    if val and val in mapping:
+                        item[field] = mapping[val]
+                        
+    return items
+
 def _dedupe_reminders(reminders: list[dict]) -> list[dict]:
     deduped = []
     seen = set()
@@ -329,6 +415,11 @@ async def get_reminders(request: Request, guild_id: int):
     for r in all_reminders:
         if _reminder_belongs_to_guild(r, guild_id, guild_channel_ids):
             server_reminders.append(r)
+
+    try:
+        server_reminders = await _refresh_items_discord_urls(server_reminders)
+    except Exception as e:
+        logger.error(f"Failed to refresh Discord attachment URLs: {e}")
 
     return {"reminders": server_reminders}
 
@@ -671,6 +762,10 @@ async def get_community_presets(request: Request, q: Optional[str] = None):
                 {"message": {"$regex": q.strip(), "$options": "i"}}
             ]}
         presets = list(col.find(query, {"_id": 0}).sort("created_at", -1).limit(100))
+        try:
+            presets = await _refresh_items_discord_urls(presets)
+        except Exception as e:
+            logger.error(f"Failed to refresh presets Discord URLs: {e}")
         return {"presets": presets}
     except Exception as e:
         logger.error(f"Failed to fetch community presets: {e}")

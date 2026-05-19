@@ -2993,10 +2993,6 @@
                 if (!value) { showNotification('Alliance name is required', true); return; }
                 payload.alliance_name = value;
             } else if (type === 'state') {
-                if (currentAlliance === 'Not Set' || !currentAlliance) {
-                    showNotification('Please configure an Alliance before setting the State.', true);
-                    return;
-                }
                 let defaultVal = currentState === 'Not Set' ? '' : currentState.trim();
                 if (defaultVal.startsWith('#')) {
                     defaultVal = defaultVal.substring(1);

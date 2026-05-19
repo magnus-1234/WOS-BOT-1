@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -1073,6 +1073,66 @@
                             <h3 id="stat-roles">0</h3>
                             <p>roles</p>
                         </div>
+                    </div>
+                </div>
+
+                <h3 style="margin-top:24px; margin-bottom:12px; font-family:'Outfit', sans-serif; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="activity" style="color:var(--primary); width:18px;"></i> Bot Integration & Features
+                </h3>
+                <div class="overview-stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="overview-stat-box" style="justify-content: space-between;">
+                        <div class="stat-data" style="text-align: left;">
+                            <p style="text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; font-size: 0.75rem;">Assigned Alliance</p>
+                            <h3 id="stat-alliance" style="font-size: 1.1rem; margin-top: 4px;">Not Set</h3>
+                        </div>
+                        <div class="stat-icon" style="color:#a78bfa; background:rgba(167,139,250,0.1);"><i data-lucide="shield"></i></div>
+                    </div>
+                    <div class="overview-stat-box" style="justify-content: space-between;">
+                        <div class="stat-data" style="text-align: left;">
+                            <p style="text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; font-size: 0.75rem;">Server Age</p>
+                            <h3 id="stat-server-age" style="font-size: 1.1rem; margin-top: 4px;">Unknown</h3>
+                        </div>
+                        <div class="stat-icon" style="color:#34d399; background:rgba(52,211,153,0.1);"><i data-lucide="calendar"></i></div>
+                    </div>
+                    <div class="overview-stat-box" style="justify-content: space-between;">
+                        <div class="stat-data" style="text-align: left;">
+                            <p style="text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; font-size: 0.75rem;">Active Reminders</p>
+                            <h3 id="stat-active-reminders" style="font-size: 1.1rem; margin-top: 4px;">0</h3>
+                        </div>
+                        <div class="stat-icon" style="color:#fbbf24; background:rgba(251,191,36,0.1);"><i data-lucide="clock"></i></div>
+                    </div>
+                </div>
+
+                <div class="features-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-top: 16px; margin-bottom: 24px;">
+                    <div class="ar-config-card" style="flex-direction: row; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div class="ar-icon-box" style="background: rgba(16,185,129,0.15); color: #10b981;"><i data-lucide="party-popper"></i></div>
+                            <div>
+                                <h4 style="font-size: 0.95rem; font-weight: 600;">Welcome Module</h4>
+                                <p style="font-size: 0.8rem; color: var(--text-muted);">New member greeting</p>
+                            </div>
+                        </div>
+                        <div id="status-welcome" class="ar-status-badge inactive"><div class="ar-status-dot"></div> Disabled</div>
+                    </div>
+                    <div class="ar-config-card" style="flex-direction: row; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div class="ar-icon-box" style="background: rgba(59,130,246,0.15); color: #3b82f6;"><i data-lucide="activity"></i></div>
+                            <div>
+                                <h4 style="font-size: 0.95rem; font-weight: 600;">Alliance Monitor</h4>
+                                <p style="font-size: 0.8rem; color: var(--text-muted);">Player activity tracking</p>
+                            </div>
+                        </div>
+                        <div id="status-monitor" class="ar-status-badge inactive"><div class="ar-status-dot"></div> Disabled</div>
+                    </div>
+                    <div class="ar-config-card" style="flex-direction: row; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div class="ar-icon-box" style="background: rgba(236,72,153,0.15); color: #ec4899;"><i data-lucide="ticket"></i></div>
+                            <div>
+                                <h4 style="font-size: 0.95rem; font-weight: 600;">Auto Redeem</h4>
+                                <p style="font-size: 0.8rem; color: var(--text-muted);">Gift code automation</p>
+                            </div>
+                        </div>
+                        <div id="status-autoredeem" class="ar-status-badge inactive"><div class="ar-status-dot"></div> Disabled</div>
                     </div>
                 </div>
 
@@ -2767,6 +2827,22 @@
                 
                 document.getElementById('overview-server-icon').src = stats.icon_url || 'https://cdn.discordapp.com/embed/avatars/0.png';
                 document.getElementById('overview-server-id').textContent = guildId;
+                
+                if(document.getElementById('stat-server-age')) document.getElementById('stat-server-age').textContent = stats.server_age || 'Unknown';
+                if(document.getElementById('stat-alliance')) document.getElementById('stat-alliance').textContent = stats.alliance_name || 'Not Set';
+                if(document.getElementById('stat-active-reminders')) document.getElementById('stat-active-reminders').textContent = stats.active_reminders || 0;
+                
+                const updateBadge = (id, active) => {
+                    const el = document.getElementById(id);
+                    if(el) {
+                        el.className = 'ar-status-badge ' + (active ? 'active' : 'inactive');
+                        el.innerHTML = `<div class="ar-status-dot"></div> ${active ? 'Active' : 'Disabled'}`;
+                    }
+                };
+                updateBadge('status-welcome', stats.welcome_active);
+                updateBadge('status-monitor', stats.alliance_monitor_active);
+                updateBadge('status-autoredeem', stats.auto_redeem_active);
+
             } catch (e) {}
         }
 

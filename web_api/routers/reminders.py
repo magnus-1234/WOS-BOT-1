@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional, List
 import httpx
@@ -19,8 +19,9 @@ class ReminderCreate(BaseModel):
     time_str: Optional[str] = None
     target_time: Optional[str] = None  # ISO format from frontend
     timezone: str = "UTC"    # Timezone from frontend
-    recurrence_type: str = "none" # none, daily, weekly, custom
+    recurrence_type: str = "none" # none, daily, weekly, specific_days, custom
     recurrence_interval: int = 1
+    recurrence_days: Optional[List[int]] = None  # 0=Mon..6=Sun for specific_days
     body: Optional[str] = None
     mention: str = "everyone"
     image_url: Optional[str] = None
@@ -67,35 +68,47 @@ async def get_reminders(request: Request, guild_id: str):
         r = await client.get('https://discord.com/api/users/@me', headers={"Authorization": auth_header})
         if r.status_code != 200:
             raise HTTPException(status_code=401, detail="Invalid token")
-        user = r.json()
-        user_id = user["id"]
 
     _bot = getattr(request.app.state, 'bot', None)
     storage = getattr(_bot, 'reminder_system', None).storage if _bot and hasattr(_bot, 'reminder_system') else ReminderStorage()
-    
-    reminders = storage.get_user_reminders(user_id, limit=50)
-    
+
     guild_channel_ids = set()
-    if _bot:
-        guild = _bot.get_guild(guild_id)
+    try:
+        guild_id_int = int(guild_id)
+    except Exception:
+        guild_id_int = None
+
+    if _bot and guild_id_int:
+        guild = _bot.get_guild(guild_id_int)
         if guild:
             guild_channel_ids = {str(c.id) for c in guild.channels}
-    
-    # Filter by guild_id if available, or check if channel_id belongs to the guild
+
+    # Fetch ALL active reminders (not just for the requesting user)
+    try:
+        all_reminders = storage.get_all_active_reminders()
+    except Exception:
+        all_reminders = []
+
     server_reminders = []
-    for r in reminders:
-        # Convert MongoDB ObjectId to string for JSON serialization
+    for r in all_reminders:
+        # Serialize datetimes and ObjectIds
+        for k, v in list(r.items()):
+            if hasattr(v, 'isoformat'):
+                r[k] = v.isoformat()
         if "_id" in r:
             r["_id"] = str(r["_id"])
-            
+        # Ensure 'id' field is a string
+        if "id" in r:
+            r["id"] = str(r["id"])
+
         r_guild = str(r.get("guild_id")) if r.get("guild_id") else None
-        r_channel = str(r.get("channel_id"))
-        
+        r_channel = str(r.get("channel_id", ""))
+
         if r_guild == str(guild_id):
             server_reminders.append(r)
         elif r_channel in guild_channel_ids:
             server_reminders.append(r)
-            
+
     return {"reminders": server_reminders}
 
 @router.post("/{guild_id}")
@@ -143,10 +156,13 @@ async def create_reminder(request: Request, guild_id: str, payload: ReminderCrea
                     "is_recurring": True,
                     "type": payload.recurrence_type,
                     "interval": payload.recurrence_interval if payload.recurrence_type == "custom" else 1,
-                    "pattern": f"Structured: {payload.recurrence_type}"
+                    "pattern": f"Structured: {payload.recurrence_type}",
+                    "days": payload.recurrence_days or []
                 }
                 if payload.recurrence_type == "weekly":
                     recurring_info["interval"] = 7
+                elif payload.recurrence_type == "specific_days":
+                    recurring_info["interval"] = 1  # checked daily, fires on matching days
         except Exception as e:
             logger.error(f"Error parsing target_time: {e}")
 

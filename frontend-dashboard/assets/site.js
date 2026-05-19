@@ -1063,19 +1063,25 @@
   const themeToggle = document.getElementById("theme-toggle");
   if (themeToggle) {
     // Ensure the HTML attribute matches whatever the inline script set at load
-    const initTheme = document.documentElement.getAttribute("data-theme") || "dark";
-    if (initTheme !== "light") {
+    const initTheme = localStorage.getItem("theme") || "dark";
+    if (initTheme !== "dark") {
+      document.documentElement.setAttribute("data-theme", initTheme);
+    } else {
       document.documentElement.removeAttribute("data-theme");
     }
 
+    const themes = ['dark', 'light', 'high-contrast', 'hacker', 'cartoon'];
+
     themeToggle.addEventListener("click", () => {
-      const isLight = document.documentElement.getAttribute("data-theme") === "light";
-      if (isLight) {
+      const currentTheme = localStorage.getItem("theme") || "dark";
+      const nextIndex = (themes.indexOf(currentTheme) + 1) % themes.length;
+      const nextTheme = themes[nextIndex];
+
+      localStorage.setItem("theme", nextTheme);
+      if (nextTheme === "dark") {
         document.documentElement.removeAttribute("data-theme");
-        localStorage.setItem("theme", "dark");
       } else {
-        document.documentElement.setAttribute("data-theme", "light");
-        localStorage.setItem("theme", "light");
+        document.documentElement.setAttribute("data-theme", nextTheme);
       }
     });
   }

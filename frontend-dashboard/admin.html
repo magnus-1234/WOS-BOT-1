@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
   <script>
-    if (localStorage.getItem('theme') === 'light') {
-      document.documentElement.setAttribute('data-theme', 'light');
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme && savedTheme !== 'dark') {
+      document.documentElement.setAttribute('data-theme', savedTheme);
     }
   </script>
   <meta charset="UTF-8">
@@ -34,6 +35,92 @@
       --line: rgba(0, 0, 0, 0.08);
       --text: #080b10;
       --muted: #4b5563;
+    }
+
+    [data-theme="high-contrast"] {
+      --radius: 0;
+      --bg: #000000;
+      --panel: #0c0c0e;
+      --panel-2: #0c0c0e;
+      --line: #ffffff;
+      --text: #ffffff;
+      --muted: #e0e0e0;
+      --primary: #00f0ff;
+    }
+
+    [data-theme="high-contrast"] .panel,
+    [data-theme="high-contrast"] .table-row,
+    [data-theme="high-contrast"] header {
+      border: 2px solid #ffffff !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+
+    [data-theme="high-contrast"] button,
+    [data-theme="high-contrast"] .theme-toggle,
+    [data-theme="high-contrast"] .btn {
+      border: 2px solid #ffffff !important;
+      background: #000000 !important;
+      color: #ffffff !important;
+      border-radius: 0 !important;
+    }
+
+    [data-theme="hacker"] {
+      --radius: 0;
+      --bg: #010602;
+      --panel: #041006;
+      --panel-2: #041006;
+      --line: rgba(0, 255, 65, 0.3);
+      --text: #33ff33;
+      --muted: #11aa11;
+      --primary: #00ff66;
+      font-family: 'JetBrains Mono', monospace !important;
+    }
+
+    [data-theme="hacker"] .panel,
+    [data-theme="hacker"] .table-row,
+    [data-theme="hacker"] header {
+      border: 1px solid rgba(0, 255, 65, 0.4) !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+
+    [data-theme="hacker"] button,
+    [data-theme="hacker"] .theme-toggle,
+    [data-theme="hacker"] .btn {
+      border: 1px solid #00ff66 !important;
+      background: #010602 !important;
+      color: #00ff66 !important;
+      border-radius: 0 !important;
+    }
+
+    [data-theme="cartoon"] {
+      --radius: 16px;
+      --bg: #fdf6e2;
+      --panel: #ffffff;
+      --panel-2: #ffffff;
+      --line: #000000;
+      --text: #000000;
+      --muted: #4b5563;
+      --primary: #ff5e7e;
+    }
+
+    [data-theme="cartoon"] .panel,
+    [data-theme="cartoon"] .table-row,
+    [data-theme="cartoon"] header {
+      border: 3px solid #000000 !important;
+      box-shadow: 4px 4px 0 #000000 !important;
+      border-radius: 16px !important;
+    }
+
+    [data-theme="cartoon"] button,
+    [data-theme="cartoon"] .theme-toggle,
+    [data-theme="cartoon"] .btn {
+      border: 3px solid #000000 !important;
+      background: #ffea79 !important;
+      color: #000000 !important;
+      box-shadow: 2px 2px 0 #000000 !important;
+      border-radius: 12px !important;
     }
 
     /* Theme Toggle styles */
@@ -79,10 +166,22 @@
     }
 
     .theme-toggle .sun-icon  { display: block; }
-    .theme-toggle .moon-icon { display: none;  }
+    .theme-toggle .moon-icon,
+    .theme-toggle .contrast-icon,
+    .theme-toggle .hacker-icon,
+    .theme-toggle .cartoon-icon { display: none;  }
 
     [data-theme="light"] .theme-toggle .sun-icon  { display: none;  }
     [data-theme="light"] .theme-toggle .moon-icon { display: block; }
+
+    [data-theme="high-contrast"] .theme-toggle .sun-icon  { display: none;  }
+    [data-theme="high-contrast"] .theme-toggle .contrast-icon { display: block !important; }
+
+    [data-theme="hacker"] .theme-toggle .sun-icon  { display: none;  }
+    [data-theme="hacker"] .theme-toggle .hacker-icon { display: block !important; }
+
+    [data-theme="cartoon"] .theme-toggle .sun-icon  { display: none;  }
+    [data-theme="cartoon"] .theme-toggle .cartoon-icon { display: block !important; }
     * { box-sizing: border-box; }
     body {
       margin: 0;
@@ -265,6 +364,9 @@
       <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
         <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg class="contrast-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke-width="2"/></svg>
+        <svg class="hacker-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 16 4-4-4-4M6 8l-4 4 4 4M14.5 4l-5 16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg class="cartoon-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke-width="2"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <div class="actions" style="margin:0;">
         <a class="btn" href="dashboard.html"><i data-lucide="layout-dashboard"></i> Dashboard</a>
@@ -694,14 +796,17 @@
       // Theme toggle logic
       const themeToggle = document.getElementById("theme-toggle");
       if (themeToggle) {
+        const themes = ['dark', 'light', 'high-contrast', 'hacker', 'cartoon'];
         themeToggle.addEventListener("click", () => {
-          const isLight = document.documentElement.getAttribute("data-theme") === "light";
-          if (isLight) {
+          const currentTheme = localStorage.getItem("theme") || "dark";
+          const nextIndex = (themes.indexOf(currentTheme) + 1) % themes.length;
+          const nextTheme = themes[nextIndex];
+
+          localStorage.setItem("theme", nextTheme);
+          if (nextTheme === "dark") {
             document.documentElement.removeAttribute("data-theme");
-            localStorage.setItem("theme", "dark");
           } else {
-            document.documentElement.setAttribute("data-theme", "light");
-            localStorage.setItem("theme", "light");
+            document.documentElement.setAttribute("data-theme", nextTheme);
           }
         });
       }

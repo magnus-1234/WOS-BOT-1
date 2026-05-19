@@ -2552,3 +2552,294 @@ body,
   height: 100%;
   object-fit: cover;
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Theme System Extenions: High Contrast, Hacker & Cartoon Themes
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* High Contrast Dark Theme */
+[data-theme="high-contrast"] {
+  --radius: 0;
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #0c0c0e;
+  --primary: #00f0ff;
+  --primary-glow: #00f0ff;
+  --primary-foreground: #000000;
+  --secondary: #1a1a1e;
+  --secondary-foreground: #ffffff;
+  --muted-foreground: #e0e0e0;
+  --border: #ffffff;
+  --input: rgba(255, 255, 255, 0.3);
+  --shadow-glow: 0 0 40px rgba(0, 240, 255, 0.3);
+}
+
+[data-theme="high-contrast"] body {
+  background: #000000;
+  color: #ffffff;
+}
+
+[data-theme="high-contrast"] .site-header {
+  border-bottom: 2px solid #ffffff;
+  background: #000000;
+}
+
+[data-theme="high-contrast"] .primary-nav {
+  border: 2px solid #ffffff;
+  background: #000000;
+  border-radius: 0;
+}
+
+[data-theme="high-contrast"] .primary-nav a {
+  border-radius: 0;
+  color: #ffffff;
+}
+
+[data-theme="high-contrast"] .brand-mark {
+  border: 2px solid #ffffff;
+  background: #000000;
+  border-radius: 0;
+}
+
+[data-theme="high-contrast"] .ghost-link.dashboard-cta {
+  border: 2px solid #ffffff;
+  background: #00f0ff;
+  color: #000000;
+  border-radius: 0;
+}
+
+[data-theme="high-contrast"] .hero-live-feed {
+  background: #000000;
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  border-radius: 0;
+}
+
+[data-theme="high-contrast"] .feature-card,
+[data-theme="high-contrast"] .stats-grid article,
+[data-theme="high-contrast"] .cta-card,
+[data-theme="high-contrast"] .showcase-card,
+[data-theme="high-contrast"] .live-metrics article,
+[data-theme="high-contrast"] .spotlight-event,
+[data-theme="high-contrast"] .dispatch-bubble,
+[data-theme="high-contrast"] .live-command-center {
+  border: 2px solid #ffffff !important;
+  background: #0c0c0e !important;
+  color: #ffffff !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+[data-theme="high-contrast"] .theme-toggle {
+  border: 2px solid #ffffff !important;
+  background: #000000 !important;
+  color: #ffffff !important;
+  border-radius: 0 !important;
+}
+
+[data-theme="high-contrast"] button,
+[data-theme="high-contrast"] .button {
+  border: 2px solid #ffffff !important;
+  border-radius: 0 !important;
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="high-contrast"] button:hover,
+[data-theme="high-contrast"] .button:hover {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+[data-theme="high-contrast"] .dispatch-bubble-message {
+  color: #ffffff !important;
+}
+
+/* Hacker Theme */
+[data-theme="hacker"] {
+  --radius: 0;
+  --background: #010602;
+  --foreground: #33ff33;
+  --card: #041006;
+  --primary: #00ff66;
+  --primary-glow: #00ff66;
+  --primary-foreground: #010602;
+  --secondary: #08200d;
+  --secondary-foreground: #33ff33;
+  --muted-foreground: #11aa11;
+  --border: rgba(0, 255, 65, 0.25);
+  --input: rgba(0, 255, 65, 0.15);
+  --shadow-glow: 0 0 50px rgba(0, 255, 65, 0.35);
+  --font-display: "JetBrains Mono", ui-monospace, monospace;
+  --font-body: "JetBrains Mono", ui-monospace, monospace;
+}
+
+[data-theme="hacker"] body {
+  background: #010602;
+  color: #33ff33;
+  font-family: var(--font-mono);
+}
+
+[data-theme="hacker"] .site-header {
+  border-bottom: 1px solid #00ff66;
+  background: #010602;
+}
+
+[data-theme="hacker"] .primary-nav {
+  border: 1px solid #00ff66;
+  background: #041006;
+}
+
+[data-theme="hacker"] .primary-nav a {
+  color: #33ff33;
+}
+
+[data-theme="hacker"] .brand-mark {
+  border: 1px solid #00ff66;
+  background: #041006;
+}
+
+[data-theme="hacker"] .ghost-link.dashboard-cta {
+  border: 1px solid #00ff66;
+  background: #00ff66;
+  color: #010602;
+}
+
+[data-theme="hacker"] .hero-live-feed {
+  background: #041006;
+  border: 1px solid #00ff66;
+  color: #33ff33;
+}
+
+[data-theme="hacker"] .feature-card,
+[data-theme="hacker"] .stats-grid article,
+[data-theme="hacker"] .cta-card,
+[data-theme="hacker"] .showcase-card,
+[data-theme="hacker"] .live-metrics article,
+[data-theme="hacker"] .spotlight-event,
+[data-theme="hacker"] .dispatch-bubble,
+[data-theme="hacker"] .live-command-center {
+  border: 1px solid rgba(0, 255, 65, 0.4) !important;
+  background: #041006 !important;
+  color: #33ff33 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+[data-theme="hacker"] .theme-toggle {
+  border: 1px solid #00ff66 !important;
+  background: #010602 !important;
+  color: #00ff66 !important;
+  border-radius: 0 !important;
+}
+
+[data-theme="hacker"] .dispatch-bubble-message {
+  color: #33ff33 !important;
+}
+
+[data-theme="hacker"] b, 
+[data-theme="hacker"] strong {
+  color: #00ff66 !important;
+}
+
+/* Cartoon Theme (Neobrutalism Playful Cream) */
+[data-theme="cartoon"] {
+  --radius: 0.75rem;
+  --background: #fdf6e2;
+  --foreground: #000000;
+  --card: #ffffff;
+  --primary: #ff5e7e;
+  --primary-glow: #ff5e7e;
+  --primary-foreground: #000000;
+  --secondary: #a78bfa;
+  --secondary-foreground: #000000;
+  --muted-foreground: #4b5563;
+  --border: #000000;
+  --input: rgba(0, 0, 0, 0.05);
+  --shadow-glow: none;
+}
+
+[data-theme="cartoon"] body {
+  background: #fdf6e2;
+  color: #000000;
+}
+
+[data-theme="cartoon"] .site-header {
+  border-bottom: 3px solid #000000;
+  background: #ffea79;
+}
+
+[data-theme="cartoon"] .primary-nav {
+  border: 3px solid #000000;
+  background: #ffffff;
+  box-shadow: 3px 3px 0 #000000;
+}
+
+[data-theme="cartoon"] .primary-nav a {
+  color: #000000;
+}
+
+[data-theme="cartoon"] .brand-mark {
+  border: 3px solid #000000;
+  background: #ffffff;
+  box-shadow: 2px 2px 0 #000000;
+}
+
+[data-theme="cartoon"] .ghost-link.dashboard-cta {
+  border: 3px solid #000000;
+  background: #ff5e7e;
+  color: #000000;
+  box-shadow: 3px 3px 0 #000000;
+}
+
+[data-theme="cartoon"] .hero-live-feed {
+  background: #ffffff;
+  border: 3px solid #000000;
+  color: #000000;
+  box-shadow: 4px 4px 0 #000000;
+  border-radius: 0.75rem;
+}
+
+[data-theme="cartoon"] .feature-card,
+[data-theme="cartoon"] .stats-grid article,
+[data-theme="cartoon"] .cta-card,
+[data-theme="cartoon"] .showcase-card,
+[data-theme="cartoon"] .live-metrics article,
+[data-theme="cartoon"] .spotlight-event,
+[data-theme="cartoon"] .dispatch-bubble,
+[data-theme="cartoon"] .live-command-center {
+  border: 3px solid #000000 !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  box-shadow: 4px 4px 0 #000000 !important;
+  border-radius: 0.75rem !important;
+}
+
+[data-theme="cartoon"] .theme-toggle {
+  border: 3px solid #000000 !important;
+  background: #ffea79 !important;
+  color: #000000 !important;
+  box-shadow: 2px 2px 0 #000000 !important;
+  border-radius: 0.5rem !important;
+}
+
+[data-theme="cartoon"] .dispatch-bubble-message {
+  color: #000000 !important;
+}
+
+/* Theme toggle icon helper states */
+.theme-toggle .contrast-icon,
+.theme-toggle .hacker-icon,
+.theme-toggle .cartoon-icon {
+  display: none;
+}
+
+[data-theme="high-contrast"] .theme-toggle .sun-icon { display: none; }
+[data-theme="high-contrast"] .theme-toggle .contrast-icon { display: block !important; }
+
+[data-theme="hacker"] .theme-toggle .sun-icon { display: none; }
+[data-theme="hacker"] .theme-toggle .hacker-icon { display: block !important; }
+
+[data-theme="cartoon"] .theme-toggle .sun-icon { display: none; }
+[data-theme="cartoon"] .theme-toggle .cartoon-icon { display: block !important; }
+

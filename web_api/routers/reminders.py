@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File
 from pydantic import BaseModel
 from typing import Optional, List
 import httpx
@@ -6,6 +6,7 @@ import logging
 import pytz
 import discord
 import uuid
+import os
 from datetime import datetime, timezone as dt_timezone
 
 from cogs.reminder_system import ReminderStorage, TimeParser
@@ -201,6 +202,7 @@ async def create_reminder(request: Request, guild_id: str, payload: ReminderCrea
         raise HTTPException(status_code=500, detail="Failed to save reminder.")
         
     # Save as community preset if requested
+    saved_preset = None
     if payload.save_as_preset:
         try:
             col = _get_presets_collection()
@@ -228,12 +230,13 @@ async def create_reminder(request: Request, guild_id: str, payload: ReminderCrea
                     "created_at": datetime.utcnow().isoformat()
                 }
                 col.insert_one(preset)
+                saved_preset = preset
                 logger.info(f"✅ Created community preset from reminder creation: {preset['title']}")
         except Exception as e:
             logger.error(f"❌ Failed to save community preset during reminder creation: {e}")
             # Don't fail the whole request if only preset saving fails
             
-    return {"status": "success", "reminder_id": reminder_id}
+    return {"status": "success", "reminder_id": reminder_id, "preset": saved_preset}
 
 @router.post("/{guild_id}/test")
 async def send_test_reminder(request: Request, guild_id: str, payload: ReminderCreate):

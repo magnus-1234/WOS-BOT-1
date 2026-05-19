@@ -4876,7 +4876,7 @@
                 const id = String(r.id);
                 const d = parseReminderDate(r.reminder_time);
                 const time = d ? d.toLocaleString() : 'Unknown time';
-                const image = r.thumbnail_url || r.image_url || 'logo.png';
+                const image = r.thumbnail_url || 'logo.png';
                 const recurring = r.is_recurring ? '<span class="status-pill active">Recurring</span>' : '<span class="status-pill pending">One-time</span>';
                 const div = document.createElement('div');
                 div.className = 'reminder-card';

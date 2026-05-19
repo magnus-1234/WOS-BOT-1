@@ -517,10 +517,12 @@
         .form-hint { color:var(--text-muted); font-size:0.76rem; margin-top:6px; line-height:1.45; }
         .modal input[type="date"], #reminder-modal input[type="date"] { background:#232831; color:var(--text-main); border:1px solid var(--glass-border); border-radius:10px; padding:11px 12px; color-scheme:dark; width:100%; }
         /* Day-of-week picker */
-        .dow-picker { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
-        .dow-btn { background:#1a1d26; border:1.5px solid var(--glass-border); color:var(--text-muted); border-radius:10px; padding:8px 0; font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.15s; flex:1; min-width:38px; text-align:center; user-select:none; }
-        .dow-btn:hover { border-color:var(--primary); color:#c4b5fd; }
-        .dow-btn.selected { background:rgba(139,92,246,0.22); border-color:var(--primary); color:#c4b5fd; box-shadow:0 0 0 1px rgba(139,92,246,0.3); }
+        .dow-picker { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+        .dow-btn { background:#1a1d26; border:1px solid var(--glass-border); color:var(--text-muted); border-radius:5px; padding:12px 14px; font-size:0.88rem; font-weight:700; cursor:pointer; transition:all 0.15s; min-width:74px; text-align:center; user-select:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+        .dow-btn::before { content:'✓'; opacity:0; font-size:1rem; font-weight:900; line-height:1; }
+        .dow-btn:hover { border-color:#56f084; color:#eaffef; }
+        .dow-btn.selected { background:#56f084; border-color:#56f084; color:#06140b; box-shadow:0 8px 22px rgba(86,240,132,0.18); }
+        .dow-btn.selected::before { opacity:1; }
         /* Image upload area */
         .img-upload-zone { border:2px dashed var(--glass-border); border-radius:10px; padding:14px; text-align:center; cursor:pointer; transition:all 0.2s; position:relative; display:flex; align-items:center; gap:10px; }
         .img-upload-zone:hover, .img-upload-zone.dragover { border-color:var(--primary); background:rgba(139,92,246,0.06); }
@@ -1995,7 +1997,7 @@
                     <div class="form-hint" id="reminder-recurrence-hint">One-time reminders are removed after they send.</div>
                     <!-- Day-of-week picker (shown for specific_days) -->
                     <div id="dow-picker-group" style="display:none;" class="form-group">
-                        <label>Days of Week</label>
+                        <label>Day of the week</label>
                         <div class="dow-picker" id="reminder-dow-picker">
                             <div class="dow-btn" data-day="0" onclick="toggleDowDay(this)">Mon</div>
                             <div class="dow-btn" data-day="1" onclick="toggleDowDay(this)">Tue</div>
@@ -2034,10 +2036,9 @@
                             <label for="upload-reminder-image" class="btn btn-secondary" style="padding:0 12px;cursor:pointer;display:flex;align-items:center;height:42px;flex-shrink:0;" title="Upload local image">
                                 <i data-lucide="image" style="width:16px;height:16px;"></i>
                             </label>
-                            <button type="button" class="btn btn-secondary" onclick="importImageUrlForReminder('reminder-image')" style="padding:0 12px;height:42px;flex-shrink:0;" title="Import the typed image URL into Mongo"><i data-lucide="cloud-upload" style="width:16px;height:16px;"></i></button>
                             <input type="file" id="upload-reminder-image" accept="image/*" style="display:none;" onchange="uploadImageForReminder(this,'reminder-image')">
                         </div>
-                        <div class="form-hint">Max 8MB. Use the image button for local/Drive-synced files, or paste a public Drive/CDN URL and click the cloud button to store it in Mongo.</div>
+                        <div class="form-hint">Max 8MB. Local uploads are stored in Mongo immediately. Public image URLs are imported to Mongo automatically when you save or send a test.</div>
                     </div>
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
                         <div class="form-group">
@@ -2048,7 +2049,6 @@
                                 <label for="upload-reminder-thumbnail" class="btn btn-secondary" style="padding:0 10px;cursor:pointer;display:flex;align-items:center;height:42px;flex-shrink:0;" title="Upload">
                                     <i data-lucide="image" style="width:15px;"></i>
                                 </label>
-                                <button type="button" class="btn btn-secondary" onclick="importImageUrlForReminder('reminder-thumbnail')" style="padding:0 10px;height:42px;flex-shrink:0;" title="Import typed URL"><i data-lucide="cloud-upload" style="width:15px;"></i></button>
                                 <input type="file" id="upload-reminder-thumbnail" accept="image/*" style="display:none;" onchange="uploadImageForReminder(this,'reminder-thumbnail')">
                             </div>
                         </div>
@@ -2066,7 +2066,6 @@
                                 <label for="upload-reminder-footer-icon" class="btn btn-secondary" style="padding:0 10px;cursor:pointer;display:flex;align-items:center;height:42px;flex-shrink:0;" title="Upload">
                                     <i data-lucide="image" style="width:15px;"></i>
                                 </label>
-                                <button type="button" class="btn btn-secondary" onclick="importImageUrlForReminder('reminder-footer-icon')" style="padding:0 10px;height:42px;flex-shrink:0;" title="Import typed URL"><i data-lucide="cloud-upload" style="width:15px;"></i></button>
                                 <input type="file" id="upload-reminder-footer-icon" accept="image/*" style="display:none;" onchange="uploadImageForReminder(this,'reminder-footer-icon')">
                             </div>
                         </div>
@@ -4208,33 +4207,41 @@
             finally { showLoading(false); input.value = ''; }
         }
 
-        async function importImageUrlForReminder(targetId) {
-            const targetInput = document.getElementById(targetId);
-            const sourceUrl = (targetInput?.value || '').trim();
-            if (!sourceUrl) {
-                showNotification('Paste an image URL first', true);
-                return;
-            }
-            if (!/^https?:\/\//i.test(sourceUrl)) {
-                showNotification('Use a public http(s) image URL', true);
-                return;
-            }
+        function isMongoReminderImageUrl(url) {
+            if (!url) return true;
+            if (url.startsWith('data:')) return true;
+            return /\/api\/reminders\/uploads\/[a-f0-9]+/i.test(url);
+        }
 
-            showLoading(true);
-            try {
-                const data = await fetchData('/api/reminders/upload-url', {
-                    method: 'POST',
-                    body: JSON.stringify({ url: sourceUrl })
-                });
-                if (!data.url) throw new Error(data.message || 'Import failed');
-                targetInput.value = data.url;
-                targetInput.dispatchEvent(new Event('input', { bubbles: true }));
-                showNotification('Image imported to Mongo');
-            } catch (e) {
-                showNotification(e.message || 'Image import failed', true);
-            } finally {
-                showLoading(false);
+        async function importImageUrlToMongo(url) {
+            if (!url || !/^https?:\/\//i.test(url) || isMongoReminderImageUrl(url)) return url;
+            const data = await fetchData('/api/reminders/upload-url', {
+                method: 'POST',
+                body: JSON.stringify({ url })
+            });
+            if (!data.url) throw new Error(data.message || 'Image import failed');
+            return data.url;
+        }
+
+        async function autoImportReminderImages(data, fieldToInputId = null) {
+            const map = fieldToInputId || {
+                image_url: 'reminder-image',
+                thumbnail_url: 'reminder-thumbnail',
+                footer_icon_url: 'reminder-footer-icon'
+            };
+            for (const [field, inputId] of Object.entries(map)) {
+                if (!data[field]) continue;
+                const importedUrl = await importImageUrlToMongo(data[field]);
+                if (importedUrl !== data[field]) {
+                    data[field] = importedUrl;
+                    const input = document.getElementById(inputId);
+                    if (input) {
+                        input.value = importedUrl;
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }
             }
+            return data;
         }
 
         function toggleSavePresetCheckbox(e) {
@@ -4440,6 +4447,11 @@
 
             showLoading(true);
             try {
+                await autoImportReminderImages(payload, {
+                    image_url: 'cp-image',
+                    thumbnail_url: 'cp-thumbnail',
+                    footer_icon_url: 'cp-footer-icon'
+                });
                 await fetchData('/api/reminders/presets', {
                     method: 'POST',
                     body: JSON.stringify(payload)
@@ -4661,6 +4673,7 @@
             
             showLoading(true);
             try {
+                await autoImportReminderImages(data);
                 await fetchData(`/api/reminders/${guildId}/${id}`, { 
                     method: 'PATCH', 
                     body: JSON.stringify(data) 
@@ -4674,7 +4687,8 @@
             } finally { showLoading(false); }
         }
 
-        function getReminderFormData() {
+        function getReminderFormData(options = {}) {
+            const requireSchedule = options.requireSchedule !== false;
             const message = document.getElementById('reminder-message').value.trim();
             const date    = document.getElementById('reminder-date').value;
             const hour    = getWheelValue('wheel-hour');
@@ -4697,19 +4711,22 @@
             const save_as_preset = document.getElementById('reminder-save-as-preset').checked;
             const preset_title   = document.getElementById('reminder-preset-title').value.trim() || null;
 
-            if (!message || !date || !channel_id) {
-                showNotification('Title, Date, and Channel are required', true);
+            if (!message || !channel_id || (requireSchedule && !date)) {
+                showNotification(requireSchedule ? 'Title, Date, and Channel are required' : 'Title and Channel are required for a test', true);
                 return null;
             }
-            if (recurrence_type === 'specific_days' && (!recurrence_days || recurrence_days.length === 0)) {
+            if (requireSchedule && recurrence_type === 'specific_days' && (!recurrence_days || recurrence_days.length === 0)) {
                 showNotification('Please select at least one day of the week', true);
                 return null;
             }
 
-            let h24 = parseInt(hour);
-            if(ampm === 'PM' && h24 < 12) h24 += 12;
-            if(ampm === 'AM' && h24 === 12) h24 = 0;
-            const target_time = `${date}T${String(h24).padStart(2,'0')}:${min}:${sec}`;
+            let target_time = null;
+            if (date) {
+                let h24 = parseInt(hour);
+                if(ampm === 'PM' && h24 < 12) h24 += 12;
+                if(ampm === 'AM' && h24 === 12) h24 = 0;
+                target_time = `${date}T${String(h24).padStart(2,'0')}:${min}:${sec}`;
+            }
 
             return { message, target_time, timezone, recurrence_type, recurrence_interval, recurrence_days,
                      channel_id, body, mention, image_url, thumbnail_url, footer_text, footer_icon_url, author_url,
@@ -4739,12 +4756,13 @@
             if (reminderId && remindersMap[reminderId]) {
                 data = reminderPayloadFromRecord(remindersMap[reminderId]);
             } else {
-                data = getReminderFormData();
+                data = getReminderFormData({ requireSchedule: false });
             }
             if (!data) return;
 
             showLoading(true);
             try {
+                await autoImportReminderImages(data);
                 await fetchData(`/api/reminders/${guildId}/test`, {
                     method: 'POST',
                     body: JSON.stringify(data)
@@ -4761,6 +4779,7 @@
             
             showLoading(true);
             try {
+                await autoImportReminderImages(data);
                 const res = await fetchData(`/api/reminders/${guildId}`, { 
                     method: 'POST', 
                     body: JSON.stringify(data) 

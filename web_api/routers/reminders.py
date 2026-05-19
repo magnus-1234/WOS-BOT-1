@@ -7,6 +7,7 @@ import logging
 import pytz
 import discord
 import uuid
+import re
 from datetime import datetime
 
 from cogs.reminder_system import ReminderStorage, TimeParser
@@ -40,6 +41,28 @@ ALLOWED_REMINDER_IMAGE_TYPES = {
     "image/gif",
     "image/webp",
 }
+
+def _normalize_external_image_url(url: str) -> str:
+    drive_match = re.search(r"drive\.google\.com/file/d/([^/]+)", url)
+    if drive_match:
+        return f"https://drive.google.com/uc?export=download&id={drive_match.group(1)}"
+    drive_id_match = re.search(r"[?&]id=([^&]+)", url)
+    if "drive.google.com" in url and drive_id_match:
+        return f"https://drive.google.com/uc?export=download&id={drive_id_match.group(1)}"
+    if "dropbox.com" in url:
+        return url.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace("?dl=0", "").replace("?dl=1", "")
+    return url
+
+def _sniff_image_content_type(content: bytes, fallback: str = "") -> str:
+    if content.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if content.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if content.startswith((b"GIF87a", b"GIF89a")):
+        return "image/gif"
+    if len(content) >= 12 and content[:4] == b"RIFF" and content[8:12] == b"WEBP":
+        return "image/webp"
+    return fallback
 
 def _build_reminder_embed(payload: ReminderCreate, user: dict, *, is_test: bool = False) -> discord.Embed:
     embed = discord.Embed(
@@ -105,6 +128,7 @@ async def _save_uploaded_image(request: Request, *, filename: str, content_type:
         raise HTTPException(status_code=400, detail="No image data received.")
     if len(content) > MAX_REMINDER_IMAGE_BYTES:
         raise HTTPException(status_code=400, detail="Image too large (max 8MB).")
+    content_type = _sniff_image_content_type(content, content_type)
     if content_type not in ALLOWED_REMINDER_IMAGE_TYPES:
         raise HTTPException(status_code=400, detail="Only PNG, JPG, GIF, and WebP images are supported.")
 
@@ -169,10 +193,11 @@ async def upload_reminder_image_from_url(request: Request, payload: ReminderImag
     source_url = (payload.url or "").strip()
     if not source_url.startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="Enter a valid http(s) image URL.")
+    fetch_url = _normalize_external_image_url(source_url)
 
     try:
         async with httpx.AsyncClient(follow_redirects=True, timeout=20.0) as client:
-            async with client.stream("GET", source_url) as resp:
+            async with client.stream("GET", fetch_url) as resp:
                 if resp.status_code != 200:
                     raise HTTPException(status_code=400, detail=f"Could not fetch image (status {resp.status_code}).")
                 content_type = (resp.headers.get("content-type") or "").split(";", 1)[0].lower()

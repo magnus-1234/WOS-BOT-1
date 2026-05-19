@@ -3370,6 +3370,38 @@ class ServerAllianceAdapter:
             logger.error(f'Failed to verify password (async) for server {guild_id}: {e}')
             return False
 
+    @staticmethod
+    def get_state(guild_id: int) -> Optional[int]:
+        """Get the assigned state number for a Discord server"""
+        try:
+            db = _get_db_main()
+            doc = db[ServerAllianceAdapter.COLL].find_one({'_id': str(guild_id)})
+            if not doc: doc = db[ServerAllianceAdapter.COLL].find_one({'_id': int(guild_id)})
+            if not doc: doc = db[ServerAllianceAdapter.COLL].find_one({'id': str(guild_id)})
+            if not doc: doc = db[ServerAllianceAdapter.COLL].find_one({'id': int(guild_id)})
+            if doc:
+                return doc.get('state')
+            return None
+        except Exception as e:
+            logger.error(f'Failed to get state for server {guild_id}: {e}')
+            return None
+
+    @staticmethod
+    async def get_state_async(guild_id: int) -> Optional[int]:
+        """Get the assigned state number for a Discord server asynchronously"""
+        try:
+            db = await _get_db_main_async()
+            doc = await db[ServerAllianceAdapter.COLL].find_one({'_id': str(guild_id)})
+            if not doc: doc = await db[ServerAllianceAdapter.COLL].find_one({'_id': int(guild_id)})
+            if not doc: doc = await db[ServerAllianceAdapter.COLL].find_one({'id': str(guild_id)})
+            if not doc: doc = await db[ServerAllianceAdapter.COLL].find_one({'id': int(guild_id)})
+            if doc:
+                return doc.get('state')
+            return None
+        except Exception as e:
+            logger.error(f'Failed to get state (async) for server {guild_id}: {e}')
+            return None
+
 
 class AuthSessionsAdapter:
     """Adapter for managing authentication sessions for /manage command"""

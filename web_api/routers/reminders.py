@@ -29,6 +29,8 @@ class ReminderCreate(BaseModel):
     footer_text: Optional[str] = None
     footer_icon_url: Optional[str] = None
     author_url: Optional[str] = None
+    save_as_preset: bool = False
+    preset_title: Optional[str] = None
 
 def _build_reminder_embed(payload: ReminderCreate, user: dict, *, is_test: bool = False) -> discord.Embed:
     embed = discord.Embed(
@@ -185,6 +187,7 @@ async def create_reminder(request: Request, guild_id: str, payload: ReminderCrea
         is_recurring=recurring_info.get("is_recurring", False),
         recurrence_type=recurring_info.get("type"),
         recurrence_interval=recurring_info.get("interval"),
+        recurrence_days=payload.recurrence_days,
         original_pattern=recurring_info.get("pattern"),
         mention=payload.mention,
         image_url=payload.image_url,
@@ -197,6 +200,39 @@ async def create_reminder(request: Request, guild_id: str, payload: ReminderCrea
     if reminder_id == -1:
         raise HTTPException(status_code=500, detail="Failed to save reminder.")
         
+    # Save as community preset if requested
+    if payload.save_as_preset:
+        try:
+            col = _get_presets_collection()
+            if col is not None:
+                badge_map = {"daily": "Daily", "weekly": "Weekly", "custom": "Custom", "none": "One-time", "specific_days": "Specific Days"}
+                badge = badge_map.get(payload.recurrence_type, "One-time")
+                
+                preset = {
+                    "id": str(uuid.uuid4()),
+                    "title": payload.preset_title or payload.message or "Unnamed Preset",
+                    "badge": badge,
+                    "message": payload.message,
+                    "body": payload.body,
+                    "recurrence_type": payload.recurrence_type,
+                    "recurrence_interval": payload.recurrence_interval,
+                    "recurrence_days": payload.recurrence_days,
+                    "mention": payload.mention,
+                    "image_url": payload.image_url,
+                    "thumbnail_url": payload.thumbnail_url,
+                    "footer_text": payload.footer_text,
+                    "footer_icon_url": payload.footer_icon_url,
+                    "author_url": payload.author_url,
+                    "created_by": user.get("global_name") or user.get("username") or "Unknown",
+                    "created_by_id": user.get("id"),
+                    "created_at": datetime.utcnow().isoformat()
+                }
+                col.insert_one(preset)
+                logger.info(f"✅ Created community preset from reminder creation: {preset['title']}")
+        except Exception as e:
+            logger.error(f"❌ Failed to save community preset during reminder creation: {e}")
+            # Don't fail the whole request if only preset saving fails
+            
     return {"status": "success", "reminder_id": reminder_id}
 
 @router.post("/{guild_id}/test")
@@ -349,6 +385,7 @@ async def update_reminder(request: Request, guild_id: str, reminder_id: str, pay
         "is_recurring": recurring_info.get("is_recurring", False),
         "recurrence_type": recurring_info.get("type"),
         "recurrence_interval": recurring_info.get("interval"),
+        "recurrence_days": payload.recurrence_days,
         "original_time_pattern": recurring_info.get("pattern")
     }
     

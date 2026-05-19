@@ -17,8 +17,9 @@ class ReminderCreate(BaseModel):
     time_str: Optional[str] = None
     target_time: Optional[str] = None  # ISO format from frontend
     timezone: str = "UTC"    # Timezone from frontend
-    recurrence_type: str = "none" # none, daily, weekly, custom
+    recurrence_type: str = "none" # none, daily, weekly, specific_days, custom
     recurrence_interval: int = 1
+    recurrence_days: Optional[List[int]] = None  # 0=Mon..6=Sun for specific_days
     body: Optional[str] = None
     mention: str = "everyone"
     image_url: Optional[str] = None
@@ -26,6 +27,8 @@ class ReminderCreate(BaseModel):
     footer_text: Optional[str] = None
     footer_icon_url: Optional[str] = None
     author_url: Optional[str] = None
+    save_as_preset: bool = False
+    preset_title: Optional[str] = None
 
 @router.get("/{guild_id}")
 async def get_reminders(request: Request, guild_id: str):
@@ -139,6 +142,7 @@ async def create_reminder(request: Request, guild_id: str, payload: ReminderCrea
         is_recurring=recurring_info.get("is_recurring", False),
         recurrence_type=recurring_info.get("type"),
         recurrence_interval=recurring_info.get("interval"),
+        recurrence_days=payload.recurrence_days,
         original_pattern=recurring_info.get("pattern"),
         mention=payload.mention,
         image_url=payload.image_url,
@@ -252,6 +256,7 @@ async def update_reminder(request: Request, guild_id: str, reminder_id: str, pay
         "is_recurring": recurring_info.get("is_recurring", False),
         "recurrence_type": recurring_info.get("type"),
         "recurrence_interval": recurring_info.get("interval"),
+        "recurrence_days": payload.recurrence_days,
         "original_time_pattern": recurring_info.get("pattern")
     }
     

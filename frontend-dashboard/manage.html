@@ -1744,30 +1744,29 @@
                     </div>
                 </div>
                 <div id="reminder-stats" class="reminder-dashboard-strip"></div>
-                <div class="preset-section" id="community-presets-section">
-                    <div class="preset-header" style="flex-wrap:wrap;gap:12px;">
-                        <div>
-                            <h3><i data-lucide="users"></i> Community Presets</h3>
-                            <p>Browse shared event templates. Search, use, or create your own preset for others.</p>
-                        </div>
-                        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-                            <div style="position:relative; min-width:260px;">
-    <i data-lucide="search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--text-muted);"></i>
-    <input id="preset-search-input" type="search" placeholder="Search community presets..." oninput="loadCommunityPresets(this.value)" style="width:100%; padding:10px 14px 10px 38px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; font-size:0.9rem; transition:all 0.2s;" onfocus="this.style.borderColor='var(--primary)'; this.style.background='rgba(139,92,246,0.05)';" onblur="this.style.borderColor='rgba(255,255,255,0.1)'; this.style.background='rgba(255,255,255,0.03)';">
-</div>
-                            <button onclick="openCreatePresetModal()" class="btn btn-primary" id="create-preset-btn"><i data-lucide="plus"></i> Create Preset</button>
-                        </div>
-                    </div>
-                    <div id="community-presets-loading" style="text-align:center;padding:30px;color:var(--text-muted);display:none;">
-                        <i data-lucide="loader-2" style="width:28px;height:28px;animation:spin 1s linear infinite;"></i><br><span style="font-size:0.85rem;margin-top:8px;display:block;">Loading community presets...</span>
-                    </div>
-                    <div id="reminder-presets" class="preset-grid"></div>
-                    <div id="community-presets-empty" style="text-align:center;padding:40px;color:var(--text-muted);display:none;">
-                        <i data-lucide="inbox" style="width:36px;height:36px;margin-bottom:10px;opacity:0.3;display:block;margin:0 auto 10px;"></i>
-                        <p style="font-size:0.9rem;">No community presets found. Be the first to create one!</p>
-                        <button onclick="openCreatePresetModal()" class="btn btn-primary" style="margin-top:12px;"><i data-lucide="plus"></i> Create First Preset</button>
-                    </div>
-                </div>
+<div class="preset-section" id="community-presets-section">
+                     <div class="preset-header" style="flex-wrap:wrap;gap:12px;">
+                         <div>
+                             <h3><i data-lucide="users"></i> Community Presets</h3>
+                             <p>Browse shared event templates. Search, use, or create your own preset for others.</p>
+                         </div>
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                             <div style="position:relative; min-width:260px;">
+     <i data-lucide="search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--text-muted);"></i>
+     <input id="preset-search-input" type="search" placeholder="Search community presets..." oninput="loadCommunityPresets(this.value)" style="width:100%; padding:10px 14px 10px 38px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; font-size:0.9rem; transition:all 0.2s;" onfocus="this.style.borderColor='var(--primary)'; this.style.background='rgba(139,92,246,0.05)';" onblur="this.style.borderColor='rgba(255,255,255,0.1)'; this.style.background='rgba(255,255,255,0.03)';">
+ </div>
+                         </div>
+                         </div>
+                     </div>
+                     <div id="community-presets-loading" style="text-align:center;padding:30px;color:var(--text-muted);display:none;">
+                         <i data-lucide="loader-2" style="width:28px;height:28px;animation:spin 1s linear infinite;"></i><br><span style="font-size:0.85rem;margin-top:8px;display:block;">Loading community presets...</span>
+                     </div>
+                     <div id="reminder-presets" class="preset-grid"></div>
+                     <div id="community-presets-empty" style="text-align:center;padding:40px;color:var(--text-muted);display:none;">
+                         <i data-lucide="inbox" style="width:36px;height:36px;margin-bottom:10px;opacity:0.3;display:block;margin:0 auto 10px;"></i>
+                         <p style="font-size:0.9rem;">No community presets found. Be the first to create one!</p>
+                     </div>
+                 </div>
                 <div id="reminders-list"></div>
             </div>
         </div>
@@ -2007,11 +2006,38 @@
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
                         <div class="form-group">
                             <label>Footer Icon URL</label>
-                            <input type="text" id="reminder-footer-icon" placeholder="https://..." oninput="updateReminderPreview()">
+                            <div class="img-input-row">
+                                <img id="reminder-footer-icon-preview" class="img-preview-thumb" src="" alt="" onerror="this.style.display='none'">
+                                <input type="text" id="reminder-footer-icon" placeholder="https://..." oninput="updateReminderPreview(); showImgPreview('reminder-footer-icon','reminder-footer-icon-preview')">
+                                <label for="upload-reminder-footer-icon" class="btn btn-secondary" style="padding:0 10px;cursor:pointer;display:flex;align-items:center;height:42px;flex-shrink:0;" title="Upload">
+                                    <i data-lucide="image" style="width:15px;"></i>
+                                </label>
+                                <input type="file" id="upload-reminder-footer-icon" accept="image/*" style="display:none;" onchange="uploadImageForReminder(this,'reminder-footer-icon')">
+                            </div>
                         </div>
                         <div class="form-group">
                             <label>Author URL</label>
-                            <input type="text" id="reminder-author-url" placeholder="https://..." oninput="updateReminderPreview()">
+                            <div class="img-input-row">
+                                <img id="reminder-author-url-preview" class="img-preview-thumb" src="" alt="" onerror="this.style.display='none'">
+                                <input type="text" id="reminder-author-url" placeholder="https://..." oninput="updateReminderPreview(); showImgPreview('reminder-author-url','reminder-author-url-preview')">
+                                <label for="upload-reminder-author-url" class="btn btn-secondary" style="padding:0 10px;cursor:pointer;display:flex;align-items:center;height:42px;flex-shrink:0;" title="Upload">
+                                    <i data-lucide="image" style="width:15px;"></i>
+                                </label>
+                                <input type="file" id="upload-reminder-author-url" accept="image/*" style="display:none;" onchange="uploadImageForReminder(this,'reminder-author-url')">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Save as Preset Section -->
+                    <div class="form-group" style="margin-top: 12px; padding: 16px; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.15); border-radius: 12px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 0;">
+                            <input type="checkbox" id="reminder-save-as-preset" style="width: 18px; height: 18px;" onchange="document.getElementById('preset-title-group').style.display = this.checked ? 'block' : 'none'">
+                            <span style="font-weight: 700; color: #c4b5fd;">Save this reminder as a community preset</span>
+                        </label>
+                        <div id="preset-title-group" style="display: none; margin-top: 12px;">
+                            <label style="font-size: 0.75rem; color: var(--text-muted);">Preset Title</label>
+                            <input type="text" id="reminder-preset-title" placeholder="e.g. Bear Trap Template" style="margin-top: 4px;">
+                            <div class="form-hint">Community presets help others set up similar events quickly.</div>
                         </div>
                     </div>
                 </div>
@@ -2054,7 +2080,7 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
+<div class="modal-footer">
                 <button onclick="closeReminderModal()" class="btn btn-secondary">Cancel</button>
                 <button onclick="sendTestReminder()" class="btn btn-secondary"><i data-lucide="send"></i> Send Test</button>
                 <button id="reminder-submit-btn" onclick="createReminder()" class="btn btn-primary">Create Reminder</button>
@@ -4247,6 +4273,7 @@
             document.getElementById('reminder-body').value = preset.body || '';
             document.getElementById('reminder-recurrence').value = preset.recurrence_type || 'none';
             document.getElementById('reminder-interval').value = preset.recurrence_interval || 1;
+            setDowSelection(preset.recurrence_days || []);
             document.getElementById('reminder-mention').value = preset.mention || 'everyone';
             document.getElementById('reminder-image').value = preset.image_url || '';
             document.getElementById('reminder-thumbnail').value = preset.thumbnail_url || '';
@@ -4254,6 +4281,7 @@
             document.getElementById('reminder-footer-icon').value = preset.footer_icon_url || '';
             document.getElementById('reminder-author-url').value = preset.author_url || '';
             toggleCustomInterval();
+            toggleDowPicker();
             updateReminderPreview();
         }
 
@@ -4280,6 +4308,15 @@
             if (!r || !r.is_recurring) return 'One-time';
             if (r.recurrence_type === 'daily') return 'Daily';
             if (r.recurrence_type === 'weekly') return 'Weekly';
+            if (r.recurrence_type === 'specific_days') {
+                const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                let dlist = [];
+                try {
+                    const selected = typeof r.recurrence_days === 'string' ? JSON.parse(r.recurrence_days) : r.recurrence_days;
+                    if (Array.isArray(selected)) dlist = selected.map(d => days[d]);
+                } catch(e) {}
+                return dlist.length ? `Days: ${dlist.join(', ')}` : 'Specific Days';
+            }
             if (r.recurrence_type === 'custom') return `Every ${r.recurrence_interval || 1} days`;
             return 'Recurring';
         }
@@ -4314,8 +4351,10 @@
                 document.getElementById('reminder-message').value = r.message || '';
                 document.getElementById('reminder-recurrence').value = r.recurrence_type || 'none';
                 document.getElementById('reminder-interval').value = r.recurrence_interval || 1;
+                setDowSelection(r.recurrence_days);
                 document.getElementById('reminder-timezone').value = r.timezone || 'UTC';
                 toggleCustomInterval();
+                toggleDowPicker();
 
                 document.getElementById('reminder-body').value = r.body || '';
                 document.getElementById('reminder-channel').value = r.channel_id || '';
@@ -4325,6 +4364,11 @@
                 document.getElementById('reminder-footer').value = r.footer_text || '';
                 document.getElementById('reminder-footer-icon').value = r.footer_icon_url || '';
                 document.getElementById('reminder-author-url').value = r.author_url || '';
+                
+                // Reset preset fields
+                document.getElementById('reminder-save-as-preset').checked = false;
+                document.getElementById('reminder-preset-title').value = '';
+                document.getElementById('preset-title-group').style.display = 'none';
             } else {
                 titleEl.textContent = 'New Reminder';
                 submitBtn.textContent = 'Create Reminder';
@@ -4346,8 +4390,10 @@
 
                 document.getElementById('reminder-recurrence').value = 'none';
                 document.getElementById('reminder-interval').value = 1;
+                setDowSelection([]);
                 document.getElementById('reminder-timezone').value = 'UTC';
                 toggleCustomInterval();
+                toggleDowPicker();
 
                 document.getElementById('reminder-body').value = '';
                 document.getElementById('reminder-mention').value = 'everyone';
@@ -4356,6 +4402,12 @@
                 document.getElementById('reminder-footer').value = '';
                 document.getElementById('reminder-footer-icon').value = '';
                 document.getElementById('reminder-author-url').value = '';
+                
+                // Reset preset fields
+                document.getElementById('reminder-save-as-preset').checked = false;
+                document.getElementById('reminder-preset-title').value = '';
+                document.getElementById('preset-title-group').style.display = 'none';
+                
                 if (presetId) applyReminderPreset(presetId);
             }
             document.getElementById('reminder-modal').style.display = 'flex';
@@ -4451,6 +4503,9 @@
             const footer_text    = document.getElementById('reminder-footer').value.trim() || null;
             const footer_icon_url = document.getElementById('reminder-footer-icon').value.trim() || null;
             const author_url     = document.getElementById('reminder-author-url').value.trim() || null;
+            
+            const save_as_preset = document.getElementById('reminder-save-as-preset').checked;
+            const preset_title   = document.getElementById('reminder-preset-title').value.trim() || null;
 
             if (!message || !date || !channel_id) {
                 showNotification('Title, Date, and Channel are required', true);
@@ -4467,7 +4522,8 @@
             const target_time = `${date}T${String(h24).padStart(2,'0')}:${min}:${sec}`;
 
             return { message, target_time, timezone, recurrence_type, recurrence_interval, recurrence_days,
-                     channel_id, body, mention, image_url, thumbnail_url, footer_text, footer_icon_url, author_url };
+                     channel_id, body, mention, image_url, thumbnail_url, footer_text, footer_icon_url, author_url,
+                     save_as_preset, preset_title };
         }
 
         function reminderPayloadFromRecord(r) {
@@ -4515,13 +4571,20 @@
             
             showLoading(true);
             try {
-                await fetchData(`/api/reminders/${guildId}`, { 
+                const res = await fetchData(`/api/reminders/${guildId}`, { 
                     method: 'POST', 
                     body: JSON.stringify(data) 
                 });
-                showNotification('Reminder created!');
+                
+                if (data.save_as_preset) {
+                    showNotification('Reminder created and saved as preset!');
+                } else {
+                    showNotification('Reminder created!');
+                }
+                
                 closeReminderModal();
                 loadReminders();
+                if (data.save_as_preset) loadCommunityPresets(); // Refresh presets
             } catch (e) {
                 showNotification(e.message || 'Failed to create reminder', true);
             } finally { showLoading(false); }
@@ -5127,10 +5190,12 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button onclick="closeCreatePresetModal()" class="btn btn-secondary">Cancel</button>
-                <button onclick="submitCommunityPreset()" class="btn btn-primary"><i data-lucide="share"></i> Share Preset</button>
-            </div>
+             <div class="modal-footer">
+                 <button onclick="closeReminderModal()" class="btn btn-secondary">Cancel</button>
+                 <button onclick="sendTestReminder()" class="btn btn-secondary"><i data-lucide="send"></i> Send Test</button>
+                 <button onclick="openSaveAsPresetModal()" class="btn btn-secondary" style="background: rgba(139,92,246,0.15); color: #c4b5fd;"><i data-lucide="copy-plus"></i> Save as Preset</button>
+                 <button id="reminder-submit-btn" onclick="createReminder()" class="btn btn-primary">Create Reminder</button>
+             </div>
         </div>
     </div>
 </body>

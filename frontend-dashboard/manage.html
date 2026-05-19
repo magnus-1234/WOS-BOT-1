@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Server - ICEAngel</title>
+    <title>Manage Server - Whiteout Survival Bot</title>
     <!-- Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -926,7 +926,7 @@
     <aside class="sidebar">
         <div class="sidebar-brand">
             <img src="/logo.gif" alt="Logo">
-            <h1>ICEAngel</h1>
+            <h1>Whiteout Survival Bot</h1>
         </div>
 
         <div class="sidebar-label">Server selection</div>
@@ -1188,7 +1188,7 @@
                                     <img class="dc-bot-avatar" src="/logo.gif" alt="Bot">
                                     <div class="dc-message-body">
                                         <div class="dc-message-header">
-                                            <span class="dc-bot-name">ICEAngel</span>
+                                            <span class="dc-bot-name">Whiteout Survival Bot</span>
                                             <span class="dc-bot-tag">APP</span>
                                             <span class="dc-timestamp">Today at 5:44 PM</span>
                                         </div>
@@ -1650,14 +1650,26 @@
                     </div>
                 </div>
                 <div id="reminder-stats" class="reminder-dashboard-strip"></div>
-                <div class="preset-section">
-                    <div class="preset-header">
+                <div class="preset-section" id="community-presets-section">
+                    <div class="preset-header" style="flex-wrap:wrap;gap:12px;">
                         <div>
-                            <h3><i data-lucide="sparkles"></i> Event presets</h3>
-                            <p>Preview a template, tweak the channel/time, then activate it.</p>
+                            <h3><i data-lucide="users"></i> Community Presets</h3>
+                            <p>Browse shared event templates. Search, use, or create your own preset for others.</p>
+                        </div>
+                        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                            <input id="preset-search-input" class="reminder-search" type="search" placeholder="🔍 Search presets..." oninput="loadCommunityPresets(this.value)" style="min-width:200px;">
+                            <button onclick="openCreatePresetModal()" class="btn btn-primary" id="create-preset-btn"><i data-lucide="plus"></i> Create Preset</button>
                         </div>
                     </div>
+                    <div id="community-presets-loading" style="text-align:center;padding:30px;color:var(--text-muted);display:none;">
+                        <i data-lucide="loader-2" style="width:28px;height:28px;animation:spin 1s linear infinite;"></i><br><span style="font-size:0.85rem;margin-top:8px;display:block;">Loading community presets...</span>
+                    </div>
                     <div id="reminder-presets" class="preset-grid"></div>
+                    <div id="community-presets-empty" style="text-align:center;padding:40px;color:var(--text-muted);display:none;">
+                        <i data-lucide="inbox" style="width:36px;height:36px;margin-bottom:10px;opacity:0.3;display:block;margin:0 auto 10px;"></i>
+                        <p style="font-size:0.9rem;">No community presets found. Be the first to create one!</p>
+                        <button onclick="openCreatePresetModal()" class="btn btn-primary" style="margin-top:12px;"><i data-lucide="plus"></i> Create First Preset</button>
+                    </div>
                 </div>
                 <div id="reminders-list"></div>
             </div>
@@ -1878,7 +1890,7 @@
                             <img class="dc-bot-avatar" src="/logo.gif" alt="Bot">
                             <div class="dc-message-body">
                                 <div class="dc-message-header">
-                                    <span class="dc-bot-name">ICEAngel</span>
+                                    <span class="dc-bot-name">Whiteout Survival Bot</span>
                                     <span class="dc-bot-tag">APP</span>
                                     <span class="dc-timestamp">Reminder</span>
                                 </div>
@@ -3826,87 +3838,130 @@
         let remindersData = [];
         let selectedReminderPreset = null;
 
-        const REMINDER_PRESETS = [
-            {
-                id: 'arena',
-                title: 'ARENA',
-                badge: 'Daily',
-                message: 'ARENA reminder',
-                body: 'Arena attempts reset soon. Finish battles, use remaining attempts, and coordinate rank pushes.',
-                recurrence_type: 'daily',
-                recurrence_interval: 1,
-                mention: 'here',
-                image_url: 'https://i.postimg.cc/Fzq03CJf/a463d7c7-7fc7-47fc-b24d-1324383ee2ff-removebg-preview.png',
-                thumbnail_url: 'https://i.postimg.cc/Fzq03CJf/a463d7c7-7fc7-47fc-b24d-1324383ee2ff-removebg-preview.png',
-                footer_text: 'Whiteout Survival event reminder'
-            },
-            {
-                id: 'sunfire',
-                title: 'Sunfire Castle',
-                badge: 'Every 14 days',
-                message: 'Sunfire Castle starts soon',
-                body: 'Sunfire Castle cycle reminder for State #3063. Confirm rally leads, buffs, marches, and alliance assignments before battle.',
-                recurrence_type: 'custom',
-                recurrence_interval: 14,
-                mention: 'everyone',
-                image_url: 'https://cdn.discordapp.com/attachments/1424082091750068364/1431246283334619136/Gemini_Generated_Image_dqdcnxdqdcnxdqdc-removebg-preview.png?ex=68fcb779&is=68fb65f9&hm=6afcbee2e3dea071f560ea5e1615dc24a691a1e12e123b02cb3c7f0cba2a33db',
-                thumbnail_url: 'https://cdn.discordapp.com/attachments/1424082091750068364/1431246283334619136/Gemini_Generated_Image_dqdcnxdqdcnxdqdc-removebg-preview.png?ex=68fcb779&is=68fb65f9&hm=6afcbee2e3dea071f560ea5e1615dc24a691a1e12e123b02cb3c7f0cba2a33db',
-                footer_text: 'State #3063 cycle preset'
-            },
-            {
-                id: 'crazy-joe',
-                title: 'Crazy Joe',
-                badge: 'Weekly',
-                message: 'Crazy Joe starts soon',
-                body: 'Crazy Joe is coming. Reinforce allies, check troop capacity, and stay online for wave coordination.',
-                recurrence_type: 'weekly',
-                recurrence_interval: 7,
-                mention: 'here',
-                image_url: 'https://cdn.discordapp.com/attachments/1435569370389807144/1465697260829671687/images__7_-removebg-preview.png?ex=697a0c72&is=6978baf2&hm=d0efd4bfa0374b767a0cc9025abbc6d0c5e59e71cc099cccd423a066be8ceed6',
-                thumbnail_url: 'https://cdn.discordapp.com/attachments/1435569370389807144/1465697260829671687/images__7_-removebg-preview.png?ex=697a0c72&is=6978baf2&hm=d0efd4bfa0374b767a0cc9025abbc6d0c5e59e71cc099cccd423a066be8ceed6',
-                footer_text: 'Crazy Joe preset'
-            },
-            {
-                id: 'bear-trap',
-                title: 'Bear Trap',
-                badge: 'Custom',
-                message: 'Bear Trap starts soon',
-                body: 'Bear Trap rally window is near. Use the correct hero setup and be ready for fast rally joins.',
-                recurrence_type: 'custom',
-                recurrence_interval: 2,
-                mention: 'here',
-                image_url: 'https://cdn.discordapp.com/attachments/1435569370389807144/1441474311834832956/0f4d6593f84ba519bd095f077527f9ec-8.gif?ex=69288491&is=69273311&hm=6da152776bc75ea65c0d5ba9f8bbd5bec8baec1c843928df399daf76797382de',
-                thumbnail_url: 'https://cdn.discordapp.com/attachments/1435569370389807144/1441474311834832956/0f4d6593f84ba519bd095f077527f9ec-8.gif?ex=69288491&is=69273311&hm=6da152776bc75ea65c0d5ba9f8bbd5bec8baec1c843928df399daf76797382de',
-                footer_text: 'Bear Trap preset'
-            }
-        ];
+        let REMINDER_PRESETS = [];
+        let communityPresetsDebounce = null;
+
+        async function loadCommunityPresets(query = '') {
+            const grid = document.getElementById('reminder-presets');
+            const emptyState = document.getElementById('community-presets-empty');
+            const loadingState = document.getElementById('community-presets-loading');
+            
+            if (communityPresetsDebounce) clearTimeout(communityPresetsDebounce);
+            
+            communityPresetsDebounce = setTimeout(async () => {
+                if (grid) grid.style.display = 'none';
+                if (emptyState) emptyState.style.display = 'none';
+                if (loadingState) loadingState.style.display = 'block';
+
+                try {
+                    const params = query ? `?q=${encodeURIComponent(query)}` : '';
+                    const res = await fetchData(`/api/reminders/presets${params}`);
+                    REMINDER_PRESETS = res.presets || [];
+                    renderReminderPresets();
+                } catch (e) {
+                    console.error("Failed to load community presets", e);
+                    REMINDER_PRESETS = [];
+                    renderReminderPresets();
+                }
+            }, 300);
+        }
 
         function renderReminderPresets() {
             const grid = document.getElementById('reminder-presets');
             const chips = document.getElementById('reminder-preset-chips');
+            const emptyState = document.getElementById('community-presets-empty');
+            const loadingState = document.getElementById('community-presets-loading');
+            
+            if (loadingState) loadingState.style.display = 'none';
+            
             if (grid) {
-                grid.innerHTML = REMINDER_PRESETS.map(p => `
-                    <div class="preset-card">
-                        <div class="preset-thumb"><img src="${escapeAttribute(p.thumbnail_url || p.image_url || 'logo.png')}" alt="" onerror="this.onerror=null;this.src='logo.png';"></div>
-                        <div class="preset-body">
-                            <div class="preset-title">
-                                <strong>${escapeHTML(p.title)}</strong>
-                                <span class="status-pill active">${escapeHTML(p.badge)}</span>
+                if (REMINDER_PRESETS.length === 0) {
+                    grid.style.display = 'none';
+                    if (emptyState) emptyState.style.display = 'block';
+                } else {
+                    grid.style.display = 'grid';
+                    if (emptyState) emptyState.style.display = 'none';
+                    
+                    grid.innerHTML = REMINDER_PRESETS.map(p => `
+                        <div class="preset-card">
+                            <div class="preset-thumb"><img src="${escapeAttribute(p.thumbnail_url || p.image_url || 'logo.png')}" alt="" onerror="this.onerror=null;this.src='logo.png';"></div>
+                            <div class="preset-body">
+                                <div class="preset-title">
+                                    <strong>${escapeHTML(p.title)}</strong>
+                                    <span class="status-pill active">${escapeHTML(p.badge || 'One-time')}</span>
+                                </div>
+                                <p>${escapeHTML(p.body || p.message || '')}</p>
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px;">
+                                    By: ${escapeHTML(p.created_by || 'Unknown')}
+                                </div>
+                                <button class="btn btn-secondary" onclick="openReminderModal(null, '${escapeAttribute(p.id)}')">
+                                    <i data-lucide="copy-plus"></i> Use preset
+                                </button>
                             </div>
-                            <p>${escapeHTML(p.body)}</p>
-                            <button class="btn btn-secondary" onclick="openReminderModal(null, '${escapeAttribute(p.id)}')">
-                                <i data-lucide="copy-plus"></i> Use preset
-                            </button>
                         </div>
-                    </div>
-                `).join('');
+                    `).join('');
+                }
             }
             if (chips) {
-                chips.innerHTML = REMINDER_PRESETS.map(p => `
+                chips.innerHTML = REMINDER_PRESETS.slice(0, 10).map(p => `
                     <button type="button" class="chip-button" onclick="applyReminderPreset('${escapeAttribute(p.id)}')">${escapeHTML(p.title)}</button>
                 `).join('');
             }
             lucide.createIcons();
+        }
+
+        function openCreatePresetModal() {
+            document.getElementById('cp-title').value = '';
+            document.getElementById('cp-message').value = '';
+            document.getElementById('cp-body').value = '';
+            document.getElementById('cp-recurrence').value = 'none';
+            document.getElementById('cp-interval').value = '1';
+            document.getElementById('cp-mention').value = 'everyone';
+            document.getElementById('cp-image').value = '';
+            document.getElementById('cp-thumbnail').value = '';
+            document.getElementById('cp-footer').value = '';
+            document.getElementById('cp-footer-icon').value = '';
+            document.getElementById('create-preset-modal').style.display = 'flex';
+        }
+
+        function closeCreatePresetModal() {
+            document.getElementById('create-preset-modal').style.display = 'none';
+        }
+
+        async function submitCommunityPreset() {
+            const title = document.getElementById('cp-title').value.trim();
+            if (!title) {
+                showNotification('Preset Title is required', true);
+                return;
+            }
+
+            const payload = {
+                title: title,
+                message: document.getElementById('cp-message').value.trim(),
+                body: document.getElementById('cp-body').value.trim() || null,
+                recurrence_type: document.getElementById('cp-recurrence').value,
+                recurrence_interval: parseInt(document.getElementById('cp-interval').value) || 1,
+                mention: document.getElementById('cp-mention').value,
+                image_url: document.getElementById('cp-image').value.trim() || null,
+                thumbnail_url: document.getElementById('cp-thumbnail').value.trim() || null,
+                footer_text: document.getElementById('cp-footer').value.trim() || null,
+                footer_icon_url: document.getElementById('cp-footer-icon').value.trim() || null
+            };
+
+            showLoading(true);
+            try {
+                await fetchData('/api/reminders/presets', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                showNotification('Community Preset created successfully!');
+                closeCreatePresetModal();
+                loadCommunityPresets(); // Refresh list
+            } catch (e) {
+                showNotification(e.message || 'Failed to create preset', true);
+            } finally {
+                showLoading(false);
+            }
         }
 
         function applyReminderPreset(presetId) {
@@ -4691,5 +4746,78 @@
             lucide.createIcons();
         })();
     </script>
+    <!-- Create Preset Modal -->
+    <div id="create-preset-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3><i data-lucide="plus-circle" style="color:var(--primary);margin-right:8px;"></i>Create Community Preset</h3>
+                <button onclick="closeCreatePresetModal()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+                <div style="padding:12px; background:rgba(139,92,246,0.06); border-radius:8px; border:1px solid rgba(139,92,246,0.15); margin-bottom: 8px;">
+                    <p style="font-size:0.85rem; color:var(--text-muted); margin:0;">
+                        This preset will be shared with the entire community. Make sure the title and message are clear and helpful for others!
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label>Preset Title (Required)</label>
+                    <input type="text" id="cp-title" placeholder="e.g. Bear Trap Default">
+                </div>
+                <div class="form-group">
+                    <label>Reminder Message</label>
+                    <input type="text" id="cp-message" placeholder="e.g. Bear Trap starts now!">
+                </div>
+                <div class="form-group">
+                    <label>Detailed Description</label>
+                    <textarea id="cp-body" placeholder="Optional details..." style="min-height: 60px;"></textarea>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                        <label>Repeat Type</label>
+                        <select id="cp-recurrence">
+                            <option value="none">One-time</option>
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="custom">Custom interval</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Interval (if custom)</label>
+                        <input type="number" id="cp-interval" value="1" min="1">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                        <label>Mention</label>
+                        <select id="cp-mention">
+                            <option value="everyone">@everyone</option>
+                            <option value="here">@here</option>
+                            <option value="none">None</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Image URL</label>
+                        <input type="text" id="cp-image" placeholder="https://...">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                        <label>Thumbnail URL</label>
+                        <input type="text" id="cp-thumbnail" placeholder="https://...">
+                    </div>
+                    <div class="form-group">
+                        <label>Footer Text</label>
+                        <input type="text" id="cp-footer" placeholder="Optional footer">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeCreatePresetModal()" class="btn btn-secondary">Cancel</button>
+                <button onclick="submitCommunityPreset()" class="btn btn-primary"><i data-lucide="share"></i> Share Preset</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

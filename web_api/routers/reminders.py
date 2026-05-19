@@ -5,6 +5,7 @@ import httpx
 import logging
 import pytz
 import discord
+import uuid
 from datetime import datetime, timezone as dt_timezone
 
 from cogs.reminder_system import ReminderStorage, TimeParser
@@ -341,3 +342,103 @@ async def update_reminder(request: Request, guild_id: str, reminder_id: str, pay
         return {"status": "success"}
     else:
         raise HTTPException(status_code=400, detail="Failed to update reminder.")
+
+# ─── Community Presets ────────────────────────────────────────────────────────
+
+class CommunityPresetCreate(BaseModel):
+    title: str
+    badge: str = None
+    message: str = ""
+    body: str = None
+    recurrence_type: str = "none"
+    recurrence_interval: int = 1
+    mention: str = "everyone"
+    image_url: str = None
+    thumbnail_url: str = None
+    footer_text: str = None
+    footer_icon_url: str = None
+    author_url: str = None
+
+
+def _get_presets_collection():
+    """Return the MongoDB community_reminder_presets collection or None."""
+    import os
+    try:
+        mongo_uri = os.environ.get('MONGO_URI')
+        if not mongo_uri:
+            return None
+        from pymongo import MongoClient
+        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=3000)
+        return client['wosbot']['community_reminder_presets']
+    except Exception as e:
+        logger.warning(f"MongoDB presets collection unavailable: {e}")
+        return None
+
+
+@router.get("/presets")
+async def get_community_presets(request: Request, q: Optional[str] = None):
+    """Get all community presets, optionally filtered by search query."""
+    try:
+        col = _get_presets_collection()
+        if col is None:
+            return {"presets": []}
+        query = {}
+        if q and q.strip():
+            query = {"$or": [
+                {"title": {"$regex": q.strip(), "$options": "i"}},
+                {"body": {"$regex": q.strip(), "$options": "i"}},
+                {"message": {"$regex": q.strip(), "$options": "i"}}
+            ]}
+        presets = list(col.find(query, {"_id": 0}).sort("created_at", -1).limit(100))
+        return {"presets": presets}
+    except Exception as e:
+        logger.error(f"Failed to fetch community presets: {e}")
+        return {"presets": []}
+
+
+@router.post("/presets")
+async def create_community_preset(request: Request, payload: CommunityPresetCreate):
+    """Create a new community reminder preset visible to all users."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    user = await _get_discord_user(auth_header)
+
+    if not payload.title or not payload.title.strip():
+        raise HTTPException(status_code=400, detail="Preset title is required")
+
+    badge_map = {"daily": "Daily", "weekly": "Weekly", "custom": "Custom", "none": "One-time"}
+    badge = payload.badge or badge_map.get(payload.recurrence_type, "One-time")
+
+    preset = {
+        "id": str(uuid.uuid4()),
+        "title": payload.title.strip(),
+        "badge": badge,
+        "message": payload.message,
+        "body": payload.body,
+        "recurrence_type": payload.recurrence_type,
+        "recurrence_interval": payload.recurrence_interval,
+        "mention": payload.mention,
+        "image_url": payload.image_url,
+        "thumbnail_url": payload.thumbnail_url,
+        "footer_text": payload.footer_text,
+        "footer_icon_url": payload.footer_icon_url,
+        "author_url": payload.author_url,
+        "created_by": user.get("global_name") or user.get("username") or "Unknown",
+        "created_by_id": user.get("id"),
+        "created_at": datetime.utcnow().isoformat()
+    }
+
+    try:
+        col = _get_presets_collection()
+        if col is None:
+            raise HTTPException(status_code=503, detail="Storage not available")
+        doc = {**preset}
+        col.insert_one(doc)
+        return {"status": "success", "preset": preset}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to save community preset: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save preset")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+﻿from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional, List
 import httpx
@@ -374,6 +374,45 @@ def _get_presets_collection():
         logger.warning(f"MongoDB presets collection unavailable: {e}")
         return None
 
+
+
+# ─── Upload Image ─────────────────────────────────────────────────────────────
+
+@router.post("/upload")
+async def upload_reminder_image(request: Request, file: UploadFile = File(...)):
+    """Uploads a local image for a reminder and returns its public URL."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if not file:
+        raise HTTPException(status_code=400, detail="No file uploaded")
+
+    content = await file.read()
+    if len(content) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image too large (max 8MB)")
+
+    ext = file.filename.split('.')[-1].lower() if '.' in file.filename else 'png'
+    if ext not in ['png', 'jpg', 'jpeg', 'gif', 'webp']:
+        ext = 'png'
+
+    filename = f"reminder_{uuid.uuid4().hex}.{ext}"
+    upload_dir = "data/uploads"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    filepath = os.path.join(upload_dir, filename)
+    with open(filepath, "wb") as f:
+        f.write(content)
+
+    # Use the request's base URL to construct the public URL
+    base_url = str(request.base_url).rstrip("/")
+    if "vercel.app" in base_url or "localhost" in base_url:
+        # Fallback to the production API URL if the base_url is from the frontend proxy
+        # But wait, request.base_url from FastAPI is usually the bot API url.
+        pass
+        
+    public_url = f"{base_url}/api/static/{filename}"
+    return {"status": "success", "url": public_url}
 
 @router.get("/presets")
 async def get_community_presets(request: Request, q: Optional[str] = None):

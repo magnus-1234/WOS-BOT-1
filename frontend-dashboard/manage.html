@@ -9,7 +9,45 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@latest">        async function uploadImageForReminder(input, targetId) {
+            if (!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            
+            showLoading(true);
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const token = localStorage.getItem('discord_access_token');
+                const response = await fetch(CONFIG.API_BASE + '/api/reminders/upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                
+                if (!response.ok) throw new Error('Failed to upload image');
+                const data = await response.json();
+                
+                if (data.url) {
+                    const targetInput = document.getElementById(targetId);
+                    if (targetInput) {
+                        targetInput.value = data.url;
+                        // trigger oninput manually if preview update is needed
+                        const event = new Event('input', { bubbles: true });
+                        targetInput.dispatchEvent(event);
+                    }
+                    showNotification('Image uploaded successfully');
+                } else {
+                    throw new Error(data.message || 'Upload failed');
+                }
+            } catch (e) {
+                showNotification(e.message, true);
+            } finally {
+                showLoading(false);
+                input.value = ''; // Reset input
+            }
+        }
+    </script>
     
     <style>
         :root {
@@ -1657,7 +1695,10 @@
                             <p>Browse shared event templates. Search, use, or create your own preset for others.</p>
                         </div>
                         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-                            <input id="preset-search-input" class="reminder-search" type="search" placeholder="🔍 Search presets..." oninput="loadCommunityPresets(this.value)" style="min-width:200px;">
+                            <div style="position:relative; min-width:260px;">
+    <i data-lucide="search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--text-muted);"></i>
+    <input id="preset-search-input" type="search" placeholder="Search community presets..." oninput="loadCommunityPresets(this.value)" style="width:100%; padding:10px 14px 10px 38px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; font-size:0.9rem; transition:all 0.2s;" onfocus="this.style.borderColor='var(--primary)'; this.style.background='rgba(139,92,246,0.05)';" onblur="this.style.borderColor='rgba(255,255,255,0.1)'; this.style.background='rgba(255,255,255,0.03)';">
+</div>
                             <button onclick="openCreatePresetModal()" class="btn btn-primary" id="create-preset-btn"><i data-lucide="plus"></i> Create Preset</button>
                         </div>
                     </div>
@@ -4745,6 +4786,44 @@
             updatePreview();
             lucide.createIcons();
         })();
+            async function uploadImageForReminder(input, targetId) {
+            if (!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            
+            showLoading(true);
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const token = localStorage.getItem('discord_access_token');
+                const response = await fetch(CONFIG.API_BASE + '/api/reminders/upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                
+                if (!response.ok) throw new Error('Failed to upload image');
+                const data = await response.json();
+                
+                if (data.url) {
+                    const targetInput = document.getElementById(targetId);
+                    if (targetInput) {
+                        targetInput.value = data.url;
+                        // trigger oninput manually if preview update is needed
+                        const event = new Event('input', { bubbles: true });
+                        targetInput.dispatchEvent(event);
+                    }
+                    showNotification('Image uploaded successfully');
+                } else {
+                    throw new Error(data.message || 'Upload failed');
+                }
+            } catch (e) {
+                showNotification(e.message, true);
+            } finally {
+                showLoading(false);
+                input.value = ''; // Reset input
+            }
+        }
     </script>
     <!-- Create Preset Modal -->
     <div id="create-preset-modal" class="modal">
@@ -4799,18 +4878,37 @@
                     </div>
                     <div class="form-group">
                         <label>Image URL</label>
-                        <input type="text" id="cp-image" placeholder="https://...">
+                        <div style="display:flex;gap:8px;">
+                            <input type="text" id="cp-image" placeholder="https://..." style="flex:1;">
+                            <label for="upload-cp-image" class="btn btn-secondary" style="padding:0 12px;cursor:pointer;display:flex;align-items:center;" title="Upload Local Image"><i data-lucide="upload" style="width:18px;height:18px;"></i></label>
+                            <input type="file" id="upload-cp-image" accept="image/*" style="display:none;" onchange="uploadImageForReminder(this, 'cp-image')">
+                        </div>
                     </div>
                 </div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
                     <div class="form-group">
                         <label>Thumbnail URL</label>
-                        <input type="text" id="cp-thumbnail" placeholder="https://...">
+                        <div style="display:flex;gap:8px;">
+                        <input type="text" id="cp-thumbnail" placeholder="https://..." style="flex:1;">
+                        <label for="upload-cp-thumbnail" class="btn btn-secondary" style="padding:0 12px;cursor:pointer;display:flex;align-items:center;" title="Upload Local Image"><i data-lucide="upload" style="width:18px;height:18px;"></i></label>
+                        <input type="file" id="upload-cp-thumbnail" accept="image/*" style="display:none;" onchange="uploadImageForReminder(this, 'cp-thumbnail')">
+                    </div>
                     </div>
                     <div class="form-group">
                         <label>Footer Text</label>
                         <input type="text" id="cp-footer" placeholder="Optional footer">
                     </div>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                    <div class="form-group">
+                        <label>Footer Icon URL</label>
+                        <div style="display:flex;gap:8px;">
+                            <input type="text" id="cp-footer-icon" placeholder="https://..." style="flex:1;">
+                            <label for="upload-cp-footer-icon" class="btn btn-secondary" style="padding:0 12px;cursor:pointer;display:flex;align-items:center;" title="Upload Local Image"><i data-lucide="upload" style="width:18px;height:18px;"></i></label>
+                            <input type="file" id="upload-cp-footer-icon" accept="image/*" style="display:none;" onchange="uploadImageForReminder(this, 'cp-footer-icon')">
+                        </div>
+                    </div>
+                    <div class="form-group"></div>
                 </div>
             </div>
             <div class="modal-footer">

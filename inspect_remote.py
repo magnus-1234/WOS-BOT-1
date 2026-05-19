@@ -2,13 +2,20 @@ import os
 import sys
 import sqlite3
 import json
-from dotenv import load_dotenv
 
-# Load env from bot directory if present
-if os.path.exists("bot/.env"):
-    load_dotenv("bot/.env")
-else:
-    load_dotenv(".env")
+# Manually parse .env if exists
+env_path = "bot/.env" if os.path.exists("bot/.env") else ".env"
+if os.path.exists(env_path):
+    print("Parsing env file:", env_path)
+    with open(env_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split("=", 1)
+            if len(parts) == 2:
+                key, val = parts[0].strip(), parts[1].strip()
+                os.environ[key] = val
 
 print("================ DIAGNOSTIC REPORT ================")
 print("Working Directory:", os.getcwd())

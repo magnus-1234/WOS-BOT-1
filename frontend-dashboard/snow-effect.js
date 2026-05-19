@@ -6,7 +6,7 @@
     return;
   }
 
-  const FLAKE_COUNT = 55;
+  const FLAKE_COUNT = 95;
   const MIN_SIZE = 1;
   const MAX_SIZE = 3.2;
   const MIN_SPEED = 0.06;

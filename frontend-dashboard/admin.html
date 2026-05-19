@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>
+    if (localStorage.getItem('theme') === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Whiteout Survival - Global Admin</title>
@@ -21,6 +26,63 @@
       --warn: #f4b942;
       --danger: #ef5b5b;
     }
+
+    [data-theme="light"] {
+      --bg: #f3f4f6;
+      --panel: #ffffff;
+      --panel-2: #ffffff;
+      --line: rgba(0, 0, 0, 0.08);
+      --text: #080b10;
+      --muted: #4b5563;
+    }
+
+    /* Theme Toggle styles */
+    .theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.4rem;
+      height: 2.4rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.03);
+      color: rgba(255, 255, 255, 0.8);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+      margin-right: 8px;
+    }
+    
+    .theme-toggle:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+
+    [data-theme="light"] .theme-toggle {
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      background: rgba(0, 0, 0, 0.03);
+      color: rgba(0, 0, 0, 0.7);
+    }
+
+    [data-theme="light"] .theme-toggle:hover {
+      background: rgba(0, 0, 0, 0.08);
+      border-color: rgba(0, 0, 0, 0.15);
+      color: #000;
+    }
+
+    .theme-toggle svg {
+      width: 1.2rem;
+      height: 1.2rem;
+      stroke: currentColor;
+      fill: none;
+    }
+
+    .theme-toggle .sun-icon  { display: block; }
+    .theme-toggle .moon-icon { display: none;  }
+
+    [data-theme="light"] .theme-toggle .sun-icon  { display: none;  }
+    [data-theme="light"] .theme-toggle .moon-icon { display: block; }
     * { box-sizing: border-box; }
     body {
       margin: 0;
@@ -199,9 +261,15 @@
       <img src="/logo.gif" alt="Whiteout Survival">
       <strong>Global Admin</strong>
     </a>
-    <div class="actions" style="margin:0;">
-      <a class="btn" href="dashboard.html"><i data-lucide="layout-dashboard"></i> Dashboard</a>
-      <button class="btn danger" onclick="logout()"><i data-lucide="log-out"></i> Logout</button>
+    <div style="display: flex; align-items: center; gap: 12px; margin: 0;">
+      <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+        <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="actions" style="margin:0;">
+        <a class="btn" href="dashboard.html"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+        <button class="btn danger" onclick="logout()"><i data-lucide="log-out"></i> Logout</button>
+      </div>
     </div>
   </header>
 
@@ -622,6 +690,21 @@
     window.addEventListener('DOMContentLoaded', () => {
       refreshAll();
       lucide.createIcons();
+
+      // Theme toggle logic
+      const themeToggle = document.getElementById("theme-toggle");
+      if (themeToggle) {
+        themeToggle.addEventListener("click", () => {
+          const isLight = document.documentElement.getAttribute("data-theme") === "light";
+          if (isLight) {
+            document.documentElement.removeAttribute("data-theme");
+            localStorage.setItem("theme", "dark");
+          } else {
+            document.documentElement.setAttribute("data-theme", "light");
+            localStorage.setItem("theme", "light");
+          }
+        });
+      }
     });
   </script>
 </body>

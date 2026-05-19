@@ -91,8 +91,8 @@
 
     .hero-live-feed {
       position: fixed;
-      left: clamp(1rem, 2.4vw, 1.75rem);
-      bottom: clamp(1rem, 2.4vw, 1.75rem);
+      right: clamp(1rem, 2.4vw, 1.75rem);
+      top: clamp(5.5rem, 7vw, 6.5rem);
       z-index: 90;
       width: min(calc(100vw - 6rem), 26rem);
       margin: 0;
@@ -107,8 +107,8 @@
         0 16px 32px -16px rgba(141, 232, 255, 0.35);
       backdrop-filter: blur(20px);
       padding: 0.85rem 1rem;
-      transform: translateY(150%);
-      animation: slideUpFeed 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+      transform: translateY(-150%);
+      animation: slideDownFeed 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
       cursor: grab;
       user-select: none;
       touch-action: none;
@@ -122,7 +122,7 @@
       box-shadow: 0 12px 40px rgba(141, 232, 255, 0.4);
     }
 
-    @keyframes slideUpFeed {
+    @keyframes slideDownFeed {
       to { transform: translateY(0); }
     }
 

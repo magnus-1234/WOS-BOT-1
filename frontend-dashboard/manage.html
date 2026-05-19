@@ -2,6 +2,11 @@
 <html lang="en">
 
 <head>
+    <script>
+        if (localStorage.getItem('theme') === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Server - Whiteout Survival Bot</title>
@@ -25,6 +30,16 @@
             --text-muted: #94a3b8;
             --sidebar-width: 280px;
             --top-bar-height: 70px;
+        }
+
+        [data-theme="light"] {
+            --bg-dark: #f3f4f6;
+            --sidebar-bg: #ffffff;
+            --card-bg: #ffffff;
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(0, 0, 0, 0.08);
+            --text-main: #0f0f17;
+            --text-muted: #4b5563;
         }
 
         * {
@@ -1427,6 +1442,54 @@
             color: #fbbf24;
             border: 1px solid rgba(245, 158, 11, 0.3);
         }
+
+        /* Theme Toggle styles */
+        .theme-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.4rem;
+            height: 2.4rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.03);
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            margin-right: 16px;
+        }
+        
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        [data-theme="light"] .theme-toggle {
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            background: rgba(0, 0, 0, 0.03);
+            color: rgba(0, 0, 0, 0.7);
+        }
+
+        [data-theme="light"] .theme-toggle:hover {
+            background: rgba(0, 0, 0, 0.08);
+            border-color: rgba(0, 0, 0, 0.15);
+            color: #000;
+        }
+
+        .theme-toggle svg {
+            width: 1.2rem;
+            height: 1.2rem;
+            stroke: currentColor;
+            fill: none;
+        }
+
+        .theme-toggle .sun-icon  { display: block; }
+        .theme-toggle .moon-icon { display: none;  }
+
+        [data-theme="light"] .theme-toggle .sun-icon  { display: none;  }
+        [data-theme="light"] .theme-toggle .moon-icon { display: block; }
     </style>
 </head>
 
@@ -1514,6 +1577,10 @@
                 </button>
             </div>
             <div class="top-bar-right">
+                <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+                    <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
                 <div class="user-profile-wrapper" id="user-profile-wrapper">
                     <div class="user-profile" id="user-profile-trigger">
                         <img id="user-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="User">
@@ -6125,6 +6192,21 @@
             // Kick off an initial preview render in case no settings exist yet
             updatePreview();
             lucide.createIcons();
+
+            // Theme toggle logic
+            const themeToggle = document.getElementById("theme-toggle");
+            if (themeToggle) {
+                themeToggle.addEventListener("click", () => {
+                    const isLight = document.documentElement.getAttribute("data-theme") === "light";
+                    if (isLight) {
+                        document.documentElement.removeAttribute("data-theme");
+                        localStorage.setItem("theme", "dark");
+                    } else {
+                        document.documentElement.setAttribute("data-theme", "light");
+                        localStorage.setItem("theme", "light");
+                    }
+                });
+            }
         })();
     </script>
     <div id="create-preset-modal" class="modal">

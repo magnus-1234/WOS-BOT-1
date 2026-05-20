@@ -87,7 +87,106 @@
     }
 
     .hero-copy {
+      position: relative;
+      z-index: 8;
+      max-width: 46rem;
       animation: heroFadeIn 0.75s ease-out;
+    }
+
+    .front-hero-group {
+      position: absolute;
+      right: clamp(-1rem, 2vw, 2.5rem);
+      top: clamp(4rem, 6vw, 6rem);
+      z-index: 4;
+      width: min(44vw, 40rem);
+      height: clamp(25rem, 42vw, 35rem);
+      min-height: 25rem;
+      pointer-events: none;
+      perspective: 1200px;
+      transform-style: preserve-3d;
+      animation: groupBreathe 8s ease-in-out infinite;
+    }
+
+    .front-hero-group::before {
+      content: "";
+      position: absolute;
+      left: 8%;
+      right: 4%;
+      bottom: 2%;
+      height: 20%;
+      border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(160, 224, 255, 0.42), rgba(62, 132, 201, 0.16) 54%, transparent 72%);
+      filter: blur(10px);
+      transform: rotateX(70deg);
+    }
+
+    .front-hero-group::after {
+      content: "";
+      position: absolute;
+      inset: 12% 0 16%;
+      z-index: -1;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.26), rgba(115, 196, 255, 0.16) 38%, transparent 68%);
+      filter: blur(18px);
+    }
+
+    .front-hero {
+      position: absolute;
+      bottom: 5%;
+      display: block;
+      height: auto;
+      transform-origin: 50% 100%;
+      filter: drop-shadow(0 28px 20px rgba(3, 8, 18, 0.58));
+      animation: heroGroupFloat 6.5s ease-in-out infinite;
+    }
+
+    .front-hero.center {
+      left: 34%;
+      width: min(39%, 17rem);
+      z-index: 5;
+      animation-delay: -1.2s;
+    }
+
+    .front-hero.left {
+      left: 5%;
+      width: min(35%, 15rem);
+      z-index: 3;
+      animation-delay: -2.4s;
+      transform: translate3d(0, 1rem, -40px) rotateY(18deg) rotateZ(-2deg);
+    }
+
+    .front-hero.mid-left {
+      left: 23%;
+      width: min(28%, 12rem);
+      z-index: 4;
+      animation-delay: -3s;
+      transform: translate3d(0, 2.4rem, 40px) rotateY(10deg);
+    }
+
+    .front-hero.mid-right {
+      right: 23%;
+      width: min(32%, 14rem);
+      z-index: 4;
+      animation-delay: -1.8s;
+      transform: translate3d(0, 2rem, 30px) rotateY(-9deg);
+    }
+
+    .front-hero.right {
+      right: -1%;
+      width: min(38%, 16rem);
+      z-index: 3;
+      animation-delay: -3.8s;
+      transform: translate3d(0, 1.2rem, -30px) rotateY(-18deg) rotateZ(2deg);
+    }
+
+    @keyframes groupBreathe {
+      0%, 100% { transform: translate3d(0, 0, 0) rotateY(-2deg); }
+      50% { transform: translate3d(0, -0.8rem, 0) rotateY(2deg); }
+    }
+
+    @keyframes heroGroupFloat {
+      0%, 100% { margin-bottom: 0; }
+      50% { margin-bottom: 0.75rem; }
     }
 
     .hero-live-feed {
@@ -745,6 +844,13 @@
         padding-bottom: 4rem;
       }
 
+      .front-hero-group {
+        right: -7rem;
+        top: 16rem;
+        width: 58vw;
+        opacity: 0.82;
+      }
+
       .section-heading.split {
         align-items: flex-start;
         gap: 0.65rem;
@@ -755,6 +861,7 @@
       .live-board {
         grid-template-columns: 1fr;
       }
+
     }
 
     @media (max-width: 640px) {
@@ -764,6 +871,15 @@
 
       .hero-copy {
         text-align: left;
+      }
+
+      .front-hero-group {
+        right: -7.5rem;
+        top: 14rem;
+        width: 24rem;
+        min-height: 24rem;
+        opacity: 0.5;
+        transform: scale(0.92);
       }
 
       .stats-grid article strong {
@@ -786,6 +902,17 @@
 
       .live-metrics {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .footer-brand {
+        max-width: 100%;
+        font-size: clamp(1.4rem, 8vw, 2rem) !important;
+        white-space: normal;
+      }
+
+      .footer-brand span:last-child {
+        min-width: 0;
+        overflow-wrap: anywhere;
       }
     }
   </style>
@@ -873,6 +1000,13 @@
             <article><strong data-live-stat="uptime">--</strong><span>uptime</span></article>
             <article><strong data-live-stat="members">--</strong><span>total members</span></article>
           </div>
+        </div>
+        <div class="front-hero-group" aria-hidden="true">
+          <img class="front-hero left" src="assets/whiteout-official/hero_full_pic.BSa3ljeO.png" alt="">
+          <img class="front-hero mid-left" src="assets/whiteout-official/hero_full_pic.CMoGjx7f.png" alt="">
+          <img class="front-hero center" src="assets/whiteout-official/hero_full_pic.iEiT7Zbo.png" alt="">
+          <img class="front-hero mid-right" src="assets/whiteout-official/hero_full_pic.Bt7jAvmg.png" alt="">
+          <img class="front-hero right" src="assets/whiteout-official/hero_full_pic.BffOqjkM.png" alt="">
         </div>
       </div>
     </section>

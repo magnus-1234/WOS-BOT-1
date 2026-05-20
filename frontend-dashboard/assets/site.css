@@ -2912,98 +2912,97 @@ body,
 [data-theme="cartoon"] .theme-toggle .sun-icon { display: none; }
 [data-theme="cartoon"] .theme-toggle .cartoon-icon { display: block !important; }
 
-/* ── Footer Brand Logos ──────────────────────────────────────────────────── */
+/* ── Footer Brand Logos (Boxless / Professional) ─────────────────────────── */
 .footer-right {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
 @media (max-width: 768px) {
   .footer-right {
     align-items: center;
+    margin-top: 1rem;
   }
 }
 
 .footer-social-logos {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 1.5rem;
+  margin-top: 0.25rem;
 }
 
 .footer-logo-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.75rem;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1.5px solid rgba(255, 255, 255, 0.08);
-  padding: 8px 12px;
-  min-height: 48px;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15),
-              inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  opacity: 0.6;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  text-decoration: none;
 }
 
 .footer-logo-link img {
-  height: 30px;
+  height: 28px; /* balanced uniform height for modern footers */
   width: auto;
   object-fit: contain;
   display: block;
-  transition: all 0.3s ease;
-  filter: grayscale(15%) brightness(95%);
+  transition: all 0.25s ease;
+}
+
+/* Make sure different logo proportions look perfectly balanced */
+.footer-logo-link[aria-label="Whiteout Survival Website"] img {
+  height: 32px; /* Planet logo can be slightly larger since it is round */
+}
+
+.footer-logo-link[aria-label="Discord Support Server"] img {
+  height: 26px; /* Discord circle icon looks best at 26px next to others */
+}
+
+.footer-logo-link[aria-label="Vote on Top.gg"] img {
+  height: 20px; /* Top.gg horizontal text-logo looks best at 20px height to match proportions! */
 }
 
 .footer-logo-link:hover {
-  transform: translateY(-3px) scale(1.04);
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.22);
-  box-shadow: 0 10px 25px -8px rgba(0, 0, 0, 0.45);
-}
-
-.footer-logo-link:hover img {
-  filter: grayscale(0%) brightness(105%);
+  opacity: 1;
+  transform: translateY(-2px);
+  filter: drop-shadow(0 4px 8px rgba(255, 255, 255, 0.1));
 }
 
 .footer-logo-link:active {
-  transform: translateY(-1px) scale(0.97);
+  transform: translateY(0);
 }
 
-/* Theme responsive colors for footer brand buttons */
+/* Theme responsive tweaks for high accessibility and style */
 [data-theme="cartoon"] .footer-logo-link {
-  background: rgba(23, 32, 51, 0.04);
-  border: 1.5px solid rgba(23, 32, 51, 0.12);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  opacity: 0.7;
 }
 
 [data-theme="cartoon"] .footer-logo-link:hover {
-  background: rgba(23, 32, 51, 0.08);
-  border-color: rgba(23, 32, 51, 0.28);
-}
-
-[data-theme="cartoon"] .footer-logo-link img {
-  filter: none;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
 }
 
 [data-theme="hacker"] .footer-logo-link {
-  background: #041006 !important;
-  border: 1px solid #00ff66 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
+  opacity: 0.65;
+  filter: sepia(100%) hue-rotate(80deg) saturate(200%) brightness(1.1);
 }
 
-[data-theme="hacker"] .footer-logo-link img {
-  filter: sepia(100%) hue-rotate(80deg) saturate(200%) brightness(1.2);
+[data-theme="hacker"] .footer-logo-link:hover {
+  opacity: 1;
+  filter: sepia(100%) hue-rotate(80deg) saturate(300%) brightness(1.3) drop-shadow(0 0 8px #00ff66);
 }
 
 [data-theme="high-contrast"] .footer-logo-link {
-  background: #000000 !important;
-  border: 2.5px solid #ffffff !important;
-  box-shadow: none !important;
+  opacity: 0.8;
 }
 
-[data-theme="high-contrast"] .footer-logo-link img {
-  filter: contrast(200%) brightness(2);
+[data-theme="high-contrast"] .footer-logo-link:hover {
+  opacity: 1;
+  filter: contrast(150%) brightness(1.5) drop-shadow(0 0 8px #ffffff);
 }

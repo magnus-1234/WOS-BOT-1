@@ -1086,35 +1086,4 @@
       }
     });
   }
-
-  /* ── Floating Brands Dock & CSS Logos ──────────────────────────────────── */
-  const injectFloatingDock = () => {
-    if (document.getElementById("floating-brands-dock")) return;
-    const container = document.createElement("div");
-    container.id = "floating-brands-dock";
-    container.className = "floating-brands-dock";
-    container.innerHTML = `
-      <a href="https://discord.gg/bP5JQFH2M5" target="_blank" class="brand-logo-btn brand-discord" aria-label="Join Discord Support Server" title="Join Discord Support Server">
-        <svg viewBox="0 0 127.14 96.36" class="discord-svg">
-          <path fill="currentColor" d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,52.88,6.83,77.19,77.19,0,0,0,49.58,0,105.15,105.15,0,0,0,19.14,8.07C3,33.48-1.5,58.27.3,82.84a106.89,106.89,0,0,0,32.17,16.08,82.28,82.28,0,0,0,6.75-10.87,69.58,69.58,0,0,1-10.63-5.07c.9-.65,1.77-1.32,2.62-2a76.1,76.1,0,0,0,74.75,0c.85.69,1.72,1.37,2.62,2a69.58,69.58,0,0,1-10.63,5.07,82.28,82.28,0,0,0,6.75,10.87,106.89,106.89,0,0,0,32.17-16.08C128.64,51.87,123.63,27.32,107.7,8.07ZM42.45,65.69C35,65.69,28.9,59,28.9,50.73s6.1-15,13.55-15,13.61,6.77,13.55,15S49.9,65.69,42.45,65.69Zm42.24,0C77.2,65.69,71.1,59,71.1,50.73s6.1-15,13.55-15,13.61,6.77,13.55,15S89.65,65.69,84.69,65.69Z"/>
-        </svg>
-      </a>
-      <a href="https://whiteoutsurvival.centurygames.com/" target="_blank" class="brand-logo-btn brand-wos" aria-label="Visit Whiteout Survival Official Website" title="Visit Whiteout Survival Official Website">
-        <div class="wos-css-logo">
-          <div class="wos-css-globe"></div>
-          <div class="wos-css-furnace">
-            <div class="wos-css-flame"></div>
-          </div>
-          <div class="wos-css-glacier"></div>
-        </div>
-      </a>
-    `;
-    document.body.appendChild(container);
-  };
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", injectFloatingDock);
-  } else {
-    injectFloatingDock();
-  }
 })();

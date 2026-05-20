@@ -4,8 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <script>
-    if (localStorage.getItem('theme') === 'light' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches)) {
-      document.documentElement.setAttribute('data-theme', 'light');
+    const savedTheme = localStorage.getItem('theme') || 'cartoon';
+    if (savedTheme !== 'dark') {
+      document.documentElement.setAttribute('data-theme', savedTheme);
     }
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -92,7 +93,7 @@
     .hero-live-feed {
       position: fixed;
       right: clamp(1rem, 2.4vw, 1.75rem);
-      top: clamp(5.5rem, 7vw, 6.5rem);
+      top: clamp(6.75rem, 8vw, 8rem);
       z-index: 90;
       width: min(calc(100vw - 6rem), 26rem);
       margin: 0;
@@ -112,6 +113,19 @@
       cursor: grab;
       user-select: none;
       touch-action: none;
+    }
+
+    [data-theme="cartoon"] .hero-live-feed {
+      border: 1px solid rgba(23, 32, 51, 0.14);
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 22px 44px -28px rgba(23, 32, 51, 0.46);
+      backdrop-filter: blur(18px);
+    }
+
+    [data-theme="cartoon"] .live-process-intro .section-copy,
+    [data-theme="cartoon"] .hero-feed-copy span,
+    [data-theme="cartoon"] .hero-feed-meta span {
+      color: #5b6478;
     }
     
     .hero-live-feed:active {

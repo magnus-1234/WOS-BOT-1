@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <script>
-    const savedTheme = localStorage.getItem('theme');
+    const savedTheme = localStorage.getItem('theme') || 'cartoon';
     if (savedTheme && savedTheme !== 'dark') {
       document.documentElement.setAttribute('data-theme', savedTheme);
     }
@@ -95,32 +95,39 @@
     }
 
     [data-theme="cartoon"] {
-      --radius: 16px;
-      --bg: #fdf6e2;
-      --panel: #ffffff;
-      --panel-2: #ffffff;
-      --line: #000000;
-      --text: #000000;
-      --muted: #4b5563;
-      --primary: #ff5e7e;
+      --radius: 18px;
+      --bg: #f6fbff;
+      --panel: rgba(255, 255, 255, 0.94);
+      --panel-2: rgba(255, 255, 255, 0.9);
+      --line: rgba(23, 32, 51, 0.14);
+      --text: #172033;
+      --muted: #5b6478;
+      --primary: #ff5f8f;
     }
 
     [data-theme="cartoon"] .panel,
     [data-theme="cartoon"] .table-row,
     [data-theme="cartoon"] header {
-      border: 3px solid #000000 !important;
-      box-shadow: 4px 4px 0 #000000 !important;
-      border-radius: 16px !important;
+      border: 1px solid rgba(23, 32, 51, 0.14) !important;
+      box-shadow: 0 18px 42px -32px rgba(23, 32, 51, 0.5) !important;
+      border-radius: 18px !important;
     }
 
     [data-theme="cartoon"] button,
     [data-theme="cartoon"] .theme-toggle,
     [data-theme="cartoon"] .btn {
-      border: 3px solid #000000 !important;
-      background: #ffea79 !important;
-      color: #000000 !important;
-      box-shadow: 2px 2px 0 #000000 !important;
+      border: 1px solid rgba(23, 32, 51, 0.16) !important;
+      background: #ffe36d !important;
+      color: #172033 !important;
+      box-shadow: 0 10px 22px -16px rgba(23, 32, 51, 0.45) !important;
       border-radius: 12px !important;
+    }
+
+    [data-theme="cartoon"] body {
+      background:
+        linear-gradient(135deg, rgba(255, 227, 109, 0.22) 0 13%, transparent 13% 100%),
+        linear-gradient(165deg, transparent 0 62%, rgba(121, 220, 176, 0.2) 62% 100%),
+        #f6fbff !important;
     }
 
     /* Theme Toggle styles */
@@ -796,10 +803,11 @@
       // Theme toggle logic
       const themeToggle = document.getElementById("theme-toggle");
       if (themeToggle) {
-        const themes = ['dark', 'light', 'high-contrast', 'hacker', 'cartoon'];
+        const themes = ['cartoon', 'dark', 'light', 'high-contrast', 'hacker'];
         themeToggle.addEventListener("click", () => {
-          const currentTheme = localStorage.getItem("theme") || "dark";
-          const nextIndex = (themes.indexOf(currentTheme) + 1) % themes.length;
+          const currentTheme = localStorage.getItem("theme") || "cartoon";
+          const currentIndex = themes.indexOf(currentTheme);
+          const nextIndex = ((currentIndex === -1 ? 0 : currentIndex) + 1) % themes.length;
           const nextTheme = themes[nextIndex];
 
           localStorage.setItem("theme", nextTheme);

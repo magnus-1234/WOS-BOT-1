@@ -93,100 +93,129 @@
       animation: heroFadeIn 0.75s ease-out;
     }
 
-    .front-hero-group {
+    .front-hero-scene {
       position: absolute;
-      right: clamp(-1rem, 2vw, 2.5rem);
-      top: clamp(4rem, 6vw, 6rem);
+      right: clamp(-2rem, 2vw, 2.5rem);
+      top: clamp(4rem, 8vw, 8rem);
       z-index: 4;
-      width: min(44vw, 40rem);
-      height: clamp(25rem, 42vw, 35rem);
-      min-height: 25rem;
-      pointer-events: none;
+      width: min(46vw, 42rem);
+      height: clamp(30rem, 45vw, 40rem);
       perspective: 1200px;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .front-hero-carousel {
+      position: absolute;
+      width: 100%;
+      height: 100%;
       transform-style: preserve-3d;
-      animation: groupBreathe 8s ease-in-out infinite;
+      transition: transform 0.1s;
+      cursor: grab;
+      transform: translateZ(-300px) rotateY(0deg);
+      animation: carouselIntro 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    .front-hero-group::before {
-      content: "";
-      position: absolute;
-      left: 8%;
-      right: 4%;
-      bottom: 2%;
-      height: 20%;
-      border-radius: 50%;
-      background: radial-gradient(ellipse, rgba(160, 224, 255, 0.42), rgba(62, 132, 201, 0.16) 54%, transparent 72%);
-      filter: blur(10px);
-      transform: rotateX(70deg);
+    @keyframes carouselIntro {
+      from { transform: translateZ(-800px) rotateY(-60deg) translateY(100px); opacity: 0; }
+      to { transform: translateZ(-300px) rotateY(0deg) translateY(0); opacity: 1; }
     }
 
-    .front-hero-group::after {
-      content: "";
-      position: absolute;
-      inset: 12% 0 16%;
-      z-index: -1;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.26), rgba(115, 196, 255, 0.16) 38%, transparent 68%);
-      filter: blur(18px);
+    .front-hero-carousel:active {
+      cursor: grabbing;
     }
 
-    .front-hero {
+    .hero-item {
       position: absolute;
-      bottom: 5%;
-      display: block;
+      left: 50%;
+      top: 50%;
+      width: 17rem;
+      margin-left: -8.5rem;
+      margin-top: -12rem;
+      transform-style: preserve-3d;
+      transition: filter 0.3s ease, transform 0.4s ease;
+    }
+
+    .hero-item img {
+      width: 100%;
       height: auto;
-      transform-origin: 50% 100%;
-      filter: drop-shadow(0 28px 20px rgba(3, 8, 18, 0.58));
-      animation: heroGroupFloat 6.5s ease-in-out infinite;
+      display: block;
+      filter: drop-shadow(0 25px 20px rgba(0, 0, 0, 0.7)) brightness(0.85) contrast(0.95);
+      pointer-events: none;
+      transform-origin: bottom center;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.4s ease;
+      /* Add slight floating animation to idle heroes */
+      animation: heroFloat 5s ease-in-out infinite alternate;
     }
 
-    .front-hero.center {
-      left: 34%;
-      width: min(39%, 17rem);
-      z-index: 5;
-      animation-delay: -1.2s;
+    .hero-item:nth-child(even) img {
+      animation-delay: -2s;
     }
 
-    .front-hero.left {
-      left: 5%;
-      width: min(35%, 15rem);
-      z-index: 3;
-      animation-delay: -2.4s;
-      transform: translate3d(0, 1rem, -40px) rotateY(18deg) rotateZ(-2deg);
+    @keyframes heroFloat {
+      from { transform: translateY(0); }
+      to { transform: translateY(-10px); }
     }
 
-    .front-hero.mid-left {
-      left: 23%;
-      width: min(28%, 12rem);
-      z-index: 4;
-      animation-delay: -3s;
-      transform: translate3d(0, 2.4rem, 40px) rotateY(10deg);
+    .hero-item.active img {
+      transform: scale(1.15) translateY(-2rem);
+      filter: drop-shadow(0 35px 35px rgba(141, 232, 255, 0.5)) brightness(1.1) contrast(1.05);
+      animation: none;
     }
 
-    .front-hero.mid-right {
-      right: 23%;
-      width: min(32%, 14rem);
-      z-index: 4;
-      animation-delay: -1.8s;
-      transform: translate3d(0, 2rem, 30px) rotateY(-9deg);
+    .hero-node {
+      position: absolute;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%) translateY(30px) scale(0.7);
+      opacity: 0;
+      pointer-events: none;
+      background: linear-gradient(135deg, rgba(24, 32, 45, 0.9), rgba(12, 15, 20, 0.95));
+      border: 1px solid rgba(141, 232, 255, 0.5);
+      padding: 0.6rem 1.4rem;
+      border-radius: 999px;
+      color: #fff;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: 1px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), 0 0 20px rgba(141, 232, 255, 0.25);
+      backdrop-filter: blur(10px);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 10;
+      white-space: nowrap;
+    }
+    
+    .hero-node::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 999px;
+      padding: 1px;
+      background: linear-gradient(90deg, transparent, rgba(141, 232, 255, 0.8), transparent);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
     }
 
-    .front-hero.right {
-      right: -1%;
-      width: min(38%, 16rem);
-      z-index: 3;
-      animation-delay: -3.8s;
-      transform: translate3d(0, 1.2rem, -30px) rotateY(-18deg) rotateZ(2deg);
+    .hero-item.show-node .hero-node {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0) scale(1);
     }
 
-    @keyframes groupBreathe {
-      0%, 100% { transform: translate3d(0, 0, 0) rotateY(-2deg); }
-      50% { transform: translate3d(0, -0.8rem, 0) rotateY(2deg); }
-    }
-
-    @keyframes heroGroupFloat {
-      0%, 100% { margin-bottom: 0; }
-      50% { margin-bottom: 0.75rem; }
+    .front-hero-scene::before {
+      content: "";
+      position: absolute;
+      left: 15%;
+      right: 15%;
+      bottom: 5%;
+      height: 18%;
+      border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(141, 232, 255, 0.35), rgba(154, 99, 240, 0.15) 50%, transparent 75%);
+      filter: blur(24px);
+      transform: rotateX(75deg);
+      pointer-events: none;
     }
 
     .hero-live-feed {
@@ -844,7 +873,7 @@
         padding-bottom: 4rem;
       }
 
-      .front-hero-group {
+      .front-hero-scene {
         right: -7rem;
         top: 16rem;
         width: 58vw;
@@ -873,7 +902,7 @@
         text-align: left;
       }
 
-      .front-hero-group {
+      .front-hero-scene {
         right: -7.5rem;
         top: 14rem;
         width: 24rem;
@@ -1001,12 +1030,29 @@
             <article><strong data-live-stat="members">--</strong><span>total members</span></article>
           </div>
         </div>
-        <div class="front-hero-group" aria-hidden="true">
-          <img class="front-hero left" src="assets/whiteout-official/hero_full_pic.BSa3ljeO.png" alt="">
-          <img class="front-hero mid-left" src="assets/whiteout-official/hero_full_pic.CMoGjx7f.png" alt="">
-          <img class="front-hero center" src="assets/whiteout-official/hero_full_pic.iEiT7Zbo.png" alt="">
-          <img class="front-hero mid-right" src="assets/whiteout-official/hero_full_pic.Bt7jAvmg.png" alt="">
-          <img class="front-hero right" src="assets/whiteout-official/hero_full_pic.BffOqjkM.png" alt="">
+        <div class="front-hero-scene" aria-hidden="true">
+          <div class="front-hero-carousel" id="hero-carousel">
+            <div class="hero-item" data-name="Natalia">
+              <img src="assets/whiteout-official/hero_full_pic.BSa3ljeO.png" alt="Natalia">
+              <div class="hero-node"><span>Natalia</span></div>
+            </div>
+            <div class="hero-item" data-name="Bahiti">
+              <img src="assets/whiteout-official/hero_full_pic.CMoGjx7f.png" alt="Bahiti">
+              <div class="hero-node"><span>Bahiti</span></div>
+            </div>
+            <div class="hero-item" data-name="Molly">
+              <img src="assets/whiteout-official/hero_full_pic.iEiT7Zbo.png" alt="Molly">
+              <div class="hero-node"><span>Molly</span></div>
+            </div>
+            <div class="hero-item" data-name="Jeronimo">
+              <img src="assets/whiteout-official/hero_full_pic.Bt7jAvmg.png" alt="Jeronimo">
+              <div class="hero-node"><span>Jeronimo</span></div>
+            </div>
+            <div class="hero-item" data-name="Zinman">
+              <img src="assets/whiteout-official/hero_full_pic.BffOqjkM.png" alt="Zinman">
+              <div class="hero-node"><span>Zinman</span></div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -1221,6 +1267,165 @@
         isDragging = false;
         liveFeed.classList.remove('dragging');
       });
+    });
+
+    // 3D Interactive Hero Carousel Logic
+    document.addEventListener("DOMContentLoaded", () => {
+      const carousel = document.getElementById('hero-carousel');
+      if (!carousel) return;
+
+      const items = carousel.querySelectorAll('.hero-item');
+      const totalItems = items.length;
+      // Adjust radius based on screen size for better responsiveness
+      const isMobile = window.innerWidth <= 640;
+      const radius = isMobile ? 240 : 360; 
+      
+      let currAngle = 0;
+      let isDraggingCarousel = false;
+      let startX = 0;
+      let currentX = 0;
+      let lastTime = 0;
+      let velocity = 0;
+      let autoSpin = true;
+      let animationFrame;
+
+      // Position items in 3D circle
+      items.forEach((item, index) => {
+        // Start Molly (index 2) at the front (angle 0)
+        const offsetIndex = (index - 2 + totalItems) % totalItems;
+        const itemAngle = (360 / totalItems) * offsetIndex;
+        item.style.transform = `rotateY(${itemAngle}deg) translateZ(${radius}px)`;
+        item.dataset.angle = itemAngle;
+        
+        // Handle click
+        item.addEventListener('click', (e) => {
+          if (Math.abs(currentX) > 10) return; // Prevent click while dragging
+          
+          autoSpin = false;
+          
+          items.forEach(i => {
+            i.classList.remove('show-node');
+          });
+          
+          // Toggle node
+          if (item.classList.contains('active')) {
+             item.classList.add('show-node');
+          } else {
+             // Rotate carousel to this item
+             const targetAngle = -itemAngle;
+             // Calculate shortest path
+             let diff = (targetAngle - currAngle) % 360;
+             if (diff > 180) diff -= 360;
+             if (diff < -180) diff += 360;
+             
+             currAngle += diff;
+             updateCarousel();
+             item.classList.add('show-node');
+          }
+        });
+      });
+
+      // Default active
+      items[2].classList.add('active'); // Molly is default
+
+      function updateCarousel() {
+        carousel.style.transform = `translateZ(-${radius}px) rotateY(${currAngle}deg)`;
+        
+        // Update active class
+        const snapAngle = 360 / totalItems;
+        const normalized = Math.round(currAngle / snapAngle) * snapAngle;
+        const activeOffsetIndex = (Math.round(-normalized / snapAngle) % totalItems + totalItems) % totalItems;
+        const activeIndex = (activeOffsetIndex + 2) % totalItems;
+        
+        items.forEach((item, idx) => {
+          if (idx === activeIndex) {
+            item.classList.add('active');
+          } else {
+            item.classList.remove('active', 'show-node');
+          }
+        });
+      }
+
+      carousel.addEventListener('mousedown', dragStart, { passive: false });
+      carousel.addEventListener('touchstart', dragStart, { passive: false });
+
+      document.addEventListener('mousemove', dragMove, { passive: false });
+      document.addEventListener('touchmove', dragMove, { passive: false });
+
+      document.addEventListener('mouseup', dragEnd);
+      document.addEventListener('touchend', dragEnd);
+
+      function dragStart(e) {
+        if (e.target.closest('.hero-node') || e.target.closest('.hero-feed-close')) return;
+        if (e.type === 'touchstart') e = e.touches[0];
+        isDraggingCarousel = true;
+        autoSpin = false;
+        startX = e.clientX;
+        currentX = 0;
+        lastTime = performance.now();
+        carousel.style.transition = 'none';
+        cancelAnimationFrame(animationFrame);
+      }
+
+      function dragMove(e) {
+        if (!isDraggingCarousel) return;
+        // prevent page scroll while dragging carousel on mobile
+        if (e.type === 'touchmove') e.preventDefault(); 
+        if (e.type === 'touchmove') e = e.touches[0];
+        
+        const now = performance.now();
+        const dt = now - lastTime;
+        
+        const deltaX = e.clientX - startX;
+        currentX += deltaX;
+        startX = e.clientX;
+        
+        if (dt > 0) {
+           velocity = deltaX / dt;
+        }
+        lastTime = now;
+        
+        currAngle += (deltaX * 0.4);
+        updateCarousel();
+      }
+
+      function dragEnd(e) {
+        if (!isDraggingCarousel) return;
+        isDraggingCarousel = false;
+        
+        carousel.style.transition = 'transform 0.6s cubic-bezier(0.25, 1, 0.5, 1)';
+        
+        // Add momentum
+        currAngle += velocity * 100; 
+        
+        // Snap to nearest
+        const snapAngle = 360 / totalItems;
+        currAngle = Math.round(currAngle / snapAngle) * snapAngle;
+        
+        updateCarousel();
+        velocity = 0;
+        
+        // Resume auto spin after 5 seconds of inactivity
+        setTimeout(() => {
+           if (!isDraggingCarousel && !Array.from(items).some(i => i.classList.contains('show-node'))) {
+               autoSpin = true;
+           }
+        }, 5000);
+      }
+      
+      // Auto spin loop
+      function loop() {
+        if (autoSpin) {
+          currAngle -= 0.12;
+          carousel.style.transition = 'none';
+          updateCarousel();
+        }
+        animationFrame = requestAnimationFrame(loop);
+      }
+      loop();
+      
+      // Initial update
+      updateCarousel();
     });
   </script>
 </body>

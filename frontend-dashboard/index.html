@@ -95,118 +95,75 @@
 
     .front-hero-scene {
       position: absolute;
-      right: clamp(-4rem, 1vw, 1.5rem);
-      top: clamp(2rem, 6vw, 6rem);
+      right: clamp(-4rem, 1vw, 2rem);
+      top: clamp(2rem, 6vw, 5rem);
       z-index: 4;
-      width: min(50vw, 45rem);
-      height: clamp(32rem, 48vw, 44rem);
-      perspective: 2000px;
+      width: min(55vw, 50rem);
+      height: clamp(36rem, 50vw, 48rem);
       user-select: none;
       touch-action: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    @keyframes carouselIntro {
-      from { transform: translateZ(-1000px) rotateY(-90deg); opacity: 0; }
-      to { transform: translateZ(-400px) rotateY(0deg); opacity: 1; }
-    }
-
-    .front-hero-carousel {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      transform-style: preserve-3d;
-      transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
-      cursor: grab;
-      transform: translateZ(-400px) rotateY(0deg);
-      animation: carouselIntro 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-    }
-
-    .front-hero-carousel:active {
-      cursor: grabbing;
     }
 
     .hero-item {
       position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 18rem;
-      margin-left: -9rem;
-      margin-top: -14rem;
-      transform-style: preserve-3d;
-      transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-      opacity: 0.6;
-      filter: blur(2px) brightness(0.5);
-      animation: heroPopIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
+      width: clamp(14rem, 22vw, 24rem);
+      transform-origin: bottom center;
+      transition: filter 0.4s ease, transform 0.1s ease-out;
+      cursor: grab;
+      filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.6)) brightness(0.85);
+      animation: heroFloat 4s ease-in-out infinite alternate;
     }
 
-    @keyframes heroPopIn {
-      from { transform: scale(0) translateZ(-200px); opacity: 0; }
-      to { transform: scale(1) translateZ(0); opacity: 1; }
+    .hero-item:active {
+      cursor: grabbing;
+      transition: filter 0.4s ease;
     }
 
-    .hero-item:nth-child(1) { animation-delay: 0.2s; }
-    .hero-item:nth-child(2) { animation-delay: 0.3s; }
-    .hero-item:nth-child(3) { animation-delay: 0.4s; }
-    .hero-item:nth-child(4) { animation-delay: 0.5s; }
-    .hero-item:nth-child(5) { animation-delay: 0.6s; }
-
-    .hero-item.active {
-      opacity: 1;
-      filter: blur(0) brightness(1.1);
-      z-index: 10;
+    .hero-item:hover, .hero-item.active {
+      filter: drop-shadow(0 0 50px rgba(141, 232, 255, 0.5)) brightness(1.15);
+      z-index: 50 !important;
     }
 
     .hero-item img {
       width: 100%;
       height: auto;
       display: block;
-      filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.8));
       pointer-events: none;
-      transform-origin: bottom center;
-      transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      animation: heroFloat 4s ease-in-out infinite alternate;
     }
 
     @keyframes heroFloat {
-      from { transform: translateY(0) rotateX(0deg); }
-      to { transform: translateY(-15px) rotateX(2deg); }
-    }
-
-    .hero-item.active img {
-      transform: scale(1.2) translateY(-1rem);
-      filter: drop-shadow(0 0 40px rgba(141, 232, 255, 0.4)) brightness(1.1);
+      from { transform: translateY(0); }
+      to { transform: translateY(-15px); }
     }
 
     .hero-node {
       position: absolute;
-      bottom: -10%;
+      bottom: 20%;
       left: 50%;
       transform: translateX(-50%) translateY(20px) scale(0.8);
       opacity: 0;
       pointer-events: none;
-      background: rgba(13, 17, 23, 0.85);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(141, 232, 255, 0.4);
-      padding: 0.7rem 1.8rem;
+      background: rgba(13, 17, 23, 0.9);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(141, 232, 255, 0.5);
+      padding: 0.8rem 2rem;
       border-radius: 12px;
       color: #fff;
       font-family: var(--font-display);
       font-weight: 800;
-      font-size: 1.3rem;
+      font-size: 1.5rem;
       letter-spacing: 0.05em;
       text-transform: uppercase;
       box-shadow: 
-        0 15px 35px rgba(0, 0, 0, 0.5),
-        inset 0 0 15px rgba(141, 232, 255, 0.1);
-      transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        0 20px 40px rgba(0, 0, 0, 0.6),
+        inset 0 0 20px rgba(141, 232, 255, 0.2);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       z-index: 20;
       white-space: nowrap;
     }
 
-    .hero-item.active.show-node .hero-node {
+    .hero-item.active.show-node .hero-node,
+    .hero-item.show-node .hero-node {
       opacity: 1;
       transform: translateX(-50%) translateY(-20px) scale(1);
     }
@@ -214,18 +171,18 @@
     .hero-node::after {
       content: '';
       position: absolute;
-      top: -6px;
+      top: -8px;
       left: 50%;
       transform: translateX(-50%);
-      border-left: 6px solid transparent;
-      border-right: 6px solid transparent;
-      border-bottom: 6px solid rgba(141, 232, 255, 0.4);
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-bottom: 8px solid rgba(141, 232, 255, 0.5);
     }
 
     .front-hero-scene::after {
       content: "";
       position: absolute;
-      bottom: 0%;
+      bottom: -10%;
       left: 50%;
       width: 150%;
       height: 40%;
@@ -234,19 +191,6 @@
       filter: blur(30px);
       pointer-events: none;
       z-index: -1;
-    }
-
-    .hero-stage {
-      position: absolute;
-      bottom: 10%;
-      left: 50%;
-      width: 1000px;
-      height: 1000px;
-      margin-left: -500px;
-      background: radial-gradient(circle at center, rgba(141, 232, 255, 0.08) 0%, transparent 60%);
-      transform: rotateX(90deg) translateZ(-200px);
-      border-radius: 50%;
-      pointer-events: none;
     }
 
     .hero-live-feed {
@@ -942,18 +886,9 @@
         opacity: 1;
         transform: scale(0.8);
       }
-      .hero-item {
-        width: 14rem;
-        margin-left: -7rem;
-      }
       .hero-node {
         font-size: 1.1rem;
         padding: 0.5rem 1.2rem;
-      }
-      .hero-stage {
-        width: 600px;
-        height: 600px;
-        margin-left: -300px;
       }
 
       .stats-grid article strong {
@@ -1076,28 +1011,25 @@
           </div>
         </div>
         <div class="front-hero-scene" id="hero-scene">
-          <div class="hero-stage"></div>
-          <div class="front-hero-carousel" id="hero-carousel">
-            <div class="hero-item" data-name="Natalia">
-              <img src="assets/whiteout-official/hero_full_pic.BSa3ljeO.png" alt="Natalia">
-              <div class="hero-node"><span>Natalia</span></div>
-            </div>
-            <div class="hero-item" data-name="Bahiti">
-              <img src="assets/whiteout-official/hero_full_pic.CMoGjx7f.png" alt="Bahiti">
-              <div class="hero-node"><span>Bahiti</span></div>
-            </div>
-            <div class="hero-item" data-name="Molly">
-              <img src="assets/whiteout-official/hero_full_pic.iEiT7Zbo.png" alt="Molly">
-              <div class="hero-node"><span>Molly</span></div>
-            </div>
-            <div class="hero-item" data-name="Jeronimo">
-              <img src="assets/whiteout-official/hero_full_pic.Bt7jAvmg.png" alt="Jeronimo">
-              <div class="hero-node"><span>Jeronimo</span></div>
-            </div>
-            <div class="hero-item" data-name="Flint">
-              <img src="assets/whiteout-official/hero_full_pic.BffOqjkM.png" alt="Flint">
-              <div class="hero-node"><span>Flint</span></div>
-            </div>
+          <div class="hero-item" data-name="Natalia" style="left: 10%; bottom: 5%; z-index: 10;">
+            <img src="assets/whiteout-official/hero_full_pic.BSa3ljeO.png" alt="Natalia">
+            <div class="hero-node"><span>Natalia</span></div>
+          </div>
+          <div class="hero-item" data-name="Bahiti" style="left: 60%; bottom: 20%; z-index: 8;">
+            <img src="assets/whiteout-official/hero_full_pic.CMoGjx7f.png" alt="Bahiti">
+            <div class="hero-node"><span>Bahiti</span></div>
+          </div>
+          <div class="hero-item" data-name="Molly" style="left: 35%; bottom: 0%; z-index: 12; width: clamp(16rem, 26vw, 28rem);">
+            <img src="assets/whiteout-official/hero_full_pic.iEiT7Zbo.png" alt="Molly">
+            <div class="hero-node"><span>Molly</span></div>
+          </div>
+          <div class="hero-item" data-name="Jeronimo" style="left: -10%; bottom: 25%; z-index: 6;">
+            <img src="assets/whiteout-official/hero_full_pic.Bt7jAvmg.png" alt="Jeronimo">
+            <div class="hero-node"><span>Jeronimo</span></div>
+          </div>
+          <div class="hero-item" data-name="Flint" style="left: 75%; bottom: 5%; z-index: 9;">
+            <img src="assets/whiteout-official/hero_full_pic.BffOqjkM.png" alt="Flint">
+            <div class="hero-node"><span>Flint</span></div>
           </div>
         </div>
       </div>
@@ -1317,146 +1249,99 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      const carousel = document.getElementById('hero-carousel');
-      if (!carousel) return;
+      const scene = document.getElementById('hero-scene');
+      if (!scene) return;
 
-      const items = carousel.querySelectorAll('.hero-item');
-      const totalItems = items.length;
-      const isMobile = window.innerWidth <= 640;
-      const radius = isMobile ? 280 : 450; 
-      
-      let currAngle = 0;
-      let isDraggingCarousel = false;
-      let startX = 0;
-      let velocity = 0;
-      let lastX = 0;
-      let lastTime = 0;
-      let autoSpin = true;
-      let spinTimeout;
-      let animationFrame;
+      const items = scene.querySelectorAll('.hero-item');
+      let activeItem = null;
+      let isDragging = false;
+      let startX, startY;
+      let initialLeft, initialBottom;
+      let highestZIndex = 50;
 
-      // Position items in 3D circle
-      items.forEach((item, index) => {
-        const itemAngle = (360 / totalItems) * index;
-        item.style.transform = `rotateY(${itemAngle}deg) translateZ(${radius}px)`;
-        item.dataset.angle = itemAngle;
+      items.forEach(item => {
+        item.addEventListener('mousedown', dragStart);
+        item.addEventListener('touchstart', dragStart, { passive: false });
         
-        // Handle click to focus
         item.addEventListener('click', (e) => {
-          if (isDraggingCarousel || Math.abs(velocity) > 0.1) return;
+          if (isDragging) return;
+          items.forEach(i => i.classList.remove('show-node', 'active'));
+          item.classList.add('show-node', 'active');
+          item.style.zIndex = ++highestZIndex;
           
-          autoSpin = false;
-          clearTimeout(spinTimeout);
-          
-          const targetAngle = -itemAngle;
-          let diff = (targetAngle - currAngle) % 360;
-          if (diff > 180) diff -= 360;
-          if (diff < -180) diff += 360;
-          
-          currAngle += diff;
-          updateCarousel();
-          
-          // Toggle node after rotation
           setTimeout(() => {
-            if (Math.abs(diff) < 1) {
-              item.classList.toggle('show-node');
-            }
-          }, 600);
-
-          spinTimeout = setTimeout(() => { autoSpin = true; }, 8000);
+            item.classList.remove('show-node');
+          }, 3000);
         });
       });
 
-      function updateCarousel() {
-        carousel.style.transform = `translateZ(-${radius}px) rotateY(${currAngle}deg)`;
-        
-        // Update active class based on proximity to front (angle 0 in world space)
-        const snapAngle = 360 / totalItems;
-        items.forEach((item) => {
-          const itemAngle = parseFloat(item.dataset.angle);
-          const worldAngle = (itemAngle + currAngle) % 360;
-          const normalizedWorldAngle = (worldAngle + 360) % 360;
-          
-          // If the item is roughly at the front (0 or 360 deg)
-          if (normalizedWorldAngle < 30 || normalizedWorldAngle > 330) {
-            item.classList.add('active');
-          } else {
-            item.classList.remove('active', 'show-node');
-          }
-        });
-      }
-
       function dragStart(e) {
         if (e.target.closest('.hero-node')) return;
-        isDraggingCarousel = true;
-        autoSpin = false;
-        clearTimeout(spinTimeout);
+        if (e.type === 'touchstart') e.preventDefault();
+        
+        activeItem = this;
+        isDragging = false;
         
         const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+        
         startX = clientX;
-        lastX = clientX;
-        lastTime = performance.now();
-        carousel.style.transition = 'none';
-        cancelAnimationFrame(animationFrame);
+        startY = clientY;
+        
+        activeItem.style.animation = 'none';
+        
+        initialLeft = activeItem.offsetLeft;
+        initialBottom = scene.clientHeight - (activeItem.offsetTop + activeItem.offsetHeight);
+        
+        activeItem.style.zIndex = ++highestZIndex;
+        activeItem.classList.add('active');
+        
+        document.addEventListener('mousemove', dragMove);
+        document.addEventListener('touchmove', dragMove, { passive: false });
+        document.addEventListener('mouseup', dragEnd);
+        document.addEventListener('touchend', dragEnd);
       }
 
       function dragMove(e) {
-        if (!isDraggingCarousel) return;
+        if (!activeItem) return;
+        
         const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
         
-        const now = performance.now();
-        const dt = now - lastTime;
-        const deltaX = clientX - lastX;
+        const dx = clientX - startX;
+        const dy = clientY - startY;
         
-        if (dt > 0) {
-          velocity = deltaX / dt;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+          isDragging = true;
+          activeItem.classList.add('show-node');
         }
         
-        currAngle += deltaX * 0.2;
-        lastX = clientX;
-        lastTime = now;
-        updateCarousel();
+        if (isDragging) {
+          e.preventDefault();
+          activeItem.style.left = `${initialLeft + dx}px`;
+          activeItem.style.bottom = `${initialBottom - dy}px`;
+        }
       }
 
       function dragEnd() {
-        if (!isDraggingCarousel) return;
-        isDraggingCarousel = false;
+        if (!activeItem) return;
         
-        carousel.style.transition = 'transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        activeItem.style.animation = 'heroFloat 4s ease-in-out infinite alternate';
         
-        // Momentum
-        currAngle += velocity * 150;
+        document.removeEventListener('mousemove', dragMove);
+        document.removeEventListener('touchmove', dragMove);
+        document.removeEventListener('mouseup', dragEnd);
+        document.removeEventListener('touchend', dragEnd);
         
-        // Snap to nearest hero
-        const snapAngle = 360 / totalItems;
-        currAngle = Math.round(currAngle / snapAngle) * snapAngle;
-        
-        updateCarousel();
-        velocity = 0;
-        
-        spinTimeout = setTimeout(() => { autoSpin = true; }, 5000);
-        loop();
-      }
-
-      carousel.addEventListener('mousedown', dragStart);
-      carousel.addEventListener('touchstart', dragStart, { passive: true });
-      window.addEventListener('mousemove', dragMove);
-      window.addEventListener('touchmove', dragMove, { passive: false });
-      window.addEventListener('mouseup', dragEnd);
-      window.addEventListener('touchend', dragEnd);
-
-      function loop() {
-        if (autoSpin) {
-          currAngle -= 0.1;
-          updateCarousel();
-          animationFrame = requestAnimationFrame(loop);
+        if (isDragging) {
+          const currentItem = activeItem;
+          setTimeout(() => {
+            if (currentItem) currentItem.classList.remove('show-node');
+          }, 1500);
         }
+        activeItem = null;
+        setTimeout(() => { isDragging = false; }, 50);
       }
-      
-      // Initial active state
-      currAngle = 0; 
-      updateCarousel();
-      loop();
     });
   </script>
 </body>

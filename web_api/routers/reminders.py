@@ -1,5 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request, UploadFile, File
-from fastapi.responses import Response
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional, List
 import httpx
@@ -7,8 +6,7 @@ import logging
 import pytz
 import discord
 import uuid
-import re
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 
 from cogs.reminder_system import ReminderStorage, TimeParser
 
@@ -31,38 +29,6 @@ class ReminderCreate(BaseModel):
     footer_text: Optional[str] = None
     footer_icon_url: Optional[str] = None
     author_url: Optional[str] = None
-    save_as_preset: bool = False
-    preset_title: Optional[str] = None
-
-MAX_REMINDER_IMAGE_BYTES = 8 * 1024 * 1024
-ALLOWED_REMINDER_IMAGE_TYPES = {
-    "image/png",
-    "image/jpeg",
-    "image/gif",
-    "image/webp",
-}
-
-def _normalize_external_image_url(url: str) -> str:
-    drive_match = re.search(r"drive\.google\.com/file/d/([^/]+)", url)
-    if drive_match:
-        return f"https://drive.google.com/uc?export=download&id={drive_match.group(1)}"
-    drive_id_match = re.search(r"[?&]id=([^&]+)", url)
-    if "drive.google.com" in url and drive_id_match:
-        return f"https://drive.google.com/uc?export=download&id={drive_id_match.group(1)}"
-    if "dropbox.com" in url:
-        return url.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace("?dl=0", "").replace("?dl=1", "")
-    return url
-
-def _sniff_image_content_type(content: bytes, fallback: str = "") -> str:
-    if content.startswith(b"\x89PNG\r\n\x1a\n"):
-        return "image/png"
-    if content.startswith(b"\xff\xd8\xff"):
-        return "image/jpeg"
-    if content.startswith((b"GIF87a", b"GIF89a")):
-        return "image/gif"
-    if len(content) >= 12 and content[:4] == b"RIFF" and content[8:12] == b"WEBP":
-        return "image/webp"
-    return fallback
 
 def _build_reminder_embed(payload: ReminderCreate, user: dict, *, is_test: bool = False) -> discord.Embed:
     embed = discord.Embed(
@@ -92,301 +58,8 @@ async def _get_discord_user(auth_header: str) -> dict:
             raise HTTPException(status_code=401, detail="Invalid token")
         return r.json()
 
-def _storage(request: Request):
-    _bot = getattr(request.app.state, 'bot', None)
-    return getattr(_bot, 'reminder_system', None).storage if _bot and hasattr(_bot, 'reminder_system') else ReminderStorage()
-
-def _normalize_reminder_id(reminder_id: str):
-    try:
-        return int(reminder_id)
-    except Exception:
-        return reminder_id
-
-def _reminder_belongs_to_guild(reminder: dict, guild_id: int, guild_channel_ids: set[str]) -> bool:
-    r_guild = str(reminder.get("guild_id")) if reminder.get("guild_id") else None
-    r_channel = str(reminder.get("channel_id", ""))
-    return r_guild == str(guild_id) or r_channel in guild_channel_ids
-
-def _active_reminder_query() -> dict:
-    return {
-        "$and": [
-            {"$or": [{"is_active": True}, {"is_active": 1}, {"is_active": "1"}, {"is_active": "true"}, {"is_active": "True"}, {"is_active": {"$exists": False}}]},
-            {"$or": [{"is_sent": False}, {"is_sent": 0}, {"is_sent": "0"}, {"is_sent": "false"}, {"is_sent": "False"}, {"is_sent": {"$exists": False}}]},
-        ]
-    }
-
-def _serialize_reminder(reminder: dict) -> dict:
-    item = dict(reminder)
-    for k, v in list(item.items()):
-        if hasattr(v, "isoformat"):
-            item[k] = v.isoformat()
-        elif k == "_id":
-            item[k] = str(v)
-    if "id" not in item and "_id" in item:
-        item["id"] = str(item["_id"])
-    elif "id" in item:
-        item["id"] = str(item["id"])
-    return item
-
-def _is_discord_url_expired(url: str) -> bool:
-    if not url:
-        return False
-    if "cdn.discordapp.com" not in url and "media.discordapp.net" not in url:
-        return False
-    import time
-    import urllib.parse
-    try:
-        parsed = urllib.parse.urlparse(url)
-        query = urllib.parse.parse_qs(parsed.query)
-        ex_hex = query.get("ex", [None])[0]
-        if not ex_hex:
-            return True
-        ex_time = int(ex_hex, 16)
-        if ex_time - time.time() < 7200:  # Expired or expiring within 2 hours
-            return True
-    except Exception:
-        return True
-    return False
-
-async def _refresh_discord_urls(urls: list[str]) -> dict[str, str]:
-    if not urls:
-        return {}
-    import os
-    token = os.getenv("DISCORD_TOKEN")
-    if not token:
-        logger.warning("No DISCORD_TOKEN found; cannot refresh Discord attachment URLs.")
-        return {}
-        
-    discord_urls = list(set(u for u in urls if u and ("cdn.discordapp.com/attachments" in u or "media.discordapp.net/attachments" in u)))
-    if not discord_urls:
-        return {}
-        
-    endpoint = "https://discord.com/api/v10/attachments/refresh-urls"
-    headers = {
-        "Authorization": f"Bot {token}",
-        "Content-Type": "application/json",
-        "User-Agent": "FastAPI-WebDashboard/1.0"
-    }
-    payload = {
-        "attachment_urls": discord_urls
-    }
-    
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(endpoint, json=payload, headers=headers)
-            if resp.status_code == 200:
-                data = resp.json()
-                refreshed_list = data.get("refreshed_urls", [])
-                mapping = {}
-                for item in refreshed_list:
-                    orig = item.get("original")
-                    ref = item.get("refreshed")
-                    if orig and ref:
-                        mapping[orig] = ref
-                return mapping
-            else:
-                logger.error(f"Failed to refresh Discord URLs (status {resp.status_code}): {resp.text}")
-    except Exception as e:
-        logger.error(f"Error calling Discord refresh-urls endpoint: {e}")
-        
-    return {}
-
-async def _refresh_items_discord_urls(items: list[dict]) -> list[dict]:
-    """
-    Given a list of reminder/preset dicts, automatically identify and refresh
-    any expired or expiring Discord CDN links in their thumbnail_url, image_url, or footer_icon_url fields.
-    """
-    expired_urls = []
-    for item in items:
-        for field in ("thumbnail_url", "image_url", "footer_icon_url"):
-            val = item.get(field)
-            if val and _is_discord_url_expired(val):
-                expired_urls.append(val)
-                
-    if expired_urls:
-        mapping = await _refresh_discord_urls(expired_urls)
-        if mapping:
-            for item in items:
-                for field in ("thumbnail_url", "image_url", "footer_icon_url"):
-                    val = item.get(field)
-                    if val and val in mapping:
-                        item[field] = mapping[val]
-                        
-    return items
-
-def _dedupe_reminders(reminders: list[dict]) -> list[dict]:
-    deduped = []
-    seen = set()
-    for r in reminders:
-        key = str(r.get("id") or r.get("_id") or "")
-        if not key:
-            key = "|".join(str(r.get(k) or "") for k in ("guild_id", "channel_id", "user_id", "message", "reminder_time"))
-        if key in seen:
-            continue
-        seen.add(key)
-        deduped.append(r)
-    return deduped
-
-async def _collect_active_reminders(request: Request) -> list[dict]:
-    reminders = []
-    storage = _storage(request)
-    try:
-        reminders.extend(_serialize_reminder(r) for r in storage.get_all_active_reminders())
-    except Exception as e:
-        logger.warning(f"Reminder storage list failed: {e}")
-
-    try:
-        from db.mongo_adapters import _get_db_reminders_async, RemindersAdapter
-        db = await _get_db_reminders_async()
-        cursor = db[RemindersAdapter.COLL].find(_active_reminder_query()).sort("reminder_time", 1)
-        reminders.extend(_serialize_reminder(r) for r in await cursor.to_list(length=1000))
-    except Exception as e:
-        logger.warning(f"Reminder adapter DB list failed: {e}")
-
-    try:
-        from db.mongo_client_wrapper import get_mongo_client
-        client = await get_mongo_client()
-        db = client["whiteout_survival_bot"]
-        cursor = db["reminders"].find(_active_reminder_query()).sort("reminder_time", 1)
-        reminders.extend(_serialize_reminder(r) for r in await cursor.to_list(length=1000))
-    except Exception as e:
-        logger.warning(f"Legacy reminder DB list failed: {e}")
-
-    return _dedupe_reminders(reminders)
-
-async def _get_upload_collection():
-    try:
-        from db.mongo_adapters import _get_db_reminders_async
-        db = await _get_db_reminders_async()
-        return db["reminder_uploads"]
-    except Exception as e:
-        logger.error(f"Mongo reminder upload storage unavailable: {e}")
-        raise HTTPException(status_code=503, detail="Image storage is not available.")
-
-def _public_upload_url(request: Request, image_id: str) -> str:
-    scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
-    forwarded_host = request.headers.get("X-Forwarded-Host")
-    host = forwarded_host or request.headers.get("Host")
-    base_url = f"{scheme}://{host}" if host else str(request.base_url).rstrip("/")
-    return f"{base_url}/api/reminders/uploads/{image_id}"
-
-async def _save_uploaded_image(request: Request, *, filename: str, content_type: str, content: bytes, source: str, user_id: str) -> str:
-    if not content:
-        raise HTTPException(status_code=400, detail="No image data received.")
-    if len(content) > MAX_REMINDER_IMAGE_BYTES:
-        raise HTTPException(status_code=400, detail="Image too large (max 8MB).")
-    content_type = _sniff_image_content_type(content, content_type)
-    if content_type not in ALLOWED_REMINDER_IMAGE_TYPES:
-        raise HTTPException(status_code=400, detail="Only PNG, JPG, GIF, and WebP images are supported.")
-
-    image_id = uuid.uuid4().hex
-    col = await _get_upload_collection()
-    await col.insert_one({
-        "_id": image_id,
-        "filename": filename or f"reminder_{image_id}",
-        "content_type": content_type,
-        "size": len(content),
-        "data": content,
-        "source": source,
-        "created_by": str(user_id),
-        "created_at": datetime.utcnow(),
-    })
-    return _public_upload_url(request, image_id)
-
-@router.post("/upload")
-async def upload_reminder_image(request: Request, file: UploadFile = File(...)):
-    """Uploads an image for a reminder into MongoDB and returns a public retrieval URL."""
-    auth_header = request.headers.get("Authorization")
-    if not auth_header:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    user = await _get_discord_user(auth_header)
-
-    if not file:
-        raise HTTPException(status_code=400, detail="No file uploaded")
-
-    content = await file.read()
-    content_type = (file.content_type or "").lower()
-    if not content_type or content_type == "application/octet-stream":
-        ext = (file.filename or "").rsplit(".", 1)[-1].lower()
-        content_type = {
-            "png": "image/png",
-            "jpg": "image/jpeg",
-            "jpeg": "image/jpeg",
-            "gif": "image/gif",
-            "webp": "image/webp",
-        }.get(ext, "")
-
-    url = await _save_uploaded_image(
-        request,
-        filename=file.filename or "",
-        content_type=content_type,
-        content=content,
-        source="file",
-        user_id=user["id"],
-    )
-    return {"status": "success", "url": url, "max_size_mb": 8}
-
-class ReminderImageUrlImport(BaseModel):
-    url: str
-
-@router.post("/upload-url")
-async def upload_reminder_image_from_url(request: Request, payload: ReminderImageUrlImport):
-    """Imports an image URL into MongoDB so remote Drive/CDN images remain available later."""
-    auth_header = request.headers.get("Authorization")
-    if not auth_header:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    user = await _get_discord_user(auth_header)
-
-    source_url = (payload.url or "").strip()
-    if not source_url.startswith(("http://", "https://")):
-        raise HTTPException(status_code=400, detail="Enter a valid http(s) image URL.")
-    fetch_url = _normalize_external_image_url(source_url)
-
-    try:
-        async with httpx.AsyncClient(follow_redirects=True, timeout=20.0) as client:
-            async with client.stream("GET", fetch_url) as resp:
-                if resp.status_code != 200:
-                    raise HTTPException(status_code=400, detail=f"Could not fetch image (status {resp.status_code}).")
-                content_type = (resp.headers.get("content-type") or "").split(";", 1)[0].lower()
-                chunks = []
-                size = 0
-                async for chunk in resp.aiter_bytes():
-                    size += len(chunk)
-                    if size > MAX_REMINDER_IMAGE_BYTES:
-                        raise HTTPException(status_code=400, detail="Image too large (max 8MB).")
-                    chunks.append(chunk)
-                content = b"".join(chunks)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to import reminder image URL {source_url}: {e}")
-        raise HTTPException(status_code=400, detail="Could not import that image URL.")
-
-    filename = source_url.rsplit("/", 1)[-1].split("?", 1)[0] or "remote-image"
-    url = await _save_uploaded_image(
-        request,
-        filename=filename,
-        content_type=content_type,
-        content=content,
-        source=source_url,
-        user_id=user["id"],
-    )
-    return {"status": "success", "url": url, "max_size_mb": 8}
-
-@router.get("/uploads/{image_id}")
-async def get_uploaded_reminder_image(image_id: str):
-    col = await _get_upload_collection()
-    doc = await col.find_one({"_id": image_id})
-    if not doc:
-        raise HTTPException(status_code=404, detail="Image not found.")
-    return Response(
-        content=doc.get("data") or b"",
-        media_type=doc.get("content_type") or "application/octet-stream",
-        headers={"Cache-Control": "public, max-age=31536000, immutable"},
-    )
-
-@router.get("/{guild_id:int}")
-async def get_reminders(request: Request, guild_id: int):
+@router.get("/{guild_id}")
+async def get_reminders(request: Request, guild_id: str):
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -397,6 +70,8 @@ async def get_reminders(request: Request, guild_id: int):
             raise HTTPException(status_code=401, detail="Invalid token")
 
     _bot = getattr(request.app.state, 'bot', None)
+    storage = getattr(_bot, 'reminder_system', None).storage if _bot and hasattr(_bot, 'reminder_system') else ReminderStorage()
+
     guild_channel_ids = set()
     try:
         guild_id_int = int(guild_id)
@@ -408,23 +83,36 @@ async def get_reminders(request: Request, guild_id: int):
         if guild:
             guild_channel_ids = {str(c.id) for c in guild.channels}
 
-    # Fetch ALL active reminders (not just for the requesting user), across bot and legacy Mongo paths.
-    all_reminders = await _collect_active_reminders(request)
+    # Fetch ALL active reminders (not just for the requesting user)
+    try:
+        all_reminders = storage.get_all_active_reminders()
+    except Exception:
+        all_reminders = []
 
     server_reminders = []
     for r in all_reminders:
-        if _reminder_belongs_to_guild(r, guild_id, guild_channel_ids):
-            server_reminders.append(r)
+        # Serialize datetimes and ObjectIds
+        for k, v in list(r.items()):
+            if hasattr(v, 'isoformat'):
+                r[k] = v.isoformat()
+        if "_id" in r:
+            r["_id"] = str(r["_id"])
+        # Ensure 'id' field is a string
+        if "id" in r:
+            r["id"] = str(r["id"])
 
-    try:
-        server_reminders = await _refresh_items_discord_urls(server_reminders)
-    except Exception as e:
-        logger.error(f"Failed to refresh Discord attachment URLs: {e}")
+        r_guild = str(r.get("guild_id")) if r.get("guild_id") else None
+        r_channel = str(r.get("channel_id", ""))
+
+        if r_guild == str(guild_id):
+            server_reminders.append(r)
+        elif r_channel in guild_channel_ids:
+            server_reminders.append(r)
 
     return {"reminders": server_reminders}
 
-@router.post("/{guild_id:int}")
-async def create_reminder(request: Request, guild_id: int, payload: ReminderCreate):
+@router.post("/{guild_id}")
+async def create_reminder(request: Request, guild_id: str, payload: ReminderCreate):
     logger.info(f"Creating reminder for guild {guild_id}: {payload.json()}")
     auth_header = request.headers.get("Authorization")
     if not auth_header:
@@ -484,7 +172,8 @@ async def create_reminder(request: Request, guild_id: int, payload: ReminderCrea
     if not reminder_time:
         raise HTTPException(status_code=400, detail="Invalid time format. Please select a date/time or provide a time string.")
 
-    storage = _storage(request)
+    _bot = getattr(request.app.state, 'bot', None)
+    storage = getattr(_bot, 'reminder_system', None).storage if _bot and hasattr(_bot, 'reminder_system') else ReminderStorage()
     
     reminder_id = storage.add_reminder(
         user_id=str(user_id),
@@ -496,7 +185,6 @@ async def create_reminder(request: Request, guild_id: int, payload: ReminderCrea
         is_recurring=recurring_info.get("is_recurring", False),
         recurrence_type=recurring_info.get("type"),
         recurrence_interval=recurring_info.get("interval"),
-        recurrence_days=payload.recurrence_days,
         original_pattern=recurring_info.get("pattern"),
         mention=payload.mention,
         image_url=payload.image_url,
@@ -509,43 +197,10 @@ async def create_reminder(request: Request, guild_id: int, payload: ReminderCrea
     if reminder_id == -1:
         raise HTTPException(status_code=500, detail="Failed to save reminder.")
         
-    # Save as community preset if requested
-    if payload.save_as_preset:
-        try:
-            col = _get_presets_collection()
-            if col is not None:
-                badge_map = {"daily": "Daily", "weekly": "Weekly", "custom": "Custom", "none": "One-time", "specific_days": "Specific Days"}
-                badge = badge_map.get(payload.recurrence_type, "One-time")
-                
-                preset = {
-                    "id": str(uuid.uuid4()),
-                    "title": payload.preset_title or payload.message or "Unnamed Preset",
-                    "badge": badge,
-                    "message": payload.message,
-                    "body": payload.body,
-                    "recurrence_type": payload.recurrence_type,
-                    "recurrence_interval": payload.recurrence_interval,
-                    "recurrence_days": payload.recurrence_days,
-                    "mention": payload.mention,
-                    "image_url": payload.image_url,
-                    "thumbnail_url": payload.thumbnail_url,
-                    "footer_text": payload.footer_text,
-                    "footer_icon_url": payload.footer_icon_url,
-                    "author_url": payload.author_url,
-                    "created_by": user.get("global_name") or user.get("username") or "Unknown",
-                    "created_by_id": user.get("id"),
-                    "created_at": datetime.utcnow().isoformat()
-                }
-                col.insert_one(preset)
-                logger.info(f"✅ Created community preset from reminder creation: {preset['title']}")
-        except Exception as e:
-            logger.error(f"❌ Failed to save community preset during reminder creation: {e}")
-            # Don't fail the whole request if only preset saving fails
-            
     return {"status": "success", "reminder_id": reminder_id}
 
-@router.post("/{guild_id:int}/test")
-async def send_test_reminder(request: Request, guild_id: int, payload: ReminderCreate):
+@router.post("/{guild_id}/test")
+async def send_test_reminder(request: Request, guild_id: str, payload: ReminderCreate):
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -595,8 +250,8 @@ async def send_test_reminder(request: Request, guild_id: int, payload: ReminderC
 
     return {"status": "success"}
 
-@router.delete("/{guild_id:int}/{reminder_id}")
-async def delete_reminder(request: Request, guild_id: int, reminder_id: str):
+@router.delete("/{guild_id}/{reminder_id}")
+async def delete_reminder(request: Request, guild_id: str, reminder_id: str):
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -609,87 +264,27 @@ async def delete_reminder(request: Request, guild_id: int, reminder_id: str):
         user_id = user["id"]
 
     _bot = getattr(request.app.state, 'bot', None)
-    storage = _storage(request)
+    storage = getattr(_bot, 'reminder_system', None).storage if _bot and hasattr(_bot, 'reminder_system') else ReminderStorage()
     
     success = storage.delete_reminder(reminder_id, str(user_id))
-
-    if not success:
-        guild_channel_ids = set()
-        if _bot:
-            guild = _bot.get_guild(guild_id)
-            if guild:
-                guild_channel_ids = {str(c.id) for c in guild.channels}
-        
-        # 1. Try to delete/deactivate in the main storage admin-style
-        try:
-            all_reminders = storage.get_all_active_reminders()
-            target = next((r for r in all_reminders if str(r.get("id") or r.get("_id")) == str(reminder_id)), None)
-            if target and _reminder_belongs_to_guild(target, guild_id, guild_channel_ids):
-                success = storage.update_reminder_fields(_normalize_reminder_id(reminder_id), {"is_active": False})
-        except Exception as e:
-            logger.error(f"Failed admin-style reminder delete in main storage for {reminder_id}: {e}")
-
-        # 2. Try to deactivate directly in MongoDB RemindersAdapter database if it was not done
-        if not success:
-            try:
-                from db.mongo_adapters import _get_db_reminders_async, RemindersAdapter
-                from bson import ObjectId
-                db = await _get_db_reminders_async()
-                query_id = reminder_id
-                try:
-                    query_id = ObjectId(reminder_id)
-                except Exception:
-                    pass
-                
-                target = await db[RemindersAdapter.COLL].find_one({"$or": [{"_id": query_id}, {"id": reminder_id}]})
-                if target and _reminder_belongs_to_guild(target, guild_id, guild_channel_ids):
-                    res = await db[RemindersAdapter.COLL].update_one(
-                        {"$or": [{"_id": query_id}, {"id": reminder_id}]},
-                        {"$set": {"is_active": 0, "is_active_legacy": False}}
-                    )
-                    if res.modified_count > 0:
-                        success = True
-            except Exception as e:
-                logger.error(f"Failed direct MongoDB RemindersAdapter deactivation for {reminder_id}: {e}")
-
-        # 3. Try to deactivate directly in the legacy database `whiteout_survival_bot`
-        if not success:
-            try:
-                from db.mongo_client_wrapper import get_mongo_client
-                from bson import ObjectId
-                client = await get_mongo_client()
-                db = client["whiteout_survival_bot"]
-                query_id = reminder_id
-                try:
-                    query_id = ObjectId(reminder_id)
-                except Exception:
-                    pass
-                
-                target = await db["reminders"].find_one({"$or": [{"_id": query_id}, {"id": reminder_id}]})
-                if target and _reminder_belongs_to_guild(target, guild_id, guild_channel_ids):
-                    res = await db["reminders"].update_one(
-                        {"$or": [{"_id": query_id}, {"id": reminder_id}]},
-                        {"$set": {"is_active": False, "is_active_legacy": False, "is_active_str": "false"}}
-                    )
-                    if res.modified_count > 0:
-                        success = True
-            except Exception as e:
-                logger.error(f"Failed direct legacy database deactivation for {reminder_id}: {e}")
-
+    
     if success:
         return {"status": "success"}
     else:
         raise HTTPException(status_code=400, detail="Failed to delete reminder. It may not exist or does not belong to you.")
 
-@router.patch("/{guild_id:int}/{reminder_id}")
-async def update_reminder(request: Request, guild_id: int, reminder_id: str, payload: ReminderCreate):
+@router.patch("/{guild_id}/{reminder_id}")
+async def update_reminder(request: Request, guild_id: str, reminder_id: str, payload: ReminderCreate):
     logger.info(f"Updating reminder {reminder_id} for guild {guild_id}: {payload.json()}")
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         raise HTTPException(status_code=401, detail="Unauthorized")
     
     # reminder_id can be int or ObjectId string
-    rid = _normalize_reminder_id(reminder_id)
+    try:
+        rid = int(reminder_id)
+    except:
+        rid = reminder_id
         
     async with httpx.AsyncClient() as client:
         r = await client.get('https://discord.com/api/users/@me', headers={"Authorization": auth_header})
@@ -737,7 +332,8 @@ async def update_reminder(request: Request, guild_id: int, reminder_id: str, pay
     if not reminder_time:
          raise HTTPException(status_code=400, detail="Invalid time format.")
 
-    storage = _storage(request)
+    _bot = getattr(request.app.state, 'bot', None)
+    storage = getattr(_bot, 'reminder_system', None).storage if _bot and hasattr(_bot, 'reminder_system') else ReminderStorage()
     
     update_data = {
         "message": payload.message,
@@ -753,7 +349,6 @@ async def update_reminder(request: Request, guild_id: int, reminder_id: str, pay
         "is_recurring": recurring_info.get("is_recurring", False),
         "recurrence_type": recurring_info.get("type"),
         "recurrence_interval": recurring_info.get("interval"),
-        "recurrence_days": payload.recurrence_days,
         "original_time_pattern": recurring_info.get("pattern")
     }
     
@@ -796,6 +391,45 @@ def _get_presets_collection():
         return None
 
 
+
+# ─── Upload Image ─────────────────────────────────────────────────────────────
+
+@router.post("/upload")
+async def upload_reminder_image(request: Request, file: UploadFile = File(...)):
+    """Uploads a local image for a reminder and returns its public URL."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if not file:
+        raise HTTPException(status_code=400, detail="No file uploaded")
+
+    content = await file.read()
+    if len(content) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image too large (max 8MB)")
+
+    ext = file.filename.split('.')[-1].lower() if '.' in file.filename else 'png'
+    if ext not in ['png', 'jpg', 'jpeg', 'gif', 'webp']:
+        ext = 'png'
+
+    filename = f"reminder_{uuid.uuid4().hex}.{ext}"
+    upload_dir = "data/uploads"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    filepath = os.path.join(upload_dir, filename)
+    with open(filepath, "wb") as f:
+        f.write(content)
+
+    # Use the request's base URL to construct the public URL
+    base_url = str(request.base_url).rstrip("/")
+    if "vercel.app" in base_url or "localhost" in base_url:
+        # Fallback to the production API URL if the base_url is from the frontend proxy
+        # But wait, request.base_url from FastAPI is usually the bot API url.
+        pass
+        
+    public_url = f"{base_url}/api/static/{filename}"
+    return {"status": "success", "url": public_url}
+
 @router.get("/presets")
 async def get_community_presets(request: Request, q: Optional[str] = None):
     """Get all community presets, optionally filtered by search query."""
@@ -811,10 +445,6 @@ async def get_community_presets(request: Request, q: Optional[str] = None):
                 {"message": {"$regex": q.strip(), "$options": "i"}}
             ]}
         presets = list(col.find(query, {"_id": 0}).sort("created_at", -1).limit(100))
-        try:
-            presets = await _refresh_items_discord_urls(presets)
-        except Exception as e:
-            logger.error(f"Failed to refresh presets Discord URLs: {e}")
         return {"presets": presets}
     except Exception as e:
         logger.error(f"Failed to fetch community presets: {e}")

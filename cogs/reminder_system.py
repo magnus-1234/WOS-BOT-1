@@ -133,11 +133,10 @@ logger = logging.getLogger(__name__)
 # Reminder image URLs - synced with images.js
 REMINDER_IMAGES = {
     'set': 'https://i.postimg.cc/Fzq03CJf/a463d7c7-7fc7-47fc-b24d-1324383ee2ff-removebg-preview.png',  # Logo when setting a reminder
-    'alert': 'https://i.postimg.cc/Fzq03CJf/a463d7c7-7fc7-47fc-b24d-1324383ee2ff-removebg-preview.png',  # Logo when receiving a reminder
-    'Bear trap': 'https://i.postimg.cc/Xq0GQvXM/bear-event.png',
-    'Crazy Joe': 'https://i.postimg.cc/Jz0Tz3Ht/crazy-joe-event.png'
+    'alert': 'https://cdn.discordapp.com/attachments/1424082091750068364/1431246283334619136/Gemini_Generated_Image_dqdcnxdqdcnxdqdc-removebg-preview.png?ex=68fcb779&is=68fb65f9&hm=6afcbee2e3dea071f560ea5e1615dc24a691a1e12e123b02cb3c7f0cba2a33db',  # Logo when receiving a reminder
+    'Bear trap': 'https://cdn.discordapp.com/attachments/1435569370389807144/1441474311834832956/0f4d6593f84ba519bd095f077527f9ec-8.gif?ex=69288491&is=69273311&hm=6da152776bc75ea65c0d5ba9f8bbd5bec8baec1c843928df399daf76797382de',
+    'Crazy Joe': 'https://cdn.discordapp.com/attachments/1435569370389807144/1465697260829671687/images__7_-removebg-preview.png?ex=697a0c72&is=6978baf2&hm=d0efd4bfa0374b767a0cc9025abbc6d0c5e59e71cc099cccd423a066be8ceed6'
 }
-
 
 def get_accurate_utc_time() -> datetime:
     """
@@ -212,9 +211,7 @@ class ReminderStorage:
                         image_url TEXT DEFAULT NULL,
                         thumbnail_url TEXT DEFAULT NULL,
                         footer_text TEXT DEFAULT NULL,
-                        footer_icon_url TEXT DEFAULT NULL,
-                        author_url TEXT DEFAULT NULL,
-                        recurrence_days TEXT DEFAULT NULL
+                        footer_icon_url TEXT DEFAULT NULL
                     )
                 ''')
 
@@ -231,11 +228,6 @@ class ReminderStorage:
 
                 try:
                     cursor.execute('ALTER TABLE reminders ADD COLUMN recurrence_interval INTEGER DEFAULT NULL')
-                except sqlite3.OperationalError:
-                    pass  # Column already exists
-
-                try:
-                    cursor.execute('ALTER TABLE reminders ADD COLUMN recurrence_days TEXT DEFAULT NULL')
                 except sqlite3.OperationalError:
                     pass  # Column already exists
 
@@ -300,8 +292,7 @@ class ReminderStorage:
     def add_reminder(self, user_id: str, channel_id: str, guild_id: str, message: str, reminder_time: datetime,
                     body: str = None, is_recurring: bool = False, recurrence_type: str = None, recurrence_interval: int = None,
                     original_pattern: str = None, mention: str = 'everyone', image_url: str = None,
-                    thumbnail_url: str = None, footer_text: str = None, footer_icon_url: str = None, author_url: str = None,
-                    recurrence_days: List[int] = None) -> int:
+                    thumbnail_url: str = None, footer_text: str = None, footer_icon_url: str = None, author_url: str = None) -> int:
         """Add a new reminder to the database with optional recurring support"""
         
         # Check Mongo first
@@ -317,7 +308,6 @@ class ReminderStorage:
                     'is_recurring': 1 if is_recurring else 0,
                     'recurrence_type': recurrence_type,
                     'recurrence_interval': recurrence_interval,
-                    'recurrence_days': json.dumps(recurrence_days) if recurrence_days else None,
                     'original_time_pattern': original_pattern,
                     'mention': mention,
                     'image_url': image_url,
@@ -380,9 +370,9 @@ class ReminderStorage:
                 # No duplicate found — insert normally
                 cursor.execute('''
                     INSERT INTO reminders (user_id, channel_id, guild_id, message, body, reminder_time, created_at,
-                                         is_recurring, recurrence_type, recurrence_interval, recurrence_days, original_time_pattern, mention, image_url,
+                                         is_recurring, recurrence_type, recurrence_interval, original_time_pattern, mention, image_url,
                                          thumbnail_url, footer_text, footer_icon_url, author_url)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     user_id,
                     channel_id,
@@ -394,7 +384,6 @@ class ReminderStorage:
                     1 if is_recurring else 0,
                     recurrence_type,
                     recurrence_interval,
-                    json.dumps(recurrence_days) if recurrence_days else None,
                     original_pattern,
                     mention,
                     image_url,
@@ -498,13 +487,9 @@ class ReminderStorage:
         allowed = {
             'image_url', 'thumbnail_url', 'body', 'footer_text', 'footer_icon_url', 
             'mention', 'reminder_time', 'author_url', 'message', 'channel_id',
-            'is_recurring', 'recurrence_type', 'recurrence_interval', 'recurrence_days', 'original_time_pattern'
+            'is_recurring', 'recurrence_type', 'recurrence_interval', 'original_time_pattern'
         }
         to_update = {k: v for k, v in fields.items() if k in allowed}
-        if 'reminder_time' in to_update and isinstance(to_update['reminder_time'], datetime):
-            to_update['reminder_time'] = to_update['reminder_time'].isoformat()
-        if 'recurrence_days' in to_update and isinstance(to_update['recurrence_days'], list):
-            to_update['recurrence_days'] = json.dumps(to_update['recurrence_days'])
         if not to_update:
             return False
         try:

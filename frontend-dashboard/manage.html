@@ -2,12 +2,6 @@
 <html lang="en">
 
 <head>
-    <script>
-        const savedTheme = localStorage.getItem('theme') || 'cartoon';
-        if (savedTheme && savedTheme !== 'dark') {
-            document.documentElement.setAttribute('data-theme', savedTheme);
-        }
-    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Server - Whiteout Survival Bot</title>
@@ -33,127 +27,6 @@
             --top-bar-height: 70px;
         }
 
-        [data-theme="light"] {
-            --bg-dark: #f3f4f6;
-            --sidebar-bg: #ffffff;
-            --card-bg: #ffffff;
-            --glass-bg: rgba(255, 255, 255, 0.85);
-            --glass-border: rgba(0, 0, 0, 0.08);
-            --text-main: #0f0f17;
-            --text-muted: #4b5563;
-        }
-
-        [data-theme="high-contrast"] {
-            --radius: 0;
-            --bg-dark: #000000;
-            --sidebar-bg: #0c0c0e;
-            --card-bg: #0c0c0e;
-            --glass-bg: #000000;
-            --glass-border: #ffffff;
-            --text-main: #ffffff;
-            --text-muted: #e0e0e0;
-            --primary: #00f0ff;
-        }
-
-        [data-theme="high-contrast"] .sidebar,
-        [data-theme="high-contrast"] .top-bar,
-        [data-theme="high-contrast"] .main-content,
-        [data-theme="high-contrast"] .stat-card,
-        [data-theme="high-contrast"] .dashboard-card,
-        [data-theme="high-contrast"] .console-panel,
-        [data-theme="high-contrast"] .header,
-        [data-theme="high-contrast"] .custom-select-trigger {
-            border: 2px solid #ffffff !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-        }
-
-        [data-theme="high-contrast"] button,
-        [data-theme="high-contrast"] .theme-toggle,
-        [data-theme="high-contrast"] .btn {
-            border: 2px solid #ffffff !important;
-            background: #000000 !important;
-            color: #ffffff !important;
-            border-radius: 0 !important;
-        }
-
-        [data-theme="hacker"] {
-            --radius: 0;
-            --bg-dark: #010602;
-            --sidebar-bg: #041006;
-            --card-bg: #041006;
-            --glass-bg: #010602;
-            --glass-border: rgba(0, 255, 65, 0.3);
-            --text-main: #33ff33;
-            --text-muted: #11aa11;
-            --primary: #00ff66;
-            font-family: 'JetBrains Mono', monospace !important;
-        }
-
-        [data-theme="hacker"] .sidebar,
-        [data-theme="hacker"] .top-bar,
-        [data-theme="hacker"] .main-content,
-        [data-theme="hacker"] .stat-card,
-        [data-theme="hacker"] .dashboard-card,
-        [data-theme="hacker"] .console-panel,
-        [data-theme="hacker"] .header,
-        [data-theme="hacker"] .custom-select-trigger {
-            border: 1px solid rgba(0, 255, 65, 0.4) !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-        }
-
-        [data-theme="hacker"] button,
-        [data-theme="hacker"] .theme-toggle,
-        [data-theme="hacker"] .btn {
-            border: 1px solid #00ff66 !important;
-            background: #010602 !important;
-            color: #00ff66 !important;
-            border-radius: 0 !important;
-        }
-
-        [data-theme="cartoon"] {
-            --radius: 18px;
-            --bg-dark: #f6fbff;
-            --sidebar-bg: rgba(255, 255, 255, 0.94);
-            --card-bg: rgba(255, 255, 255, 0.92);
-            --glass-bg: rgba(255, 255, 255, 0.88);
-            --glass-border: rgba(23, 32, 51, 0.14);
-            --text-main: #172033;
-            --text-muted: #5b6478;
-            --primary: #ff5f8f;
-        }
-
-        [data-theme="cartoon"] .sidebar,
-        [data-theme="cartoon"] .top-bar,
-        [data-theme="cartoon"] .main-content,
-        [data-theme="cartoon"] .stat-card,
-        [data-theme="cartoon"] .dashboard-card,
-        [data-theme="cartoon"] .console-panel,
-        [data-theme="cartoon"] .header,
-        [data-theme="cartoon"] .custom-select-trigger {
-            border: 1px solid rgba(23, 32, 51, 0.14) !important;
-            box-shadow: 0 18px 42px -32px rgba(23, 32, 51, 0.5) !important;
-            border-radius: 18px !important;
-        }
-
-        [data-theme="cartoon"] button,
-        [data-theme="cartoon"] .theme-toggle,
-        [data-theme="cartoon"] .btn {
-            border: 1px solid rgba(23, 32, 51, 0.16) !important;
-            background: #ffe36d !important;
-            color: #172033 !important;
-            box-shadow: 0 10px 22px -16px rgba(23, 32, 51, 0.45) !important;
-            border-radius: 12px !important;
-        }
-
-        [data-theme="cartoon"] body {
-            background:
-                linear-gradient(135deg, rgba(255, 227, 109, 0.22) 0 13%, transparent 13% 100%),
-                linear-gradient(165deg, transparent 0 62%, rgba(121, 220, 176, 0.2) 62% 100%),
-                #f6fbff !important;
-        }
-
         * {
             box-sizing: border-box;
             margin: 0;
@@ -165,12 +38,8 @@
             background-color: var(--bg-dark);
             color: var(--text-main);
             height: 100vh;
-            height: 100dvh;
             display: flex;
             overflow: hidden;
-            margin: 0;
-            padding: 0;
-            width: 100%;
         }
 
         /* Sidebar Styling */
@@ -181,72 +50,19 @@
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
-            z-index: 1000;
-        }
-
-        .mobile-menu-btn {
-            display: none;
-        }
-
-        @media (max-width: 900px) {
-            .sidebar {
-                position: fixed;
-                left: -280px;
-                top: 0;
-                bottom: 0;
-                transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                box-shadow: 4px 0 24px rgba(0,0,0,0.5);
-            }
-            .sidebar.mobile-open {
-                left: 0;
-            }
-            .mobile-overlay {
-                display: none;
-                position: fixed;
-                inset: 0;
-                background: rgba(0,0,0,0.6);
-                backdrop-filter: blur(4px);
-                z-index: 900;
-            }
-            .mobile-overlay.active {
-                display: block;
-            }
-            .mobile-menu-btn {
-                display: flex !important;
-                align-items: center;
-                justify-content: center;
-            }
-            .content-area {
-                padding: 16px;
-            }
-            .top-bar {
-                padding: 0 16px;
-            }
+            z-index: 100;
         }
 
         .sidebar-brand {
             height: var(--top-bar-height);
             display: flex;
             align-items: center;
-            padding: 0 16px;
-            gap: 8px;
-            white-space: nowrap;
-            overflow: hidden;
+            padding: 0 24px;
+            gap: 12px;
         }
 
-        .sidebar-brand img { width: 32px; height: 32px; flex-shrink: 0; }
-        .sidebar-brand h1 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.15rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #ffffff 0%, #a78bfa 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: -0.5px;
-            margin: 0;
-            line-height: 1.2;
-            white-space: nowrap;
-        }
+        .sidebar-brand img { width: 32px; height: 32px; }
+        .sidebar-brand h1 { font-family: 'Outfit', sans-serif; font-size: 1.3rem; font-weight: 800; }
 
         .server-selection-container {
             padding: 0 16px 16px 16px;
@@ -701,12 +517,10 @@
         .form-hint { color:var(--text-muted); font-size:0.76rem; margin-top:6px; line-height:1.45; }
         .modal input[type="date"], #reminder-modal input[type="date"] { background:#232831; color:var(--text-main); border:1px solid var(--glass-border); border-radius:10px; padding:11px 12px; color-scheme:dark; width:100%; }
         /* Day-of-week picker */
-        .dow-picker { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
-        .dow-btn { background:#1a1d26; border:1px solid var(--glass-border); color:var(--text-muted); border-radius:5px; padding:12px 14px; font-size:0.88rem; font-weight:700; cursor:pointer; transition:all 0.15s; min-width:74px; text-align:center; user-select:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
-        .dow-btn::before { content:'✓'; opacity:0; font-size:1rem; font-weight:900; line-height:1; }
-        .dow-btn:hover { border-color:#56f084; color:#eaffef; }
-        .dow-btn.selected { background:#56f084; border-color:#56f084; color:#06140b; box-shadow:0 8px 22px rgba(86,240,132,0.18); }
-        .dow-btn.selected::before { opacity:1; }
+        .dow-picker { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+        .dow-btn { background:#1a1d26; border:1.5px solid var(--glass-border); color:var(--text-muted); border-radius:10px; padding:8px 0; font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.15s; flex:1; min-width:38px; text-align:center; user-select:none; }
+        .dow-btn:hover { border-color:var(--primary); color:#c4b5fd; }
+        .dow-btn.selected { background:rgba(139,92,246,0.22); border-color:var(--primary); color:#c4b5fd; box-shadow:0 0 0 1px rgba(139,92,246,0.3); }
         /* Image upload area */
         .img-upload-zone { border:2px dashed var(--glass-border); border-radius:10px; padding:14px; text-align:center; cursor:pointer; transition:all 0.2s; position:relative; display:flex; align-items:center; gap:10px; }
         .img-upload-zone:hover, .img-upload-zone.dragover { border-color:var(--primary); background:rgba(139,92,246,0.06); }
@@ -1131,494 +945,10 @@
         .timezone-select:focus {
             border-color: var(--primary);
         }
-
-        /* Custom Switch for Presets and Uploads */
-        .custom-switch-container {
-            position: relative;
-            display: inline-block;
-            width: 44px;
-            height: 24px;
-            flex-shrink: 0;
-        }
-        .custom-switch-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #232831;
-            border: 1px solid var(--glass-border);
-            transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
-            border-radius: 24px;
-        }
-        .custom-switch-slider:before {
-            position: absolute;
-            content: "";
-            height: 16px;
-            width: 16px;
-            left: 3px;
-            bottom: 3px;
-            background-color: #9ca3af;
-            transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
-            border-radius: 50%;
-        }
-        input:checked + .custom-switch-slider {
-            background-color: rgba(139, 92, 246, 0.2);
-            border-color: var(--primary);
-        }
-        input:checked + .custom-switch-slider:before {
-            transform: translateX(20px);
-            background-color: var(--primary);
-            box-shadow: 0 0 8px var(--primary);
-        }
-
-        /* Custom Premium Server Selector Dropdown */
-        .custom-select-wrapper {
-            position: relative;
-            width: 100%;
-        }
-
-        .custom-select-trigger {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            background: rgba(30, 34, 41, 0.6);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 10px 14px;
-            color: #fff;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            user-select: none;
-        }
-
-        .custom-select-trigger:hover {
-            border-color: rgba(139, 92, 246, 0.4);
-            background: rgba(35, 40, 49, 0.8);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .selected-server-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 0;
-        }
-
-        .mini-guild-icon {
-            width: 24px;
-            height: 24px;
-            border-radius: 6px;
-            object-fit: cover;
-            flex-shrink: 0;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        #selected-guild-name {
-            font-size: 0.9rem;
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .chevron-icon {
-            width: 16px;
-            height: 16px;
-            color: var(--text-muted);
-            transition: transform 0.2s ease;
-        }
-
-        .custom-select-wrapper.open .chevron-icon {
-            transform: rotate(180deg);
-        }
-
-        .custom-select-options {
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            width: 100%;
-            background: rgba(22, 25, 31, 0.95);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            max-height: 280px;
-            overflow-y: auto;
-            display: none;
-            z-index: 500;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            padding: 6px;
-        }
-
-        .custom-select-options.show {
-            display: block;
-            animation: fadeInDropdown 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .custom-option {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            color: var(--text-muted);
-            font-size: 0.88rem;
-            min-width: 0;
-        }
-
-        .custom-option:hover {
-            background: rgba(139, 92, 246, 0.1);
-            color: #fff;
-        }
-
-        .custom-option.selected {
-            background: rgba(139, 92, 246, 0.15);
-            color: var(--primary);
-            font-weight: 600;
-        }
-
-        /* Premium Profile Dropdown Styling */
-        .user-profile-wrapper {
-            position: relative;
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-            padding: 6px 14px;
-            border-radius: 12px;
-            transition: all 0.2s ease;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            user-select: none;
-        }
-
-        .user-profile:hover {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.08);
-        }
-
-        .user-profile img {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid rgba(139, 92, 246, 0.3);
-        }
-
-        .profile-dropdown {
-            position: absolute;
-            top: calc(100% + 10px);
-            right: 0;
-            width: 220px;
-            background: rgba(22, 25, 31, 0.95);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            display: none;
-            z-index: 600;
-            padding: 8px;
-        }
-
-        .profile-dropdown.show {
-            display: block;
-            animation: fadeInDropdown 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
-            border-radius: 8px;
-            color: var(--text-muted);
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-
-        .dropdown-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-            color: #fff;
-        }
-
-        .dropdown-item i {
-            width: 16px;
-            height: 16px;
-            opacity: 0.7;
-        }
-
-        .dropdown-item:hover i {
-            opacity: 1;
-        }
-
-        .dropdown-divider {
-            height: 1px;
-            background: var(--glass-border);
-            margin: 6px 0;
-        }
-
-        .logout-btn {
-            color: #f87171 !important;
-        }
-
-        .logout-btn:hover {
-            background: rgba(239, 68, 68, 0.1) !important;
-            color: #f87171 !important;
-        }
-
-        .logout-btn i {
-            color: #f87171;
-        }
-
-        @keyframes fadeInDropdown {
-            from {
-                opacity: 0;
-                transform: translateY(-8px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Birthday Grid Styles */
-        .bday-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-            margin-top: 15px;
-        }
-
-        .bday-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .bday-card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(139, 92, 246, 0.3);
-            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.1);
-        }
-
-        .bday-card.today {
-            border-color: rgba(245, 158, 11, 0.5);
-            box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
-            background: linear-gradient(135deg, rgba(30,34,41,0.8), rgba(245,158,11,0.05));
-        }
-
-        .bday-card.today::before {
-            content: '🎂 TODAY!';
-            position: absolute;
-            top: 0;
-            right: 0;
-            background: var(--accent);
-            color: #000;
-            font-size: 0.7rem;
-            font-weight: bold;
-            padding: 4px 10px;
-            border-bottom-left-radius: 8px;
-            letter-spacing: 0.5px;
-        }
-
-        .bday-avatar-wrapper {
-            position: relative;
-            width: 60px;
-            height: 60px;
-            flex-shrink: 0;
-            margin-right: 16px;
-        }
-
-        .bday-avatar {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            background: #111;
-        }
-
-        .bday-card.today .bday-avatar {
-            border-color: var(--accent);
-        }
-
-        .bday-info {
-            flex-grow: 1;
-            min-width: 0;
-        }
-
-        .bday-name {
-            font-family: 'Outfit', sans-serif;
-            font-weight: 600;
-            font-size: 1.05rem;
-            color: var(--text-main);
-            margin-bottom: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .bday-userid {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-        }
-
-        .bday-date-badge {
-            display: inline-flex;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 6px;
-            padding: 3px 8px;
-            font-size: 0.8rem;
-            color: var(--text-main);
-        }
-
-        .bday-date-badge i {
-            margin-right: 4px;
-            color: var(--primary);
-        }
-
-        .bday-action {
-            position: absolute;
-            bottom: 12px;
-            right: 12px;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }
-
-        .bday-card:hover .bday-action {
-            opacity: 1;
-        }
-
-        .bday-delete-btn {
-            background: transparent;
-            border: none;
-            color: #ef4444;
-            cursor: pointer;
-            padding: 4px;
-            border-radius: 4px;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .bday-delete-btn:hover {
-            background: rgba(239, 68, 68, 0.1);
-            transform: scale(1.1);
-        }
-
-        .countdown-badge {
-            font-size: 0.7rem;
-            font-weight: bold;
-            padding: 3px 8px;
-            border-radius: 12px;
-            margin-left: 8px;
-            text-transform: uppercase;
-        }
-
-        .countdown-imminent {
-            background: rgba(239, 68, 68, 0.15);
-            color: #f87171;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-
-        .countdown-normal {
-            background: rgba(139, 92, 246, 0.15);
-            color: #a78bfa;
-            border: 1px solid rgba(139, 92, 246, 0.3);
-        }
-
-        .countdown-today {
-            background: rgba(245, 158, 11, 0.15);
-            color: #fbbf24;
-            border: 1px solid rgba(245, 158, 11, 0.3);
-        }
-
-        /* Theme Toggle styles */
-        .theme-toggle {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 2.4rem;
-            height: 2.4rem;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(255, 255, 255, 0.03);
-            color: rgba(255, 255, 255, 0.8);
-            cursor: pointer;
-            transition: all 0.25s ease;
-            position: relative;
-            margin-right: 16px;
-        }
-        
-        .theme-toggle:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.2);
-            color: #fff;
-        }
-
-        [data-theme="light"] .theme-toggle {
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            background: rgba(0, 0, 0, 0.03);
-            color: rgba(0, 0, 0, 0.7);
-        }
-
-        [data-theme="light"] .theme-toggle:hover {
-            background: rgba(0, 0, 0, 0.08);
-            border-color: rgba(0, 0, 0, 0.15);
-            color: #000;
-        }
-
-        .theme-toggle svg {
-            width: 1.2rem;
-            height: 1.2rem;
-            stroke: currentColor;
-            fill: none;
-        }
-
-        .theme-toggle .sun-icon  { display: block; }
-        .theme-toggle .moon-icon,
-        .theme-toggle .contrast-icon,
-        .theme-toggle .hacker-icon,
-        .theme-toggle .cartoon-icon { display: none;  }
-
-        [data-theme="light"] .theme-toggle .sun-icon  { display: none;  }
-        [data-theme="light"] .theme-toggle .moon-icon { display: block; }
-
-        [data-theme="high-contrast"] .theme-toggle .sun-icon  { display: none;  }
-        [data-theme="high-contrast"] .theme-toggle .contrast-icon { display: block !important; }
-
-        [data-theme="hacker"] .theme-toggle .sun-icon  { display: none;  }
-        [data-theme="hacker"] .theme-toggle .hacker-icon { display: block !important; }
-
-        [data-theme="cartoon"] .theme-toggle .sun-icon  { display: none;  }
-        [data-theme="cartoon"] .theme-toggle .cartoon-icon { display: block !important; }
     </style>
 </head>
 
 <body>
-    <div class="mobile-overlay" onclick="toggleMobileMenu()"></div>
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-brand">
@@ -1626,24 +956,16 @@
             <h1>Whiteout Survival Bot</h1>
         </div>
 
-        <div class="sidebar-label">Server Selection</div>
+        <div class="sidebar-label">Server selection</div>
         <div class="server-selection-container">
-            <div class="custom-select-wrapper" id="custom-server-select-wrapper">
-                <div class="custom-select-trigger" id="custom-server-select-trigger">
-                    <div class="selected-server-info">
-                        <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="mini-guild-icon" id="selected-guild-icon" alt="">
-                        <span id="selected-guild-name">Select Server...</span>
-                    </div>
-                    <i data-lucide="chevron-down" class="chevron-icon"></i>
-                </div>
-                <div class="custom-select-options" id="custom-server-select-options">
-                    <!-- populated dynamically by JS -->
-                </div>
-            </div>
+            <select id="server-selector" onchange="window.location.href='manage.html?id='+this.value">
+                <option value="">Loading servers...</option>
+            </select>
         </div>
 
         <div class="sidebar-nav">
             <div class="nav-group">
+                <div class="sidebar-label">Server</div>
                 <button class="nav-item active" onclick="switchTab('overview')">
                     <i data-lucide="layout"></i>
                     <span>Overview</span>
@@ -1662,13 +984,14 @@
             </div>
 
             <div class="nav-group">
+                <div class="sidebar-label">Translations</div>
                 <button class="nav-item" onclick="switchTab('translate')">
                     <i data-lucide="languages"></i>
                     <span>Auto-Translation</span>
                 </button>
                 <button class="nav-item" onclick="switchTab('birthday')">
                     <i data-lucide="cake"></i>
-                    <span>Birthday</span>
+                    <span>Birthday Settings</span>
                 </button>
                 <button class="nav-item" id="nav-giftcodes" onclick="switchTab('giftcodes')">
                     <i data-lucide="ticket"></i>
@@ -1695,43 +1018,15 @@
     <!-- Main Container -->
     <div class="main-container">
         <header class="top-bar">
-            <div class="top-bar-left" style="display: flex; align-items: center; gap: 16px;">
-                <button class="mobile-menu-btn" style="background: transparent; border: none; color: #fff; cursor: pointer; padding: 4px;" onclick="toggleMobileMenu()">
-                    <i data-lucide="menu"></i>
-                </button>
+            <div class="top-bar-left">
+                <!-- Breadcrumbs or similar -->
             </div>
             <div class="top-bar-right">
-                <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
-                    <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    <svg class="contrast-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke-width="2"/></svg>
-                    <svg class="hacker-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 16 4-4-4-4M6 8l-4 4 4 4M14.5 4l-5 16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    <svg class="cartoon-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke-width="2"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>
-                <div class="user-profile-wrapper" id="user-profile-wrapper">
-                    <div class="user-profile" id="user-profile-trigger">
-                        <img id="user-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="User">
-                        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px;">
-                            <span id="user-name" style="font-weight: 600; font-size: 0.95rem; color: #fff;">User</span>
-                            <span id="user-id-display" style="font-size: 0.72rem; color: var(--text-muted);">ID: -</span>
-                        </div>
-                        <i data-lucide="chevron-down" style="width:16px; color: var(--text-muted);"></i>
-                    </div>
-                    <div class="profile-dropdown" id="profile-dropdown-menu">
-                        <a href="dashboard.html" class="dropdown-item">
-                            <i data-lucide="layout-grid"></i>
-                            <span>Change Server</span>
-                        </a>
-                        <a href="https://discord.gg/bP5JQFH2M5" target="_blank" class="dropdown-item">
-                            <i data-lucide="help-circle"></i>
-                            <span>Support Server</span>
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <button onclick="logout()" class="dropdown-item logout-btn" style="width: 100%; border: none; background: none; text-align: left; font-family: inherit;">
-                            <i data-lucide="log-out"></i>
-                            <span>Logout</span>
-                        </button>
-                    </div>
+                <span style="color:var(--text-muted); cursor:pointer;">Need Support?</span>
+                <div class="user-profile">
+                    <img id="user-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="User">
+                    <span id="user-name" style="font-weight:600;">User</span>
+                    <i data-lucide="chevron-down" style="width:16px;"></i>
                 </div>
             </div>
         </header>
@@ -1744,8 +1039,9 @@
                 <div class="overview-card">
                     <img id="overview-server-icon" src="" alt="" class="server-big-icon">
                     <div class="server-details">
-                        <h2 id="overview-server-name">Loading...</h2>
+                        <h2 id="overview-server-name">Loading... <span class="plan-badge">Free plan</span></h2>
                         <p>ID: <span id="overview-server-id">-</span> <span style="color:var(--primary); margin-left:12px; cursor:pointer;"><i data-lucide="copy" style="width:14px; display:inline-block; vertical-align:middle; margin-right:4px;"></i> Copy ID</span></p>
+                        <p style="margin-top:8px; font-size:0.8rem;">This server is on the free plan.</p>
                     </div>
                 </div>
 
@@ -1781,7 +1077,7 @@
                 </div>
 
                 <h3 style="margin-top:24px; margin-bottom:12px; font-family:'Outfit', sans-serif; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
-                    <i data-lucide="activity" style="color:var(--primary); width:18px;"></i> Information
+                    <i data-lucide="activity" style="color:var(--primary); width:18px;"></i> Bot Integration & Features
                 </h3>
                 <div class="overview-stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
                     <div class="overview-stat-box" style="justify-content: space-between;">
@@ -1789,20 +1085,14 @@
                             <p style="text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; font-size: 0.75rem;">Assigned Alliance</p>
                             <h3 id="stat-alliance" style="font-size: 1.1rem; margin-top: 4px;">Not Set</h3>
                         </div>
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            <button class="btn btn-secondary" onclick="editBotInformation('alliance')" title="Edit alliance name" style="width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;"><i data-lucide="pencil" style="width:15px;height:15px;"></i></button>
-                            <div class="stat-icon" style="color:#a78bfa; background:rgba(167,139,250,0.1);"><i data-lucide="shield"></i></div>
-                        </div>
+                        <div class="stat-icon" style="color:#a78bfa; background:rgba(167,139,250,0.1);"><i data-lucide="shield"></i></div>
                     </div>
                     <div class="overview-stat-box" style="justify-content: space-between;">
                         <div class="stat-data" style="text-align: left;">
                             <p style="text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; font-size: 0.75rem;">State</p>
                             <h3 id="stat-state" style="font-size: 1.1rem; margin-top: 4px;">Not Set</h3>
                         </div>
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            <button class="btn btn-secondary" onclick="editBotInformation('state')" title="Edit state number" style="width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;"><i data-lucide="pencil" style="width:15px;height:15px;"></i></button>
-                            <div class="stat-icon" style="color:#60a5fa; background:rgba(96,165,250,0.1);"><i data-lucide="map-pin"></i></div>
-                        </div>
+                        <div class="stat-icon" style="color:#60a5fa; background:rgba(96,165,250,0.1);"><i data-lucide="map-pin"></i></div>
                     </div>
                     <div class="overview-stat-box" style="justify-content: space-between;">
                         <div class="stat-data" style="text-align: left;">
@@ -1853,6 +1143,16 @@
                     </div>
                 </div>
 
+                <div class="progress-card">
+                    <div class="progress-header">
+                        <div class="progress-title">Gift Code Attempts</div>
+                        <div style="color:var(--text-muted); font-size:0.9rem;"><span id="gift-count-text">0</span>/5000 Monthly Limit</div>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div id="gift-progress-fill" class="progress-bar-fill" style="width: 0%"></div>
+                    </div>
+                    <p style="font-size:0.85rem; color:var(--text-muted);">Attempts this month. <span style="color:var(--primary); cursor:pointer;">Upgrade for unlimited</span></p>
+                </div>
             </div>
 
             <!-- Welcome Tab -->
@@ -2136,97 +1436,18 @@
                 <div id="translate-configs-list"></div>
             </div>
 
-                        <!-- Birthday Tab -->
+            <!-- Birthday Tab -->
             <div id="tab-birthday" class="tab-content">
                 <h2 class="section-title">Birthday Celebrations</h2>
-                
-                <div class="settings-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
-                    <!-- Settings Card -->
-                    <section class="card glass-card">
-                        <h3 class="card-title"><i data-lucide="bell" style="width: 18px; height: 18px; margin-right: 8px; vertical-align: middle;"></i>Config & Notification</h3>
-                        <p style="color: var(--text-muted); margin-bottom: 16px; font-size: 0.9rem;">
-                            Configure the channel where the bot will announce and wish users a happy birthday.
-                        </p>
-                        <div class="form-group">
-                            <label>Wish Announcement Channel</label>
-                            <select id="birthday-channel" class="guild-channels">
-                                <option value="">Select Channel</option>
-                            </select>
-                        </div>
-                        <div style="display:flex; justify-content:flex-end; margin-top: 20px;">
-                            <button onclick="saveBirthdaySettings()" class="btn btn-primary" id="btn-save-birthday">
-                                <i data-lucide="save" style="width: 16px; height: 16px; margin-right: 6px;"></i>Save Settings
-                            </button>
-                        </div>
-                    </section>
-
-                    <!-- Add Birthday Card -->
-                    <section class="card glass-card">
-                        <h3 class="card-title"><i data-lucide="user-plus" style="width: 18px; height: 18px; margin-right: 8px; vertical-align: middle;"></i>Add Birthday Record</h3>
-                        <p style="color: var(--text-muted); margin-bottom: 16px; font-size: 0.9rem;">
-                            Manually register or update a birthday for a member in this server.
-                        </p>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                            <div class="form-group">
-                                <label>Discord User ID</label>
-                                <input type="text" id="bday-user-id" placeholder="850786361572720661" style="width: 100%;">
-                            </div>
-                            <div class="form-group">
-                                <label>Player ID (Optional)</label>
-                                <input type="text" id="bday-player-id" placeholder="9-digit WOS ID" style="width: 100%;">
-                            </div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                            <div class="form-group">
-                                <label>Month</label>
-                                <select id="bday-month" style="width: 100%;">
-                                    <option value="1">January</option>
-                                    <option value="2">February</option>
-                                    <option value="3">March</option>
-                                    <option value="4">April</option>
-                                    <option value="5">May</option>
-                                    <option value="6">June</option>
-                                    <option value="7">July</option>
-                                    <option value="8">August</option>
-                                    <option value="9">September</option>
-                                    <option value="10">October</option>
-                                    <option value="11">November</option>
-                                    <option value="12">December</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Day</label>
-                                <select id="bday-day" style="width: 100%;">
-                                    <!-- Populated via JS -->
-                                </select>
-                            </div>
-                        </div>
-                        <div style="display:flex; justify-content:flex-end; margin-top: 20px;">
-                            <button onclick="registerBirthday()" class="btn btn-success" id="btn-add-birthday">
-                                <i data-lucide="plus-circle" style="width: 16px; height: 16px; margin-right: 6px;"></i>Add Birthday
-                            </button>
-                        </div>
-                    </section>
-                </div>
-
-                <!-- Birthday Records Card -->
-                <section class="card glass-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h3 class="card-title" style="margin: 0;">
-                            <i data-lucide="calendar" style="width: 18px; height: 18px; margin-right: 8px; vertical-align: middle;"></i>
-                            records <span id="bday-count-badge" class="badge badge-info" style="margin-left: 8px;">0</span>
-                        </h3>
-                        <div class="search-box" style="display: flex; align-items: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 4px 12px; width: 250px;">
-                            <i data-lucide="search" style="width: 16px; height: 16px; color: var(--text-muted); margin-right: 8px;"></i>
-                            <input type="text" id="bday-search" placeholder="Search members..." oninput="filterBirthdays()" style="background: transparent; border: none; color: #fff; width: 100%; outline: none; font-size: 0.9rem;">
-                        </div>
+                <section class="card">
+                    <div class="form-group">
+                        <label>Announcement Channel</label>
+                        <select id="birthday-channel" class="guild-channels">
+                            <option value="">Select Channel</option>
+                        </select>
                     </div>
-
-                    <div id="bday-records-grid" class="bday-grid">
-                        <div class="loading-placeholder" style="text-align: center; padding: 40px; color: var(--text-muted);">
-                            <div class="spinner" style="border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid var(--accent); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 12px;"></div>
-                            Loading server birthdays...
-                        </div>
+                    <div style="display:flex; justify-content:flex-end;">
+                        <button onclick="saveBirthdaySettings()" class="btn btn-primary">Save Birthday Config</button>
                     </div>
                 </section>
             </div>
@@ -2535,6 +1756,7 @@
      <input id="preset-search-input" type="search" placeholder="Search community presets..." oninput="loadCommunityPresets(this.value)" style="width:100%; padding:10px 14px 10px 38px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; font-size:0.9rem; transition:all 0.2s;" onfocus="this.style.borderColor='var(--primary)'; this.style.background='rgba(139,92,246,0.05)';" onblur="this.style.borderColor='rgba(255,255,255,0.1)'; this.style.background='rgba(255,255,255,0.03)';">
  </div>
                          </div>
+                         </div>
                      </div>
                      <div id="community-presets-loading" style="text-align:center;padding:30px;color:var(--text-muted);display:none;">
                          <i data-lucide="loader-2" style="width:28px;height:28px;animation:spin 1s linear infinite;"></i><br><span style="font-size:0.85rem;margin-top:8px;display:block;">Loading community presets...</span>
@@ -2545,13 +1767,6 @@
                          <p style="font-size:0.9rem;">No community presets found. Be the first to create one!</p>
                      </div>
                  </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:20px 0 10px;">
-                    <div>
-                        <h3 style="font-size:1rem;margin:0;font-family:'Outfit',sans-serif;">Active Bot Reminders</h3>
-                        <p style="font-size:0.82rem;color:var(--text-muted);margin-top:4px;">All active reminders saved by the bot in MongoDB for this server.</p>
-                    </div>
-                    <button onclick="loadReminders()" class="btn btn-secondary" style="padding:8px 12px;"><i data-lucide="refresh-cw" style="width:15px;height:15px;"></i> Refresh</button>
-                </div>
                 <div id="reminders-list"></div>
             </div>
         </div>
@@ -2729,7 +1944,7 @@
                     <div class="form-hint" id="reminder-recurrence-hint">One-time reminders are removed after they send.</div>
                     <!-- Day-of-week picker (shown for specific_days) -->
                     <div id="dow-picker-group" style="display:none;" class="form-group">
-                        <label>Day of the week</label>
+                        <label>Days of Week</label>
                         <div class="dow-picker" id="reminder-dow-picker">
                             <div class="dow-btn" data-day="0" onclick="toggleDowDay(this)">Mon</div>
                             <div class="dow-btn" data-day="1" onclick="toggleDowDay(this)">Tue</div>
@@ -2770,7 +1985,6 @@
                             </label>
                             <input type="file" id="upload-reminder-image" accept="image/*" style="display:none;" onchange="uploadImageForReminder(this,'reminder-image')">
                         </div>
-                        <div class="form-hint">Max 8MB. Local uploads are stored in Mongo immediately. Public image URLs are imported to Mongo automatically when you save or send a test.</div>
                     </div>
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
                         <div class="form-group">
@@ -2792,59 +2006,11 @@
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
                         <div class="form-group">
                             <label>Footer Icon URL</label>
-                            <div class="img-input-row">
-                                <img id="reminder-footer-icon-preview" class="img-preview-thumb" src="" alt="" onerror="this.style.display='none'">
-                                <input type="text" id="reminder-footer-icon" placeholder="https://..." oninput="updateReminderPreview(); showImgPreview('reminder-footer-icon','reminder-footer-icon-preview')">
-                                <label for="upload-reminder-footer-icon" class="btn btn-secondary" style="padding:0 10px;cursor:pointer;display:flex;align-items:center;height:42px;flex-shrink:0;" title="Upload">
-                                    <i data-lucide="image" style="width:15px;"></i>
-                                </label>
-                                <input type="file" id="upload-reminder-footer-icon" accept="image/*" style="display:none;" onchange="uploadImageForReminder(this,'reminder-footer-icon')">
-                            </div>
+                            <input type="text" id="reminder-footer-icon" placeholder="https://..." oninput="updateReminderPreview()">
                         </div>
                         <div class="form-group">
                             <label>Author URL</label>
-                            <div class="img-input-row">
-                                <img id="reminder-author-url-preview" class="img-preview-thumb" src="" alt="" onerror="this.style.display='none'">
-                                <input type="text" id="reminder-author-url" placeholder="https://..." oninput="updateReminderPreview(); showImgPreview('reminder-author-url','reminder-author-url-preview')">
-                                <label for="upload-reminder-author-url" class="btn btn-secondary" style="padding:0 10px;cursor:pointer;display:flex;align-items:center;height:42px;flex-shrink:0;" title="Upload">
-                                    <i data-lucide="image" style="width:15px;"></i>
-                                </label>
-                                <input type="file" id="upload-reminder-author-url" accept="image/*" style="display:none;" onchange="uploadImageForReminder(this,'reminder-author-url')">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Save as Preset Section -->
-                    <div class="preset-save-container" style="margin-top: 16px; padding: 18px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.04) 0%, rgba(30, 27, 75, 0.2) 100%); border: 1px solid rgba(139, 92, 246, 0.15); border-radius: 16px; transition: all 0.3s ease; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);" onclick="toggleSavePresetCheckbox(event)">
-                        <div style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <div style="background: rgba(139, 92, 246, 0.15); width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #a78bfa;">
-                                    <i data-lucide="share-2" style="width: 20px; height: 20px;"></i>
-                                </div>
-                                <div>
-                                    <h4 style="margin: 0; font-size: 0.92rem; font-weight: 700; color: #c4b5fd; font-family: 'Outfit', sans-serif;">Save as Community Preset</h4>
-                                    <p style="margin: 2px 0 0 0; font-size: 0.76rem; color: var(--text-muted);">Share this layout so other alliances can use it instantly</p>
-                                </div>
-                            </div>
-                            <!-- Styled Switch toggle -->
-                            <div class="custom-switch-container">
-                                <input type="checkbox" id="reminder-save-as-preset" style="display:none;" onchange="handleSavePresetChange(this)">
-                                <span class="custom-switch-slider"></span>
-                            </div>
-                        </div>
-                        
-                        <div id="preset-title-group" style="max-height: 0px; overflow: hidden; opacity: 0; transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1); margin-top: 0;">
-                            <div style="padding-top: 16px; border-top: 1px dashed rgba(139, 92, 246, 0.15); margin-top: 14px;">
-                                <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 6px;">Preset Template Title</label>
-                                <div style="position: relative;">
-                                    <i data-lucide="tag" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: rgba(139, 92, 246, 0.6);"></i>
-                                    <input type="text" id="reminder-preset-title" placeholder="e.g. Bear Trap Standard Schedule" style="padding-left: 42px; background: #16191f; border-color: rgba(139, 92, 246, 0.2); width: 100%;">
-                                </div>
-                                <div class="form-hint" style="color: rgba(167, 139, 250, 0.7); display: flex; align-items: center; gap: 4px; margin-top: 8px;">
-                                    <i data-lucide="sparkles" style="width: 12px; height: 12px;"></i>
-                                    Saved templates automatically appear in the global Community Presets directory!
-                                </div>
-                            </div>
+                            <input type="text" id="reminder-author-url" placeholder="https://..." oninput="updateReminderPreview()">
                         </div>
                     </div>
                 </div>
@@ -2888,10 +2054,11 @@
                 </div>
             </div>
 <div class="modal-footer">
-                <button onclick="closeReminderModal()" class="btn btn-secondary">Cancel</button>
-                <button onclick="sendTestReminder()" class="btn btn-secondary"><i data-lucide="send"></i> Send Test</button>
-                <button id="reminder-submit-btn" onclick="createReminder()" class="btn btn-primary">Create Reminder</button>
-            </div>
+                 <button onclick="closeReminderModal()" class="btn btn-secondary">Cancel</button>
+                 <button onclick="sendTestReminder()" class="btn btn-secondary"><i data-lucide="send"></i> Send Test</button>
+                 <button onclick="openSaveAsPresetModal()" class="btn btn-secondary" style="background: rgba(139,92,246,0.15); color: #c4b5fd;"><i data-lucide="copy-plus"></i> Save as Preset</button>
+                 <button id="reminder-submit-btn" onclick="createReminder()" class="btn btn-primary">Create Reminder</button>
+             </div>
         </div>
     </div>
 <!-- Add Member Modal -->
@@ -3173,21 +2340,6 @@
 
         lucide.createIcons();
 
-        function toggleMobileMenu() {
-            document.querySelector('.sidebar').classList.toggle('mobile-open');
-            document.querySelector('.mobile-overlay').classList.toggle('active');
-        }
-
-        // Close sidebar on link click for mobile
-        document.querySelectorAll('.nav-item').forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (window.innerWidth <= 900) {
-                    document.querySelector('.sidebar').classList.remove('mobile-open');
-                    document.querySelector('.mobile-overlay').classList.remove('active');
-                }
-            });
-        });
-
         let pendingTabToUnlock = null;
 
         // â”€â”€ Registration Wizard State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -3227,12 +2379,6 @@
             } catch(e) {}
         }
         _loadDiscordUser();
-
-        function logout() {
-            localStorage.removeItem('discord_access_token');
-            localStorage.removeItem('discord_user');
-            window.location.href = 'index.html';
-        }
 
         // â”€â”€ Update lock status on nav items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         async function updateNavLockStatus() {
@@ -3678,14 +2824,7 @@
                         ...(options.headers || {})
                     }
                 });
-                if (!response.ok) {
-                    let message = `HTTP error! status: ${response.status}`;
-                    try {
-                        const err = await response.json();
-                        message = err.detail || err.message || message;
-                    } catch(e) {}
-                    throw new Error(message);
-                }
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 return await response.json();
             } catch (e) {
                 showNotification(e.message, true);
@@ -3714,10 +2853,7 @@
                 
                 if(document.getElementById('stat-server-age')) document.getElementById('stat-server-age').textContent = stats.server_age || 'Unknown';
                 if(document.getElementById('stat-alliance')) document.getElementById('stat-alliance').textContent = stats.alliance_name || 'Not Set';
-                if(document.getElementById('stat-state')) {
-                    const st = stats.state;
-                    document.getElementById('stat-state').textContent = (st && st !== 'Not Set') ? (st.toString().startsWith('#') ? st : '#' + st) : 'Not Set';
-                }
+                if(document.getElementById('stat-state')) document.getElementById('stat-state').textContent = stats.state || 'Not Set';
                 if(document.getElementById('stat-active-reminders')) document.getElementById('stat-active-reminders').textContent = stats.active_reminders || 0;
                 
                 const updateBadge = (id, active) => {
@@ -3734,64 +2870,13 @@
             } catch (e) {}
         }
 
-        async function editBotInformation(type) {
-            const currentAlliance = document.getElementById('stat-alliance')?.textContent || '';
-            const currentState = document.getElementById('stat-state')?.textContent || '';
-            const payload = {};
-
-            if (type === 'alliance') {
-                const next = prompt('Alliance name', currentAlliance === 'Not Set' ? '' : currentAlliance);
-                if (next === null) return;
-                const value = next.trim();
-                if (!value) { showNotification('Alliance name is required', true); return; }
-                payload.alliance_name = value;
-            } else if (type === 'state') {
-                let defaultVal = currentState === 'Not Set' ? '' : currentState.trim();
-                if (defaultVal.startsWith('#')) {
-                    defaultVal = defaultVal.substring(1);
-                }
-                const next = prompt('State number', defaultVal);
-                if (next === null) return;
-                const cleaned = next.trim();
-                if (!cleaned) {
-                    showNotification('State number cannot be empty', true);
-                    return;
-                }
-                if (!/^\d+$/.test(cleaned)) {
-                    showNotification('Enter a valid state number (numbers only)', true);
-                    return;
-                }
-                const value = parseInt(cleaned, 10);
-                if (!value || value < 1) { showNotification('Enter a valid state number', true); return; }
-                payload.state = value;
-            }
-
-            showLoading(true);
-            try {
-                await fetchData(`/api/guilds/${guildId}/bot-settings`, {
-                    method: 'PATCH',
-                    body: JSON.stringify(payload)
-                });
-                showNotification('Information updated');
-                await loadGuildStats();
-            } catch(e) {
-                showNotification(e.message || 'Failed to update information', true);
-            } finally {
-                showLoading(false);
-            }
-        }
-
         async function loadGiftStats() {
             try {
                 const stats = await fetchData(`/api/giftcodes/${guildId}/stats`);
                 const total = stats.total_attempts || 0;
-                const countTextEl = document.getElementById('gift-count-text');
-                if (countTextEl) countTextEl.textContent = total;
-                const progressFillEl = document.getElementById('gift-progress-fill');
-                if (progressFillEl) {
-                    const percent = Math.min(100, (total / 5000) * 100);
-                    progressFillEl.style.width = percent + '%';
-                }
+                document.getElementById('gift-count-text').textContent = total;
+                const percent = Math.min(100, (total / 5000) * 100);
+                document.getElementById('gift-progress-fill').style.width = percent + '%';
             } catch (e) {}
         }
 
@@ -4067,28 +3152,11 @@
             }
         }
 
-                const escapeHtml = str => str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
-        let _birthdayRecords = [];
-
         async function loadBirthdaySettings() {
             try {
                 const settings = await fetchData(`/api/settings/birthday/${guildId}`);
                 document.getElementById('birthday-channel').value = settings.channel_id || '';
-                
-                const daySelect = document.getElementById('bday-day');
-                if (daySelect && daySelect.children.length === 0) {
-                    for (let i = 1; i <= 31; i++) {
-                        const opt = document.createElement('option');
-                        opt.value = i;
-                        opt.textContent = i;
-                        daySelect.appendChild(opt);
-                    }
-                }
-                
-                await loadBirthdayRecords();
-            } catch (e) {
-                console.error("Error loading birthday settings:", e);
-            }
+            } catch (e) { }
         }
 
         async function saveBirthdaySettings() {
@@ -4099,169 +3167,7 @@
                     body: JSON.stringify({ channel_id: document.getElementById('birthday-channel').value })
                 });
                 showNotification('Birthday settings saved!');
-            } catch (e) {
-                showNotification('Failed to save settings', true);
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        async function loadBirthdayRecords() {
-            const grid = document.getElementById('bday-records-grid');
-            if (!grid) return;
-            
-            try {
-                const records = await fetchData(`/api/settings/birthday/${guildId}/records`);
-                _birthdayRecords = records || [];
-                renderBirthdayRecords(_birthdayRecords);
-            } catch (e) {
-                grid.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);"><i data-lucide="alert-triangle" style="width:24px;height:24px;margin-bottom:8px;color:#ef4444;"></i><br>Failed to load birthday records.</div>';
-                lucide.createIcons();
-            }
-        }
-
-        function renderBirthdayRecords(records) {
-            const grid = document.getElementById('bday-records-grid');
-            const countBadge = document.getElementById('bday-count-badge');
-            
-            if (countBadge) {
-                countBadge.textContent = records.length;
-            }
-            
-            if (!grid) return;
-            grid.innerHTML = '';
-            
-            if (records.length === 0) {
-                grid.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted); grid-column: 1 / -1;"><i data-lucide="cake" style="width:32px;height:32px;margin-bottom:8px;color:var(--text-muted);"></i><br>No registered birthdays in this server yet.</div>';
-                lucide.createIcons();
-                return;
-            }
-            
-            records.forEach(rec => {
-                const isToday = rec.days_until === 0;
-                const card = document.createElement('div');
-                card.className = `bday-card ${isToday ? 'today' : ''}`;
-                card.setAttribute('data-user-id', rec.user_id);
-                card.setAttribute('data-username', rec.username.toLowerCase());
-                
-                let countdownClass = 'countdown-normal';
-                let countdownText = `In ${rec.days_until} days`;
-                
-                if (isToday) {
-                    countdownClass = 'countdown-today';
-                    countdownText = 'TODAY! 🎂';
-                } else if (rec.days_until <= 7) {
-                    countdownClass = 'countdown-imminent';
-                    countdownText = `In ${rec.days_until} days 🔥`;
-                }
-                
-                card.innerHTML = `
-                    <div class="bday-avatar-wrapper">
-                        <img class="bday-avatar" src="${rec.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" alt="${rec.username}" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
-                    </div>
-                    <div class="bday-info">
-                        <h4 class="bday-name">${escapeHtml(rec.username)}</h4>
-                        <div class="bday-userid">
-                            ID: ${rec.user_id}
-                            <span class="countdown-badge ${countdownClass}">${countdownText}</span>
-                        </div>
-                        <div class="bday-date-badge">
-                            <i data-lucide="calendar" style="width:12px;height:12px;margin-right:4px;"></i>
-                            ${rec.date_str}
-                            ${rec.player_id ? ` <span style="color:var(--text-muted);margin-left:8px;font-size:0.75rem;">(Player: ${rec.player_id})</span>` : ''}
-                        </div>
-                    </div>
-                    <div class="bday-action">
-                        <button onclick="deleteBirthday('${rec.user_id}')" class="bday-delete-btn" title="Delete record">
-                            <i data-lucide="trash-2" style="width:16px;height:16px;"></i>
-                        </button>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-            
-            lucide.createIcons();
-        }
-
-        async function registerBirthday() {
-            const userIdInput = document.getElementById('bday-user-id');
-            const playerIdInput = document.getElementById('bday-player-id');
-            const monthSelect = document.getElementById('bday-month');
-            const daySelect = document.getElementById('bday-day');
-            const btn = document.getElementById('btn-add-birthday');
-            
-            const user_id = userIdInput.value.trim();
-            const player_id = playerIdInput.value.trim();
-            const month = parseInt(monthSelect.value);
-            const day = parseInt(daySelect.value);
-            
-            if (!user_id || !/^\d+$/.test(user_id)) {
-                showNotification('Please enter a valid numeric Discord User ID', true);
-                return;
-            }
-            
-            if (player_id && (!/^\d+$/.test(player_id) || player_id.length !== 9)) {
-                showNotification('Player ID must be exactly 9 digits', true);
-                return;
-            }
-            
-            showLoading(true);
-            btn.disabled = true;
-            
-            try {
-                await fetchData(`/api/settings/birthday/${guildId}/records`, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        user_id: user_id,
-                        player_id: player_id || null,
-                        day: day,
-                        month: month
-                    })
-                });
-                
-                showNotification('Birthday record registered successfully!');
-                userIdInput.value = '';
-                playerIdInput.value = '';
-                await loadBirthdayRecords();
-            } catch (e) {
-                showNotification(e.message || 'Failed to register birthday record', true);
-            } finally {
-                showLoading(false);
-                btn.disabled = false;
-            }
-        }
-
-        async function deleteBirthday(userId) {
-            if (!confirm('Are you sure you want to delete this birthday record?')) return;
-            
-            showLoading(true);
-            try {
-                await fetchData(`/api/settings/birthday/${guildId}/records/${userId}`, {
-                    method: 'DELETE'
-                });
-                showNotification('Birthday record deleted.');
-                await loadBirthdayRecords();
-            } catch (e) {
-                showNotification('Failed to delete birthday record', true);
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        function filterBirthdays() {
-            const query = document.getElementById('bday-search').value.toLowerCase().trim();
-            const cards = document.querySelectorAll('#bday-records-grid .bday-card');
-            
-            cards.forEach(card => {
-                const username = card.getAttribute('data-username') || '';
-                const userId = card.getAttribute('data-user-id') || '';
-                
-                if (username.includes(query) || userId.includes(query)) {
-                    card.style.display = 'flex';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
+            } catch (e) { } finally { showLoading(false); }
         }
 
         async function loadTranslateConfigs() {
@@ -5127,7 +4033,6 @@
             if (!input.files || input.files.length === 0) return;
             const file = input.files[0];
             if (file.size > 8 * 1024 * 1024) { showNotification('Image too large (max 8MB)', true); return; }
-            if (!file.type || !file.type.startsWith('image/')) { showNotification('Please select an image file', true); return; }
             showLoading(true);
             try {
                 const formData = new FormData();
@@ -5138,14 +4043,7 @@
                     headers: { 'Authorization': `Bearer ${token}` },
                     body: formData
                 });
-                if (!response.ok) {
-                    let message = 'Upload failed (' + response.status + ')';
-                    try {
-                        const err = await response.json();
-                        message = err.detail || err.message || message;
-                    } catch(e) {}
-                    throw new Error(message);
-                }
+                if (!response.ok) throw new Error('Upload failed (' + response.status + ')');
                 const data = await response.json();
                 if (data.url) {
                     const targetInput = document.getElementById(targetId);
@@ -5157,78 +4055,6 @@
                 } else { throw new Error(data.message || 'Upload failed'); }
             } catch (e) { showNotification(e.message, true); }
             finally { showLoading(false); input.value = ''; }
-        }
-
-        function isMongoReminderImageUrl(url) {
-            if (!url) return true;
-            if (url.startsWith('data:')) return true;
-            return /\/api\/reminders\/uploads\/[a-f0-9]+/i.test(url);
-        }
-
-        async function importImageUrlToMongo(url) {
-            if (!url || !/^https?:\/\//i.test(url) || isMongoReminderImageUrl(url)) return url;
-            const data = await fetchData('/api/reminders/upload-url', {
-                method: 'POST',
-                body: JSON.stringify({ url })
-            });
-            if (!data.url) throw new Error(data.message || 'Image import failed');
-            return data.url;
-        }
-
-        async function autoImportReminderImages(data, fieldToInputId = null) {
-            const map = fieldToInputId || {
-                image_url: 'reminder-image',
-                thumbnail_url: 'reminder-thumbnail',
-                footer_icon_url: 'reminder-footer-icon'
-            };
-            for (const [field, inputId] of Object.entries(map)) {
-                if (!data[field]) continue;
-                const importedUrl = await importImageUrlToMongo(data[field]);
-                if (importedUrl !== data[field]) {
-                    data[field] = importedUrl;
-                    const input = document.getElementById(inputId);
-                    if (input) {
-                        input.value = importedUrl;
-                        input.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
-                }
-            }
-            return data;
-        }
-
-        function toggleSavePresetCheckbox(e) {
-            if (e && (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL' || e.target.closest('#preset-title-group'))) {
-                return;
-            }
-            const chk = document.getElementById('reminder-save-as-preset');
-            if (chk) {
-                chk.checked = !chk.checked;
-                handleSavePresetChange(chk);
-            }
-        }
-
-        function handleSavePresetChange(chk) {
-            const group = document.getElementById('preset-title-group');
-            const container = document.querySelector('.preset-save-container');
-            if (group) {
-                if (chk.checked) {
-                    group.style.maxHeight = '200px';
-                    group.style.opacity = '1';
-                    group.style.marginTop = '12px';
-                    if (container) {
-                        container.style.borderColor = 'rgba(139, 92, 246, 0.4)';
-                        container.style.boxShadow = '0 8px 30px rgba(139, 92, 246, 0.15)';
-                    }
-                } else {
-                    group.style.maxHeight = '0px';
-                    group.style.opacity = '0';
-                    group.style.marginTop = '0px';
-                    if (container) {
-                        container.style.borderColor = 'rgba(139, 92, 246, 0.15)';
-                        container.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.15)';
-                    }
-                }
-            }
         }
 
         
@@ -5291,13 +4117,7 @@
                     
                     grid.innerHTML = REMINDER_PRESETS.map(p => `
                         <div class="preset-card">
-                            <div class="preset-thumb">
-                                <img src="${escapeAttribute(getReminderThumbnail({ thumbnail_url: p.thumbnail_url || p.image_url, message: p.title }))}" 
-                                     alt="" 
-                                     data-message="${escapeAttribute(p.title || '')}" 
-                                     data-thumbnail="${escapeAttribute(p.thumbnail_url || p.image_url || '')}" 
-                                     onerror="handleThumbnailError(this)">
-                            </div>
+                            <div class="preset-thumb"><img src="${escapeAttribute(p.thumbnail_url || p.image_url || 'logo.png')}" alt="" onerror="this.onerror=null;this.src='logo.png';"></div>
                             <div class="preset-body">
                                 <div class="preset-title">
                                     <strong>${escapeHTML(p.title)}</strong>
@@ -5405,11 +4225,6 @@
 
             showLoading(true);
             try {
-                await autoImportReminderImages(payload, {
-                    image_url: 'cp-image',
-                    thumbnail_url: 'cp-thumbnail',
-                    footer_icon_url: 'cp-footer-icon'
-                });
                 await fetchData('/api/reminders/presets', {
                     method: 'POST',
                     body: JSON.stringify(payload)
@@ -5432,7 +4247,6 @@
             document.getElementById('reminder-body').value = preset.body || '';
             document.getElementById('reminder-recurrence').value = preset.recurrence_type || 'none';
             document.getElementById('reminder-interval').value = preset.recurrence_interval || 1;
-            setDowSelection(preset.recurrence_days || []);
             document.getElementById('reminder-mention').value = preset.mention || 'everyone';
             document.getElementById('reminder-image').value = preset.image_url || '';
             document.getElementById('reminder-thumbnail').value = preset.thumbnail_url || '';
@@ -5440,7 +4254,6 @@
             document.getElementById('reminder-footer-icon').value = preset.footer_icon_url || '';
             document.getElementById('reminder-author-url').value = preset.author_url || '';
             toggleCustomInterval();
-            toggleDowPicker();
             updateReminderPreview();
         }
 
@@ -5467,15 +4280,6 @@
             if (!r || !r.is_recurring) return 'One-time';
             if (r.recurrence_type === 'daily') return 'Daily';
             if (r.recurrence_type === 'weekly') return 'Weekly';
-            if (r.recurrence_type === 'specific_days') {
-                const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                let dlist = [];
-                try {
-                    const selected = typeof r.recurrence_days === 'string' ? JSON.parse(r.recurrence_days) : r.recurrence_days;
-                    if (Array.isArray(selected)) dlist = selected.map(d => days[d]);
-                } catch(e) {}
-                return dlist.length ? `Days: ${dlist.join(', ')}` : 'Specific Days';
-            }
             if (r.recurrence_type === 'custom') return `Every ${r.recurrence_interval || 1} days`;
             return 'Recurring';
         }
@@ -5510,10 +4314,8 @@
                 document.getElementById('reminder-message').value = r.message || '';
                 document.getElementById('reminder-recurrence').value = r.recurrence_type || 'none';
                 document.getElementById('reminder-interval').value = r.recurrence_interval || 1;
-                setDowSelection(r.recurrence_days);
                 document.getElementById('reminder-timezone').value = r.timezone || 'UTC';
                 toggleCustomInterval();
-                toggleDowPicker();
 
                 document.getElementById('reminder-body').value = r.body || '';
                 document.getElementById('reminder-channel').value = r.channel_id || '';
@@ -5523,11 +4325,6 @@
                 document.getElementById('reminder-footer').value = r.footer_text || '';
                 document.getElementById('reminder-footer-icon').value = r.footer_icon_url || '';
                 document.getElementById('reminder-author-url').value = r.author_url || '';
-                
-                // Reset preset fields
-                document.getElementById('reminder-save-as-preset').checked = false;
-                document.getElementById('reminder-preset-title').value = '';
-                handleSavePresetChange(document.getElementById('reminder-save-as-preset'));
             } else {
                 titleEl.textContent = 'New Reminder';
                 submitBtn.textContent = 'Create Reminder';
@@ -5549,10 +4346,8 @@
 
                 document.getElementById('reminder-recurrence').value = 'none';
                 document.getElementById('reminder-interval').value = 1;
-                setDowSelection([]);
                 document.getElementById('reminder-timezone').value = 'UTC';
                 toggleCustomInterval();
-                toggleDowPicker();
 
                 document.getElementById('reminder-body').value = '';
                 document.getElementById('reminder-mention').value = 'everyone';
@@ -5561,12 +4356,6 @@
                 document.getElementById('reminder-footer').value = '';
                 document.getElementById('reminder-footer-icon').value = '';
                 document.getElementById('reminder-author-url').value = '';
-                
-                // Reset preset fields
-                document.getElementById('reminder-save-as-preset').checked = false;
-                document.getElementById('reminder-preset-title').value = '';
-                handleSavePresetChange(document.getElementById('reminder-save-as-preset'));
-                
                 if (presetId) applyReminderPreset(presetId);
             }
             document.getElementById('reminder-modal').style.display = 'flex';
@@ -5605,18 +4394,7 @@
             if (bodyEl) { bodyEl.textContent = body; bodyEl.style.display = body ? 'block' : 'none'; }
 
             const thumbImg = document.getElementById('reminder-preview-thumbnail');
-            if (thumbImg) {
-                const resolvedThumbnail = getReminderThumbnail({ thumbnail_url: thumbnail, message: message });
-                if (resolvedThumbnail && resolvedThumbnail !== 'logo.png') {
-                    thumbImg.src = resolvedThumbnail;
-                    thumbImg.style.display = 'block';
-                    thumbImg.setAttribute('data-message', message);
-                    thumbImg.setAttribute('data-thumbnail', thumbnail);
-                    thumbImg.onerror = () => { handleThumbnailError(thumbImg); };
-                } else {
-                    thumbImg.style.display = 'none';
-                }
-            }
+            if (thumbImg) { if (thumbnail) { thumbImg.src = thumbnail; thumbImg.style.display = 'block'; thumbImg.onerror = () => { thumbImg.style.display='none'; }; } else thumbImg.style.display = 'none'; }
 
             const mainImg = document.getElementById('reminder-preview-image');
             if (mainImg) { if (image) { mainImg.src = image; mainImg.style.display = 'block'; mainImg.onerror = () => { mainImg.style.display='none'; }; } else mainImg.style.display = 'none'; }
@@ -5642,7 +4420,6 @@
             
             showLoading(true);
             try {
-                await autoImportReminderImages(data);
                 await fetchData(`/api/reminders/${guildId}/${id}`, { 
                     method: 'PATCH', 
                     body: JSON.stringify(data) 
@@ -5650,14 +4427,12 @@
                 showNotification('Reminder updated!');
                 closeReminderModal();
                 loadReminders();
-                loadGuildStats();
             } catch (e) {
                 showNotification(e.message || 'Failed to update reminder', true);
             } finally { showLoading(false); }
         }
 
-        function getReminderFormData(options = {}) {
-            const requireSchedule = options.requireSchedule !== false;
+        function getReminderFormData() {
             const message = document.getElementById('reminder-message').value.trim();
             const date    = document.getElementById('reminder-date').value;
             const hour    = getWheelValue('wheel-hour');
@@ -5676,30 +4451,23 @@
             const footer_text    = document.getElementById('reminder-footer').value.trim() || null;
             const footer_icon_url = document.getElementById('reminder-footer-icon').value.trim() || null;
             const author_url     = document.getElementById('reminder-author-url').value.trim() || null;
-            
-            const save_as_preset = document.getElementById('reminder-save-as-preset').checked;
-            const preset_title   = document.getElementById('reminder-preset-title').value.trim() || null;
 
-            if (!message || !channel_id || (requireSchedule && !date)) {
-                showNotification(requireSchedule ? 'Title, Date, and Channel are required' : 'Title and Channel are required for a test', true);
+            if (!message || !date || !channel_id) {
+                showNotification('Title, Date, and Channel are required', true);
                 return null;
             }
-            if (requireSchedule && recurrence_type === 'specific_days' && (!recurrence_days || recurrence_days.length === 0)) {
+            if (recurrence_type === 'specific_days' && (!recurrence_days || recurrence_days.length === 0)) {
                 showNotification('Please select at least one day of the week', true);
                 return null;
             }
 
-            let target_time = null;
-            if (date) {
-                let h24 = parseInt(hour);
-                if(ampm === 'PM' && h24 < 12) h24 += 12;
-                if(ampm === 'AM' && h24 === 12) h24 = 0;
-                target_time = `${date}T${String(h24).padStart(2,'0')}:${min}:${sec}`;
-            }
+            let h24 = parseInt(hour);
+            if(ampm === 'PM' && h24 < 12) h24 += 12;
+            if(ampm === 'AM' && h24 === 12) h24 = 0;
+            const target_time = `${date}T${String(h24).padStart(2,'0')}:${min}:${sec}`;
 
             return { message, target_time, timezone, recurrence_type, recurrence_interval, recurrence_days,
-                     channel_id, body, mention, image_url, thumbnail_url, footer_text, footer_icon_url, author_url,
-                     save_as_preset, preset_title };
+                     channel_id, body, mention, image_url, thumbnail_url, footer_text, footer_icon_url, author_url };
         }
 
         function reminderPayloadFromRecord(r) {
@@ -5725,13 +4493,12 @@
             if (reminderId && remindersMap[reminderId]) {
                 data = reminderPayloadFromRecord(remindersMap[reminderId]);
             } else {
-                data = getReminderFormData({ requireSchedule: false });
+                data = getReminderFormData();
             }
             if (!data) return;
 
             showLoading(true);
             try {
-                await autoImportReminderImages(data);
                 await fetchData(`/api/reminders/${guildId}/test`, {
                     method: 'POST',
                     body: JSON.stringify(data)
@@ -5748,22 +4515,13 @@
             
             showLoading(true);
             try {
-                await autoImportReminderImages(data);
-                const res = await fetchData(`/api/reminders/${guildId}`, { 
+                await fetchData(`/api/reminders/${guildId}`, { 
                     method: 'POST', 
                     body: JSON.stringify(data) 
                 });
-                
-                if (data.save_as_preset) {
-                    showNotification('Reminder created and saved as preset!');
-                } else {
-                    showNotification('Reminder created!');
-                }
-                
+                showNotification('Reminder created!');
                 closeReminderModal();
                 loadReminders();
-                loadGuildStats();
-                if (data.save_as_preset) loadCommunityPresets(); // Refresh presets
             } catch (e) {
                 showNotification(e.message || 'Failed to create reminder', true);
             } finally { showLoading(false); }
@@ -5776,7 +4534,6 @@
                 await fetchData(`/api/reminders/${guildId}/${id}`, { method: 'DELETE' });
                 showNotification('Deleted');
                 loadReminders();
-                loadGuildStats();
             } catch (e) {
                 showNotification('Failed to delete reminder', true);
             } finally { showLoading(false); }
@@ -5816,24 +4573,6 @@
             `;
         }
 
-        function getReminderThumbnail(r) {
-            if (!r) return 'logo.png';
-            const url = r.thumbnail_url || '';
-            
-            if (url) {
-                // Ignore the deleted postimg links so we don't display broken placeholders
-                if (!url.includes('postimg.cc') && !url.includes('postimg.org')) {
-                    return url;
-                }
-            }
-            return 'logo.png';
-        }
-
-        function handleThumbnailError(imgElement) {
-            imgElement.onerror = null; // prevent loops
-            imgElement.src = 'logo.png';
-        }
-
         function renderReminders() {
             const list = document.getElementById('reminders-list');
             const search = (document.getElementById('reminder-search')?.value || '').trim().toLowerCase();
@@ -5863,18 +4602,13 @@
                 const id = String(r.id);
                 const d = parseReminderDate(r.reminder_time);
                 const time = d ? d.toLocaleString() : 'Unknown time';
-                const image = getReminderThumbnail(r);
+                const image = r.thumbnail_url || r.image_url || 'logo.png';
                 const recurring = r.is_recurring ? '<span class="status-pill active">Recurring</span>' : '<span class="status-pill pending">One-time</span>';
                 const div = document.createElement('div');
                 div.className = 'reminder-card';
                 div.innerHTML = `
                     <div class="reminder-card-top">
-                        <img class="reminder-card-thumb" 
-                             src="${escapeAttribute(image)}" 
-                             alt="" 
-                             data-message="${escapeAttribute(r.message || '')}" 
-                             data-thumbnail="${escapeAttribute(r.thumbnail_url || '')}" 
-                             onerror="handleThumbnailError(this)">
+                        <img class="reminder-card-thumb" src="${escapeAttribute(image)}" alt="" onerror="this.onerror=null;this.src='logo.png';">
                         <div>
                             <div class="reminder-card-title">${escapeHTML(r.message || 'Untitled reminder')}</div>
                             <div class="reminder-card-body">${escapeHTML(r.body || 'No description added.')}</div>
@@ -6220,79 +4954,32 @@
             initTimeWheels();
             showLoading(true);
             try {
-                // User info & user profile dropdown setup
+                // User info
                 const user = await fetchData('/api/auth/me');
                 if (user) {
                     document.getElementById('user-name').textContent = user.username;
                     document.getElementById('user-avatar').src = user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png';
-                    document.getElementById('user-id-display').textContent = `ID: ${user.id}`;
                 }
 
-                // User Profile Dropdown Toggle
-                const profileTrigger = document.getElementById('user-profile-trigger');
-                const profileMenu = document.getElementById('profile-dropdown-menu');
-                if (profileTrigger && profileMenu) {
-                    profileTrigger.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        profileMenu.classList.toggle('show');
-                    });
-
-                    document.addEventListener('click', () => {
-                        profileMenu.classList.remove('show');
-                    });
-                }
-
-                // Servers list (Custom Dropdown)
+                // Servers list
                 const guildsResponse = await fetchData('/api/servers');
                 const guilds = guildsResponse.servers || [];
-                
-                const customOptionsContainer = document.getElementById('custom-server-select-options');
-                if (customOptionsContainer) {
-                    customOptionsContainer.innerHTML = '';
-                    guilds.forEach(g => {
-                        const iconUrl = g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png';
-                        
-                        const optionDiv = document.createElement('div');
-                        optionDiv.className = `custom-option ${g.id === guildId ? 'selected' : ''}`;
-                        optionDiv.dataset.value = g.id;
-                        optionDiv.innerHTML = `
-                            <img src="${iconUrl}" class="mini-guild-icon" alt="">
-                            <span>${escapeHTML(g.name)}</span>
-                        `;
-                        
-                        optionDiv.addEventListener('click', () => {
-                            window.location.href = `manage.html?id=${g.id}`;
-                        });
-                        
-                        if (g.id === guildId) {
-                            document.getElementById('selected-guild-icon').src = iconUrl;
-                            document.getElementById('selected-guild-name').textContent = g.name;
-                            document.getElementById('overview-server-name').textContent = g.name;
-                            SAMPLE.server = g.name;
-                            _setRegServerName(g.name);
-                        }
-                        
-                        customOptionsContainer.appendChild(optionDiv);
-                    });
-                    
-                    // Setup trigger toggle
-                    const trigger = document.getElementById('custom-server-select-trigger');
-                    const wrapper = document.getElementById('custom-server-select-wrapper');
-                    
-                    if (trigger && wrapper) {
-                        trigger.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            wrapper.classList.toggle('open');
-                            customOptionsContainer.classList.toggle('show');
-                        });
-                        
-                        // Close on click outside
-                        document.addEventListener('click', () => {
-                            wrapper.classList.remove('open');
-                            customOptionsContainer.classList.remove('show');
-                        });
+                const selector = document.getElementById('server-selector');
+                selector.innerHTML = '';
+                guilds.forEach(g => {
+                    const opt = document.createElement('option');
+                    opt.value = g.id;
+                    opt.textContent = g.name;
+                    if (g.id === guildId) {
+                        opt.selected = true;
+                        document.getElementById('overview-server-name').innerHTML = g.name + ' <span class="plan-badge">Free plan</span>';
+                        // Update preview server name after we know the server
+                        SAMPLE.server = g.name;
+                        // Make server name available to the registration wizard
+                        _setRegServerName(g.name);
                     }
-                }
+                    selector.appendChild(opt);
+                });
 
                 await loadChannels();
                 await loadGuildStats();
@@ -6319,25 +5006,6 @@
             // Kick off an initial preview render in case no settings exist yet
             updatePreview();
             lucide.createIcons();
-
-            // Theme toggle logic
-            const themeToggle = document.getElementById("theme-toggle");
-            if (themeToggle) {
-                const themes = ['cartoon', 'dark', 'light', 'high-contrast', 'hacker'];
-                themeToggle.addEventListener("click", () => {
-                    const currentTheme = localStorage.getItem("theme") || "cartoon";
-                    const currentIndex = themes.indexOf(currentTheme);
-                    const nextIndex = ((currentIndex === -1 ? 0 : currentIndex) + 1) % themes.length;
-                    const nextTheme = themes[nextIndex];
-
-                    localStorage.setItem("theme", nextTheme);
-                    if (nextTheme === "dark") {
-                        document.documentElement.removeAttribute("data-theme");
-                    } else {
-                        document.documentElement.setAttribute("data-theme", nextTheme);
-                    }
-                });
-            }
         })();
     </script>
     <div id="create-preset-modal" class="modal">

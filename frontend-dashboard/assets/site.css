@@ -2895,6 +2895,15 @@ body,
 }
 
 [data-theme="high-contrast"] .theme-toggle .sun-icon { display: none; }
+
+/* Theme toggle icon helper states */
+.theme-toggle .contrast-icon,
+.theme-toggle .hacker-icon,
+.theme-toggle .cartoon-icon {
+  display: none;
+}
+
+[data-theme="high-contrast"] .theme-toggle .sun-icon { display: none; }
 [data-theme="high-contrast"] .theme-toggle .contrast-icon { display: block !important; }
 
 [data-theme="hacker"] .theme-toggle .sun-icon { display: none; }
@@ -2903,3 +2912,225 @@ body,
 [data-theme="cartoon"] .theme-toggle .sun-icon { display: none; }
 [data-theme="cartoon"] .theme-toggle .cartoon-icon { display: block !important; }
 
+/* ── Floating Brands Dock & CSS Logos ────────────────────────────────────── */
+.floating-brands-dock {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  z-index: 10000;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brand-logo-btn {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.45), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.brand-logo-btn:hover {
+  transform: translateY(-5px) scale(1.08);
+}
+
+.brand-logo-btn:active {
+  transform: translateY(-2px) scale(0.96);
+}
+
+/* Discord Specific Styles */
+.brand-discord {
+  color: #a5b4fc;
+}
+
+.brand-discord:hover {
+  color: #ffffff;
+  background: rgba(88, 101, 242, 0.25);
+  border-color: rgba(88, 101, 242, 0.6);
+  box-shadow: 0 0 25px rgba(88, 101, 242, 0.5),
+              0 10px 30px -8px rgba(0, 0, 0, 0.45);
+}
+
+.brand-discord .discord-svg {
+  width: 26px;
+  height: 26px;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.brand-discord:hover .discord-svg {
+  transform: rotate(-8deg) scale(1.1);
+}
+
+/* Whiteout Survival Specific Styles */
+.brand-wos:hover {
+  background: rgba(14, 165, 233, 0.15);
+  border-color: rgba(14, 165, 233, 0.5);
+  box-shadow: 0 0 25px rgba(14, 165, 233, 0.4),
+              0 0 40px rgba(249, 115, 22, 0.25),
+              0 10px 30px -8px rgba(0, 0, 0, 0.45);
+}
+
+.brand-wos .wos-css-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(circle at 35% 35%, #38bdf8 0%, #0284c7 55%, #0f172a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: inset -3px -3px 8px rgba(0, 0, 0, 0.6), 
+              inset 3px 3px 8px rgba(255, 255, 255, 0.35);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brand-wos:hover .wos-css-logo {
+  transform: rotate(8deg) scale(1.05);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.wos-css-globe {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, transparent 60%);
+  z-index: 3;
+}
+
+.wos-css-furnace {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 18px;
+  background: linear-gradient(to top, #78350f 0%, #d97706 70%, #f59e0b 100%);
+  border-radius: 2px 2px 0 0;
+  clip-path: polygon(22% 0%, 78% 0%, 100% 100%, 0% 100%);
+  z-index: 2;
+  box-shadow: 0 0 6px rgba(217, 119, 6, 0.4);
+}
+
+.wos-css-furnace::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3.5px;
+  height: 3.5px;
+  background: #f97316;
+  box-shadow: 0 0 6px #f97316, 0 0 12px #ef4444;
+  border-radius: 50%;
+  animation: wosFlamePulse 1s ease-in-out infinite alternate;
+}
+
+.wos-css-flame {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 10px;
+  background: radial-gradient(circle at center, #fef08a 0%, #f97316 55%, transparent 100%);
+  border-radius: 50% 50% 20% 20%;
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.85);
+  animation: wosFlameFlicker 0.12s ease-in-out infinite alternate;
+}
+
+.wos-css-glacier {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  background: linear-gradient(to top, #ffffff 30%, #e0f2fe 100%);
+  z-index: 1;
+  clip-path: polygon(0% 100%, 100% 100%, 100% 40%, 85% 60%, 72% 30%, 58% 70%, 42% 25%, 28% 65%, 14% 35%, 0% 55%);
+}
+
+@keyframes wosFlameFlicker {
+  0% {
+    transform: translateX(-50%) scale(0.92) skewX(-2deg);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateX(-50%) scale(1.15) skewX(3deg);
+    opacity: 1;
+    filter: brightness(1.25);
+  }
+}
+
+@keyframes wosFlamePulse {
+  0% {
+    opacity: 0.55;
+    box-shadow: 0 0 4px #f97316;
+  }
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 9px #f97316, 0 0 16px #ef4444;
+  }
+}
+
+/* Make dock adjustments for small screen sizes to prevent overlapping page controls */
+@media (max-width: 640px) {
+  .floating-brands-dock {
+    bottom: 16px;
+    right: 16px;
+    gap: 10px;
+  }
+  
+  .brand-logo-btn {
+    width: 46px;
+    height: 46px;
+  }
+  
+  .brand-discord .discord-svg {
+    width: 22px;
+    height: 22px;
+  }
+  
+  .brand-wos .wos-css-logo {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .wos-css-furnace {
+    bottom: 6px;
+    width: 10px;
+    height: 15px;
+  }
+  
+  .wos-css-flame {
+    top: -6px;
+    width: 5px;
+    height: 8px;
+  }
+}
+
+/* High Contrast theme tweaks */
+[data-theme="high-contrast"] .brand-logo-btn {
+  background: #000000 !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: none !important;
+}
+
+[data-theme="high-contrast"] .brand-discord:hover {
+  background: #0000ff !important;
+}
+
+[data-theme="high-contrast"] .brand-wos:hover {
+  background: #ff6600 !important;
+}

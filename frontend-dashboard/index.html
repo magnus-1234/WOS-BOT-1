@@ -283,39 +283,51 @@
       pointer-events: none;
     }
 
-    /* Hero Item Layering & Blurs */
+    /* ─── Hero Layer Depth System ───────────────────────────────────────────
+       Back row  → V-arc, highest in scene (furthest from camera)
+       Mid row   → shallower arc, bridging back & front
+       Front row → 4 heroes at the bottom, sharp & bright
+       Lead      → centre of front row, largest glow
+    ─────────────────────────────────────────────────────────────────────── */
+
+    /* Back row: tiny, very blurred, very dark */
     .hero-item--bg {
-      filter: 
-        drop-shadow(0 15px 30px rgba(0, 0, 0, 0.7)) 
-        blur(2.8px) 
-        brightness(0.55) 
-        saturate(0.75);
-      animation: floatBg 7s ease-in-out infinite alternate;
+      width: clamp(6rem, 8vw, 10rem);
+      filter:
+        drop-shadow(0 10px 20px rgba(0, 0, 0, 0.9))
+        blur(4px)
+        brightness(0.35)
+        saturate(0.45);
+      animation: floatBg 9s ease-in-out infinite alternate;
     }
 
+    /* Mid row: moderate size, soft blur, dimmed */
     .hero-item--mid {
-      filter: 
-        drop-shadow(0 18px 35px rgba(0, 0, 0, 0.68)) 
-        blur(0.5px)
-        brightness(0.85);
+      width: clamp(9rem, 13vw, 16rem);
+      filter:
+        drop-shadow(0 18px 35px rgba(0, 0, 0, 0.72))
+        blur(1px)
+        brightness(0.72)
+        saturate(0.8);
       animation: floatMid 5.5s ease-in-out infinite alternate;
     }
 
+    /* Front row (non-lead): sharp, naturally lit, no blur */
     .hero-item--fg {
-      filter: 
-        drop-shadow(0 25px 45px rgba(0, 0, 0, 0.75)) 
-        blur(1.6px) 
-        brightness(1.08) 
-        saturate(1.05);
-      animation: floatFg 4.2s ease-in-out infinite alternate;
+      filter:
+        drop-shadow(0 28px 52px rgba(0, 0, 0, 0.74))
+        brightness(1.02)
+        saturate(1.04);
+      animation: floatFg 4.5s ease-in-out infinite alternate;
     }
 
+    /* Lead hero: largest glow, cyan rim light */
     .hero-item--lead {
-      filter: 
-        drop-shadow(0 0 35px rgba(141, 232, 255, 0.45)) 
-        drop-shadow(0 30px 50px rgba(0, 0, 0, 0.8))
-        brightness(1.15) 
-        saturate(1.1);
+      filter:
+        drop-shadow(0 0 40px rgba(141, 232, 255, 0.52))
+        drop-shadow(0 32px 56px rgba(0, 0, 0, 0.84))
+        brightness(1.2)
+        saturate(1.14);
     }
 
     /* Delays for natural asynchronous floating */
@@ -403,37 +415,46 @@
     }
 
     @media (max-width: 768px) {
+      /* Hide back and mid rows on mobile */
       .hero-item--bg, .hero-item--mid {
         display: none !important;
       }
       .holo-card {
         display: none !important;
       }
-      /* Reposition lead hero for mobile */
-      .hero-item--lead {
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        bottom: 0% !important;
-        width: clamp(14rem, 45vw, 22rem) !important;
-        z-index: 40 !important;
-        filter: drop-shadow(0 0 25px rgba(141, 232, 255, 0.4)) !important;
+      /* All 4 front heroes visible on mobile, spaced across scene */
+      .hero-item[data-name="Bahiti"] {
+        display: block !important;
+        left: -6% !important;
+        bottom: 2% !important;
+        z-index: 34 !important;
+        width: clamp(8rem, 23vw, 12rem) !important;
+        filter: drop-shadow(0 0 12px rgba(141,232,255,0.18)) brightness(0.92) !important;
       }
-      /* Position Jeronimo and Natalia on the left/right of Molly */
       .hero-item[data-name="Jeronimo"] {
         display: block !important;
-        left: -5% !important;
-        bottom: 5% !important;
-        z-index: 38 !important;
-        width: clamp(9rem, 28vw, 13rem) !important;
-        filter: drop-shadow(0 0 15px rgba(141,232,255,0.2)) !important;
+        left: 13% !important;
+        bottom: 4% !important;
+        z-index: 37 !important;
+        width: clamp(9rem, 26vw, 13rem) !important;
+        filter: drop-shadow(0 0 15px rgba(141,232,255,0.25)) brightness(0.96) !important;
+      }
+      /* Lead hero — Molly */
+      .hero-item--lead {
+        left: 32% !important;
+        transform: none !important;
+        bottom: 1% !important;
+        width: clamp(11rem, 34vw, 17rem) !important;
+        z-index: 40 !important;
+        filter: drop-shadow(0 0 28px rgba(141, 232, 255, 0.5)) brightness(1.1) !important;
       }
       .hero-item[data-name="Natalia"] {
         display: block !important;
-        left: 65% !important;
-        bottom: 5% !important;
-        z-index: 39 !important;
-        width: clamp(9rem, 28vw, 13rem) !important;
-        filter: drop-shadow(0 0 15px rgba(141,232,255,0.2)) !important;
+        left: 60% !important;
+        bottom: 0% !important;
+        z-index: 37 !important;
+        width: clamp(9rem, 26vw, 13rem) !important;
+        filter: drop-shadow(0 0 15px rgba(141,232,255,0.25)) brightness(0.96) !important;
       }
     }
 
@@ -1290,64 +1311,65 @@
             </div>
           </div>
 
-          <!-- Background Layer -->
-          <div class="hero-item hero-item--small hero-item--bg delay-6" data-name="Cloris" style="left: -5%; bottom: 42%; z-index: 9;">
+          <!-- ═══ BACK ROW: V-arc (centre = highest = furthest from camera) ═══ -->
+          <!-- Edge heroes sit lower, centre heroes sit higher creating the angled 3D arc -->
+          <div class="hero-item hero-item--bg delay-8" data-name="Cloris" style="left: 1%; bottom: 40%; z-index: 8;">
             <img src="assets/whiteout-official/hero_full_pic.DtU2xPuV.png" alt="Cloris">
             <div class="hero-node"><span>Cloris</span></div>
           </div>
-          <div class="hero-item hero-item--small hero-item--bg delay-5" data-name="Charlie" style="left: 5%; bottom: 34%; z-index: 13;">
+          <div class="hero-item hero-item--bg delay-6" data-name="Charlie" style="left: 20%; bottom: 47%; z-index: 7;">
             <img src="assets/whiteout-official/hero_full_pic.D8rdKeCr.png" alt="Charlie">
             <div class="hero-node"><span>Charlie</span></div>
           </div>
-          <div class="hero-item hero-item--bg delay-2" data-name="Gina" style="left: 18%; bottom: 32%; z-index: 14;">
-            <img src="assets/whiteout-official/hero_full_pic.Ca2eJcB8.png" alt="Gina">
-            <div class="hero-node"><span>Gina</span></div>
-          </div>
-          <div class="hero-item hero-item--small hero-item--bg delay-4" data-name="Smith" style="left: 48%; bottom: 36%; z-index: 11;">
+          <div class="hero-item hero-item--bg delay-4" data-name="Smith" style="left: 42%; bottom: 52%; z-index: 6;">
             <img src="assets/whiteout-official/hero_full_pic.5qqeXytO.png" alt="Smith">
             <div class="hero-node"><span>Smith</span></div>
           </div>
-          <div class="hero-item hero-item--small hero-item--bg delay-3" data-name="Eugene" style="left: 64%; bottom: 38%; z-index: 10;">
+          <div class="hero-item hero-item--bg delay-2" data-name="Eugene" style="left: 64%; bottom: 47%; z-index: 7;">
             <img src="assets/whiteout-official/hero_full_pic.Cdw5RPKo.png" alt="Eugene">
             <div class="hero-node"><span>Eugene</span></div>
           </div>
-          <div class="hero-item hero-item--bg delay-1" data-name="Ling Shuang" style="left: 82%; bottom: 35%; z-index: 12;">
+          <div class="hero-item hero-item--bg delay-1" data-name="Ling Shuang" style="left: 83%; bottom: 40%; z-index: 8;">
             <img src="assets/whiteout-official/hero_full_pic.BffOqjkM.png" alt="Ling Shuang">
             <div class="hero-node"><span>Ling Shuang</span></div>
           </div>
 
-          <!-- Midground Layer -->
-          <div class="hero-item hero-item--mid delay-8" data-name="Jessie" style="left: 8%; bottom: 14%; z-index: 24;">
+          <!-- ═══ MID ROW: Shallower arc — bridges back and front ═══ -->
+          <div class="hero-item hero-item--mid delay-7" data-name="Jessie" style="left: 0%; bottom: 19%; z-index: 20;">
             <img src="assets/whiteout-official/hero_full_pic.CYHyexL2.png" alt="Jessie">
             <div class="hero-node"><span>Jessie</span></div>
           </div>
-          <div class="hero-item hero-item--mid delay-7" data-name="Sergey" style="left: 25%; bottom: 18%; z-index: 26;">
+          <div class="hero-item hero-item--mid delay-5" data-name="Sergey" style="left: 18%; bottom: 27%; z-index: 22;">
             <img src="assets/whiteout-official/hero_full_pic.CCAtLVc1.png" alt="Sergey">
             <div class="hero-node"><span>Sergey</span></div>
           </div>
-          <div class="hero-item hero-item--mid delay-6" data-name="Patrick" style="left: 45%; bottom: 15%; z-index: 28;">
+          <div class="hero-item hero-item--mid delay-3" data-name="Patrick" style="left: 40%; bottom: 31%; z-index: 24;">
             <img src="assets/whiteout-official/hero_full_pic.Bt7jAvmg.png" alt="Patrick">
             <div class="hero-node"><span>Patrick</span></div>
           </div>
-          <div class="hero-item hero-item--large hero-item--mid delay-4" data-name="Bahiti" style="left: 75%; bottom: 12%; z-index: 25;">
-            <img src="assets/whiteout-official/hero_full_pic.CF4CXgWm.png" alt="Bahiti">
-            <div class="hero-node"><span>Bahiti</span></div>
-          </div>
-          <div class="hero-item hero-item--large hero-item--mid delay-5" data-name="Zinman" style="left: 88%; bottom: 20%; z-index: 22;">
+          <div class="hero-item hero-item--mid delay-2" data-name="Zinman" style="left: 62%; bottom: 27%; z-index: 22;">
             <img src="assets/whiteout-official/hero_full_pic.CMoGjx7f.png" alt="Zinman">
             <div class="hero-node"><span>Zinman</span></div>
           </div>
+          <div class="hero-item hero-item--mid delay-4" data-name="Gina" style="left: 81%; bottom: 19%; z-index: 20;">
+            <img src="assets/whiteout-official/hero_full_pic.Ca2eJcB8.png" alt="Gina">
+            <div class="hero-node"><span>Gina</span></div>
+          </div>
 
-          <!-- Foreground / Focal Point Layer -->
-          <div class="hero-item hero-item--large hero-item--fg delay-2" data-name="Jeronimo" style="left: 35%; bottom: -6%; z-index: 42;">
+          <!-- ═══ FRONT ROW: 4 heroes at the bottom, close to camera ═══ -->
+          <div class="hero-item hero-item--large hero-item--fg delay-4" data-name="Bahiti" style="left: -2%; bottom: -5%; z-index: 36;">
+            <img src="assets/whiteout-official/hero_full_pic.CF4CXgWm.png" alt="Bahiti">
+            <div class="hero-node"><span>Bahiti</span></div>
+          </div>
+          <div class="hero-item hero-item--large hero-item--fg delay-2" data-name="Jeronimo" style="left: 21%; bottom: -1%; z-index: 38;">
             <img src="assets/whiteout-official/hero_full_pic.BSa3ljeO.png" alt="Jeronimo">
             <div class="hero-node"><span>Jeronimo</span></div>
           </div>
-          <div class="hero-item hero-item--lead delay-3" data-name="Molly" style="left: 55%; bottom: -2%; z-index: 40;">
+          <div class="hero-item hero-item--lead delay-3" data-name="Molly" style="left: 44%; bottom: 2%; z-index: 40;">
             <img src="assets/whiteout-official/hero_full_pic.iEiT7Zbo.png" alt="Molly">
             <div class="hero-node"><span>Molly</span></div>
           </div>
-          <div class="hero-item hero-item--large hero-item--fg delay-1" data-name="Natalia" style="left: 78%; bottom: -8%; z-index: 45;">
+          <div class="hero-item hero-item--large hero-item--fg delay-1" data-name="Natalia" style="left: 68%; bottom: -4%; z-index: 38;">
             <img src="assets/whiteout-official/hero_full_pic.vgPvkTh1.png" alt="Natalia">
             <div class="hero-node"><span>Natalia</span></div>
           </div>

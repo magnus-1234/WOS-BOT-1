@@ -2848,33 +2848,9 @@ body,
 [data-theme="cartoon"] .hero-glow,
 [data-theme="cartoon"] .grid-bg,
 [data-theme="cartoon"] .hero-art-tiles,
-[data-theme="cartoon"] .hero-art::after {
-  display: none;
-}
-
-[data-theme="cartoon"] .hero-art::before {
-  background:
-    linear-gradient(155deg, rgba(247, 92, 130, 0.08) 0 18%, transparent 18% 100%),
-    linear-gradient(20deg, transparent 0 66%, rgba(253, 223, 60, 0.1) 66% 100%),
-    #FAF8F2;
-  inset: 0;
-  z-index: 1;
-}
-
-[data-theme="cartoon"] .hero-art img {
-  display: block !important;
-  position: absolute;
-  z-index: 2;
-  width: 85%;
-  height: 80%;
-  top: 10%;
-  left: 7.5%;
-  border: 3px solid #191919;
-  box-shadow: 8px 8px 0px #191919;
-  border-radius: 16px;
-  animation: cartoonDrift 18s ease-in-out infinite alternate;
-  object-fit: cover;
-  filter: saturate(1.1) contrast(1.05);
+[data-theme="cartoon"] .hero-art::after,
+[data-theme="cartoon"] .hero-art {
+  display: none !important;
 }
 
 [data-theme="cartoon"] .eyebrow {
@@ -2885,9 +2861,15 @@ body,
 }
 
 [data-theme="cartoon"] .typing-line {
-  background: none !important;
-  color: #191919 !important;
-  -webkit-text-fill-color: #191919 !important;
+  background: linear-gradient(90deg, #F75C82 0%, #5865F2 50%, #097969 100%) !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+[data-theme="cartoon"] .typing-line i {
+  background: linear-gradient(180deg, #F75C82, #5865F2) !important;
 }
 
 [data-theme="cartoon"] .hero-live-feed {

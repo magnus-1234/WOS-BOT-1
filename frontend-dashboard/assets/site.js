@@ -1063,7 +1063,7 @@
   const themeToggle = document.getElementById("theme-toggle");
   if (themeToggle) {
     // Ensure the HTML attribute matches whatever the inline script set at load
-    const initTheme = localStorage.getItem("theme") || "cartoon";
+    const initTheme = localStorage.getItem("theme") || "dark";
     if (initTheme !== "dark") {
       document.documentElement.setAttribute("data-theme", initTheme);
     } else {
@@ -1073,7 +1073,7 @@
     const themes = ['cartoon', 'dark', 'light', 'high-contrast', 'hacker'];
 
     themeToggle.addEventListener("click", () => {
-      const currentTheme = localStorage.getItem("theme") || "cartoon";
+      const currentTheme = localStorage.getItem("theme") || "dark";
       const currentIndex = themes.indexOf(currentTheme);
       const nextIndex = ((currentIndex === -1 ? 0 : currentIndex) + 1) % themes.length;
       const nextTheme = themes[nextIndex];

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <script>
-    const savedTheme = localStorage.getItem('theme') || 'cartoon';
+    const savedTheme = localStorage.getItem('theme') || 'dark';
     if (savedTheme !== 'dark') {
       document.documentElement.setAttribute('data-theme', savedTheme);
     }
@@ -19,6 +19,14 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/site.css">
   <style>
+    /* Hero scene (characters, globe, flames) — only visible in cartoon (animated) theme */
+    .front-hero-scene {
+      display: none;
+    }
+    [data-theme="cartoon"] .front-hero-scene {
+      display: block;
+    }
+
     .feature-card,
     .stats-grid article,
     .log-rows div,

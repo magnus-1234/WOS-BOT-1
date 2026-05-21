@@ -95,10 +95,10 @@
 
     .front-hero-scene {
       position: absolute;
-      right: clamp(-4rem, 1vw, 2rem);
-      top: clamp(2rem, 6vw, 5rem);
+      right: clamp(-7rem, -1vw, 1rem);
+      top: clamp(1rem, 5vw, 4rem);
       z-index: 4;
-      width: min(55vw, 50rem);
+      width: min(62vw, 58rem);
       height: clamp(36rem, 50vw, 48rem);
       user-select: none;
       touch-action: none;
@@ -106,12 +106,27 @@
 
     .hero-item {
       position: absolute;
-      width: clamp(14rem, 22vw, 24rem);
+      width: clamp(9rem, 12vw, 16rem);
       transform-origin: bottom center;
       transition: filter 0.4s ease, transform 0.1s ease-out;
       cursor: grab;
-      filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.6)) brightness(0.85);
+      filter:
+        drop-shadow(0 20px 40px rgba(0, 0, 0, 0.64))
+        drop-shadow(0 0 18px rgba(141, 232, 255, 0.28))
+        brightness(0.92);
       animation: heroFloat 4s ease-in-out infinite alternate;
+    }
+
+    .hero-item--lead {
+      width: clamp(14rem, 21vw, 25rem);
+    }
+
+    .hero-item--large {
+      width: clamp(12rem, 17vw, 21rem);
+    }
+
+    .hero-item--small {
+      width: clamp(8rem, 10vw, 13rem);
     }
 
     .hero-item:active {
@@ -120,7 +135,12 @@
     }
 
     .hero-item:hover, .hero-item.active {
-      filter: drop-shadow(0 0 50px rgba(141, 232, 255, 0.5)) brightness(1.15);
+      filter:
+        drop-shadow(0 0 28px rgba(141, 232, 255, 0.95))
+        drop-shadow(0 0 68px rgba(154, 99, 240, 0.62))
+        drop-shadow(0 18px 38px rgba(0, 0, 0, 0.74))
+        brightness(1.24)
+        saturate(1.14);
       z-index: 50 !important;
     }
 
@@ -138,16 +158,18 @@
 
     .hero-node {
       position: absolute;
-      bottom: 20%;
+      bottom: 22%;
       left: 50%;
       transform: translateX(-50%) translateY(20px) scale(0.8);
       opacity: 0;
       pointer-events: none;
-      background: rgba(13, 17, 23, 0.9);
+      background:
+        linear-gradient(135deg, rgba(141, 232, 255, 0.16), rgba(154, 99, 240, 0.18)),
+        rgba(8, 12, 20, 0.88);
       backdrop-filter: blur(16px);
-      border: 1px solid rgba(141, 232, 255, 0.5);
+      border: 1px solid rgba(141, 232, 255, 0.72);
       padding: 0.8rem 2rem;
-      border-radius: 12px;
+      border-radius: 0.35rem;
       color: #fff;
       font-family: var(--font-display);
       font-weight: 800;
@@ -156,12 +178,14 @@
       text-transform: uppercase;
       box-shadow: 
         0 20px 40px rgba(0, 0, 0, 0.6),
-        inset 0 0 20px rgba(141, 232, 255, 0.2);
+        0 0 32px rgba(141, 232, 255, 0.38),
+        inset 0 0 20px rgba(141, 232, 255, 0.25);
       transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       z-index: 20;
       white-space: nowrap;
     }
 
+    .hero-item:hover .hero-node,
     .hero-item.active.show-node .hero-node,
     .hero-item.show-node .hero-node {
       opacity: 1;
@@ -1011,25 +1035,61 @@
           </div>
         </div>
         <div class="front-hero-scene" id="hero-scene">
-          <div class="hero-item" data-name="Natalia" style="left: 10%; bottom: 5%; z-index: 10;">
-            <img src="assets/whiteout-official/hero_full_pic.BSa3ljeO.png" alt="Natalia">
+          <div class="hero-item hero-item--large" data-name="Jeronimo" style="left: -4%; bottom: 13%; z-index: 9;">
+            <img src="assets/whiteout-official/hero_full_pic.BSa3ljeO.png" alt="Jeronimo">
+            <div class="hero-node"><span>Jeronimo</span></div>
+          </div>
+          <div class="hero-item hero-item--large" data-name="Natalia" style="left: 11%; bottom: 2%; z-index: 13;">
+            <img src="assets/whiteout-official/hero_full_pic.vgPvkTh1.png" alt="Natalia">
             <div class="hero-node"><span>Natalia</span></div>
           </div>
-          <div class="hero-item" data-name="Bahiti" style="left: 60%; bottom: 20%; z-index: 8;">
-            <img src="assets/whiteout-official/hero_full_pic.CMoGjx7f.png" alt="Bahiti">
-            <div class="hero-node"><span>Bahiti</span></div>
-          </div>
-          <div class="hero-item" data-name="Molly" style="left: 35%; bottom: 0%; z-index: 12; width: clamp(16rem, 26vw, 28rem);">
+          <div class="hero-item hero-item--lead" data-name="Molly" style="left: 30%; bottom: -2%; z-index: 18;">
             <img src="assets/whiteout-official/hero_full_pic.iEiT7Zbo.png" alt="Molly">
             <div class="hero-node"><span>Molly</span></div>
           </div>
-          <div class="hero-item" data-name="Jeronimo" style="left: -10%; bottom: 25%; z-index: 6;">
-            <img src="assets/whiteout-official/hero_full_pic.Bt7jAvmg.png" alt="Jeronimo">
-            <div class="hero-node"><span>Jeronimo</span></div>
+          <div class="hero-item hero-item--large" data-name="Bahiti" style="left: 55%; bottom: 6%; z-index: 14;">
+            <img src="assets/whiteout-official/hero_full_pic.CF4CXgWm.png" alt="Bahiti">
+            <div class="hero-node"><span>Bahiti</span></div>
           </div>
-          <div class="hero-item" data-name="Flint" style="left: 75%; bottom: 5%; z-index: 9;">
-            <img src="assets/whiteout-official/hero_full_pic.BffOqjkM.png" alt="Flint">
-            <div class="hero-node"><span>Flint</span></div>
+          <div class="hero-item hero-item--large" data-name="Zinman" style="left: 70%; bottom: 13%; z-index: 11;">
+            <img src="assets/whiteout-official/hero_full_pic.CMoGjx7f.png" alt="Zinman">
+            <div class="hero-node"><span>Zinman</span></div>
+          </div>
+          <div class="hero-item" data-name="Gina" style="left: 7%; bottom: 37%; z-index: 6;">
+            <img src="assets/whiteout-official/hero_full_pic.Ca2eJcB8.png" alt="Gina">
+            <div class="hero-node"><span>Gina</span></div>
+          </div>
+          <div class="hero-item" data-name="Jessie" style="left: 23%; bottom: 36%; z-index: 7;">
+            <img src="assets/whiteout-official/hero_full_pic.CYHyexL2.png" alt="Jessie">
+            <div class="hero-node"><span>Jessie</span></div>
+          </div>
+          <div class="hero-item" data-name="Patrick" style="left: 42%; bottom: 35%; z-index: 8;">
+            <img src="assets/whiteout-official/hero_full_pic.Bt7jAvmg.png" alt="Patrick">
+            <div class="hero-node"><span>Patrick</span></div>
+          </div>
+          <div class="hero-item" data-name="Sergey" style="left: 62%; bottom: 37%; z-index: 7;">
+            <img src="assets/whiteout-official/hero_full_pic.CCAtLVc1.png" alt="Sergey">
+            <div class="hero-node"><span>Sergey</span></div>
+          </div>
+          <div class="hero-item" data-name="Ling Shuang" style="left: 80%; bottom: 37%; z-index: 6;">
+            <img src="assets/whiteout-official/hero_full_pic.BffOqjkM.png" alt="Ling Shuang">
+            <div class="hero-node"><span>Ling Shuang</span></div>
+          </div>
+          <div class="hero-item hero-item--small" data-name="Cloris" style="left: 17%; bottom: 59%; z-index: 3;">
+            <img src="assets/whiteout-official/hero_full_pic.DtU2xPuV.png" alt="Cloris">
+            <div class="hero-node"><span>Cloris</span></div>
+          </div>
+          <div class="hero-item hero-item--small" data-name="Smith" style="left: 34%; bottom: 61%; z-index: 4;">
+            <img src="assets/whiteout-official/hero_full_pic.5qqeXytO.png" alt="Smith">
+            <div class="hero-node"><span>Smith</span></div>
+          </div>
+          <div class="hero-item hero-item--small" data-name="Eugene" style="left: 52%; bottom: 61%; z-index: 4;">
+            <img src="assets/whiteout-official/hero_full_pic.Cdw5RPKo.png" alt="Eugene">
+            <div class="hero-node"><span>Eugene</span></div>
+          </div>
+          <div class="hero-item hero-item--small" data-name="Charlie" style="left: 69%; bottom: 59%; z-index: 3;">
+            <img src="assets/whiteout-official/hero_full_pic.D8rdKeCr.png" alt="Charlie">
+            <div class="hero-node"><span>Charlie</span></div>
           </div>
         </div>
       </div>

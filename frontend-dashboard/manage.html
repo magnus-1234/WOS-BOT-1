@@ -121,7 +121,7 @@
             --glass-border: rgba(23, 32, 51, 0.14);
             --text-main: #172033;
             --text-muted: #5b6478;
-            --primary: #ff5f8f;
+            --primary: #FFC008;
         }
 
         [data-theme="cartoon"] .sidebar,
@@ -141,10 +141,18 @@
         [data-theme="cartoon"] .theme-toggle,
         [data-theme="cartoon"] .btn {
             border: 1px solid rgba(23, 32, 51, 0.16) !important;
-            background: #60A5FA !important;
+            background: #FFC008 !important;
             color: #172033 !important;
             box-shadow: 0 10px 22px -16px rgba(23, 32, 51, 0.45) !important;
             border-radius: 12px !important;
+            transition: all 0.2s ease !important;
+        }
+
+        [data-theme="cartoon"] button:hover,
+        [data-theme="cartoon"] .theme-toggle:hover,
+        [data-theme="cartoon"] .btn:hover {
+            background: #FFF3CD !important;
+            transform: translateY(-1px) !important;
         }
 
         [data-theme="cartoon"] body {
@@ -2094,7 +2102,7 @@
                     </div>
                     <div class="ar-config-card" style="flex-direction: row; align-items: center; justify-content: space-between;">
                         <div style="display: flex; align-items: center; gap: 12px;">
-                            <div class="ar-icon-box" style="background: rgba(59,130,246,0.15); color: #3b82f6;"><i data-lucide="activity"></i></div>
+                            <div class="ar-icon-box" style="background: rgba(59,130,246,0.15); color: #FFB800;"><i data-lucide="activity"></i></div>
                             <div>
                                 <h4 style="font-size: 0.95rem; font-weight: 600;">Alliance Monitor</h4>
                                 <p style="font-size: 0.8rem; color: var(--text-muted);">Player activity tracking</p>
@@ -2341,7 +2349,7 @@
                                         <span>Detect avatar changes</span>
                                     </li>
                                     <li style="display: flex; gap: 10px; font-size: 0.9rem;">
-                                        <i data-lucide="map" style="width: 18px; color: #3b82f6;"></i>
+                                        <i data-lucide="map" style="width: 18px; color: #FFB800;"></i>
                                         <span>Monitor State movement</span>
                                     </li>
                                 </ul>

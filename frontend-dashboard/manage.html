@@ -2,13 +2,19 @@
 <html lang="en">
 
 <head>
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'cartoon';
+        if (savedTheme && savedTheme !== 'dark') {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Server - Whiteout Survival Bot</title>
     <!-- Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;800&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <style>
@@ -942,6 +948,551 @@
             background: #16191f;
             color: #fff;
         }
+        .timezone-select:focus {
+            border-color: var(--primary);
+        }
+
+    /* ── Cartoon Theme Style Overrides ── */
+    [data-theme="cartoon"] {
+      --radius: 8px;
+      --bg-dark: #FAF8F2;
+      --sidebar-bg: #ffffff;
+      --card-bg: #ffffff;
+      --glass-bg: #ffffff;
+      --glass-border: #191919;
+      --text-main: #191919;
+      --text-muted: #5a5a5a;
+      --primary: #F75C82;
+      --primary-hover: #f87293;
+      --accent: #FDDF3C;
+    }
+
+    [data-theme="cartoon"] body {
+      background-color: #FAF8F2 !important;
+      background-image: 
+        radial-gradient(circle at 80% 20%, rgba(253, 223, 60, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 20% 80%, rgba(247, 92, 130, 0.1) 0%, transparent 40%) !important;
+      font-family: "Lora", Georgia, serif !important;
+      color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] h1,
+    [data-theme="cartoon"] h2,
+    [data-theme="cartoon"] h3,
+    [data-theme="cartoon"] h4,
+    [data-theme="cartoon"] h5,
+    [data-theme="cartoon"] h6,
+    [data-theme="cartoon"] .sidebar-brand h1,
+    [data-theme="cartoon"] .section-title,
+    [data-theme="cartoon"] .section-header h3,
+    [data-theme="cartoon"] .preset-header h3,
+    [data-theme="cartoon"] .preset-title strong,
+    [data-theme="cartoon"] .reminder-card-title,
+    [data-theme="cartoon"] .giftcode-code,
+    [data-theme="cartoon"] .player-meta h4,
+    [data-theme="cartoon"] .modal-header h3,
+    [data-theme="cartoon"] .config-info h4 {
+      font-family: 'Newsreader', 'Lora', Georgia, serif !important;
+      font-weight: 800 !important;
+      letter-spacing: -0.02em !important;
+      color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] .sidebar {
+      background: #ffffff !important;
+      border-right: 2px solid #191919 !important;
+    }
+
+    [data-theme="cartoon"] .sidebar-brand {
+      border-bottom: 1.5px solid #191919 !important;
+    }
+
+    [data-theme="cartoon"] .sidebar-brand h1 {
+      font-family: 'Newsreader', 'Lora', Georgia, serif !important;
+      font-weight: 800 !important;
+      color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] #server-selector {
+      background: #ffffff !important;
+      border: 1.5px solid #191919 !important;
+      color: #191919 !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+      border-radius: 8px !important;
+      font-weight: 600 !important;
+    }
+
+    [data-theme="cartoon"] .sidebar-label {
+      color: #191919 !important;
+      font-weight: 800 !important;
+    }
+
+    [data-theme="cartoon"] .nav-item {
+      color: #5a5a5a !important;
+      border-radius: 8px !important;
+      margin-bottom: 6px !important;
+      border: 1.5px solid transparent !important;
+      transition: all 0.15s ease !important;
+    }
+
+    [data-theme="cartoon"] .nav-item:hover {
+      background: #FAF8F2 !important;
+      color: #191919 !important;
+      border-color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] .nav-item.active {
+      background: #FDDF3C !important;
+      color: #191919 !important;
+      border: 1.5px solid #191919 !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+      font-weight: bold !important;
+      border-radius: 8px !important;
+    }
+
+    [data-theme="cartoon"] .top-bar {
+      background: #FDDF3C !important;
+      border-bottom: 2px solid #191919 !important;
+      color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] .upgrade-btn {
+      background: #F75C82 !important;
+      color: #191919 !important;
+      border: 1.5px solid #191919 !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+      text-shadow: none !important;
+      border-radius: 8px !important;
+    }
+
+    [data-theme="cartoon"] .upgrade-btn:hover {
+      background: #f87293 !important;
+      transform: translate(-1px, -1px) !important;
+      box-shadow: 3px 3px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .user-profile {
+      background: #ffffff !important;
+      border: 1.5px solid #191919 !important;
+      padding: 4px 10px !important;
+      border-radius: 8px !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .user-profile span {
+      color: #191919 !important;
+      font-weight: 600 !important;
+    }
+
+    [data-theme="cartoon"] .card,
+    [data-theme="cartoon"] .overview-card,
+    [data-theme="cartoon"] .overview-stat-box,
+    [data-theme="cartoon"] .progress-card,
+    [data-theme="cartoon"] .modal-content,
+    [data-theme="cartoon"] .config-item,
+    [data-theme="cartoon"] .manual-redeem-card,
+    [data-theme="cartoon"] .giftcode-card,
+    [data-theme="cartoon"] .preset-card,
+    [data-theme="cartoon"] .reminder-card,
+    [data-theme="cartoon"] .player-info-display,
+    [data-theme="cartoon"] .auto-redeem-section,
+    [data-theme="cartoon"] .ar-config-card,
+    [data-theme="cartoon"] .ar-member-card,
+    [data-theme="cartoon"] .preview-container {
+      background: #ffffff !important;
+      border: 2px solid #191919 !important;
+      box-shadow: 4px 4px 0px #191919 !important;
+      color: #191919 !important;
+      border-radius: 8px !important;
+      backdrop-filter: none !important;
+    }
+
+    [data-theme="cartoon"] .auto-redeem-section::before {
+      content: none !important;
+    }
+
+    [data-theme="cartoon"] .overview-card:hover,
+    [data-theme="cartoon"] .overview-stat-box:hover,
+    [data-theme="cartoon"] .preset-card:hover,
+    [data-theme="cartoon"] .reminder-card:hover,
+    [data-theme="cartoon"] .giftcode-card:hover,
+    [data-theme="cartoon"] .selectable-code:hover,
+    [data-theme="cartoon"] .ar-member-card:hover {
+      transform: translate(-2px, -2px) !important;
+      box-shadow: 6px 6px 0px #191919 !important;
+      border-color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] .overview-card::before,
+    [data-theme="cartoon"] .overview-card::after,
+    [data-theme="cartoon"] .preset-card::before,
+    [data-theme="cartoon"] .preset-card::after {
+      content: none !important;
+    }
+
+    [data-theme="cartoon"] .stat-icon {
+      background: #FAF8F2 !important;
+      border: 1.5px solid #191919 !important;
+      color: #F75C82 !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .progress-bar-bg {
+      background: #FAF8F2 !important;
+      border: 1.5px solid #191919 !important;
+      border-radius: 6px !important;
+    }
+
+    [data-theme="cartoon"] .progress-bar-fill {
+      background: linear-gradient(to right, #F75C82, #FDDF3C) !important;
+      border-right: 1.5px solid #191919 !important;
+    }
+
+    [data-theme="cartoon"] select,
+    [data-theme="cartoon"] input[type="text"],
+    [data-theme="cartoon"] input[type="password"],
+    [data-theme="cartoon"] input[type="date"],
+    [data-theme="cartoon"] textarea,
+    [data-theme="cartoon"] .reminder-actions input,
+    [data-theme="cartoon"] .reminder-actions select,
+    [data-theme="cartoon"] .timezone-select {
+      background: #ffffff !important;
+      border: 1.5px solid #191919 !important;
+      color: #191919 !important;
+      border-radius: 8px !important;
+      box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.05) !important;
+      font-weight: 500 !important;
+    }
+
+    [data-theme="cartoon"] .timezone-select option {
+      background: #ffffff !important;
+      color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] select:focus,
+    [data-theme="cartoon"] input[type="text"]:focus,
+    [data-theme="cartoon"] input[type="password"]:focus,
+    [data-theme="cartoon"] input[type="date"]:focus,
+    [data-theme="cartoon"] textarea:focus,
+    [data-theme="cartoon"] .timezone-select:focus {
+      outline: none !important;
+      border-color: #F75C82 !important;
+      box-shadow: 0 0 0 2px rgba(247, 92, 130, 0.15) !important;
+    }
+
+    [data-theme="cartoon"] .form-group label {
+      color: #191919 !important;
+      font-weight: 700 !important;
+    }
+
+    [data-theme="cartoon"] .btn {
+      border: 1.5px solid #191919 !important;
+      border-radius: 8px !important;
+      font-weight: 700 !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+      transition: transform 0.1s, box-shadow 0.1s !important;
+    }
+
+    [data-theme="cartoon"] .btn-primary {
+      background: #F75C82 !important;
+      color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] .btn-primary:hover {
+      background: #f87293 !important;
+      transform: translate(-1px, -1px) !important;
+      box-shadow: 3px 3px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .btn-secondary {
+      background: #ffffff !important;
+      color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] .btn-secondary:hover {
+      background: #FAF8F2 !important;
+      transform: translate(-1px, -1px) !important;
+      box-shadow: 3px 3px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .btn-danger {
+      background: #ef4444 !important;
+      color: #ffffff !important;
+    }
+
+    [data-theme="cartoon"] .btn-danger:hover {
+      background: #f05a5a !important;
+      transform: translate(-1px, -1px) !important;
+      box-shadow: 3px 3px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .btn:active {
+      transform: translate(0px, 0px) !important;
+      box-shadow: 1px 1px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .slider {
+      background: #e2e8f0 !important;
+      border: 2px solid #191919 !important;
+    }
+
+    [data-theme="cartoon"] .slider:before {
+      background: #ffffff !important;
+      border: 2px solid #191919 !important;
+      width: 14px !important;
+      height: 14px !important;
+      left: 2px !important;
+      bottom: 2px !important;
+    }
+
+    [data-theme="cartoon"] input:checked + .slider {
+      background: #FDDF3C !important;
+    }
+
+    [data-theme="cartoon"] input:checked + .slider:before {
+      transform: translateX(20px) !important;
+      background: #F75C82 !important;
+    }
+
+    [data-theme="cartoon"] .selectable-code {
+      background: #ffffff !important;
+      border: 1.5px solid #191919 !important;
+      color: #191919 !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+      border-radius: 8px !important;
+    }
+
+    [data-theme="cartoon"] .selectable-code.selected {
+      background: #FDDF3C !important;
+      border-color: #191919 !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+      font-weight: bold !important;
+    }
+
+    [data-theme="cartoon"] .status-pill,
+    [data-theme="cartoon"] .plan-badge,
+    [data-theme="cartoon"] .enabled-pill,
+    [data-theme="cartoon"] .ar-status-badge {
+      border: 1.5px solid #191919 !important;
+      box-shadow: 1px 1px 0px #191919 !important;
+      border-radius: 6px !important;
+      font-weight: bold !important;
+    }
+
+    [data-theme="cartoon"] .plan-badge {
+      background: #ffffff !important;
+      color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] .status-pill.active,
+    [data-theme="cartoon"] .status-pill.valid,
+    [data-theme="cartoon"] .ar-status-badge.active,
+    [data-theme="cartoon"] .enabled-pill.on {
+      background: #57f287 !important;
+      color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] .status-pill.pending {
+      background: #FDDF3C !important;
+      color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] .status-pill.redeemed {
+      background: #FAF8F2 !important;
+      color: #5a5a5a !important;
+    }
+
+    [data-theme="cartoon"] .enabled-pill.off,
+    [data-theme="cartoon"] .ar-status-badge.inactive {
+      background: #e2e8f0 !important;
+      color: #5a5a5a !important;
+      border-color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] .var-chip {
+      background: #FDDF3C !important;
+      color: #191919 !important;
+      border: 1.5px solid #191919 !important;
+      box-shadow: 1px 1px 0px #191919 !important;
+      border-radius: 4px !important;
+      font-weight: bold !important;
+    }
+
+    [data-theme="cartoon"] .var-chip:hover {
+      background: #ffe36d !important;
+    }
+
+    [data-theme="cartoon"] .dow-btn {
+      background: #ffffff !important;
+      border: 1.5px solid #191919 !important;
+      color: #5a5a5a !important;
+      border-radius: 6px !important;
+      box-shadow: 1px 1px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .dow-btn:hover {
+      background: #FAF8F2 !important;
+      color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] .dow-btn.selected {
+      background: #FDDF3C !important;
+      color: #191919 !important;
+      font-weight: bold !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .preset-thumb {
+      background: #FAF8F2 !important;
+      border-bottom: 2px solid #191919 !important;
+    }
+
+    [data-theme="cartoon"] .reminder-card-thumb,
+    [data-theme="cartoon"] .player-avatar-large,
+    [data-theme="cartoon"] .server-big-icon,
+    [data-theme="cartoon"] .ar-member-avatar {
+      border: 2px solid #191919 !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+      border-radius: 8px !important;
+    }
+
+    [data-theme="cartoon"] .reminder-detail-row i,
+    [data-theme="cartoon"] .giftcode-detail-row i {
+      color: #F75C82 !important;
+    }
+
+    [data-theme="cartoon"] .ar-member-count {
+      background: #FDDF3C !important;
+      color: #191919 !important;
+      border: 1.5px solid #191919 !important;
+      box-shadow: 1px 1px 0px #191919 !important;
+      border-radius: 6px !important;
+      padding: 1px 6px !important;
+    }
+
+    [data-theme="cartoon"] .ar-member-remove {
+      background: #ef4444 !important;
+      border: 1.5px solid #191919 !important;
+      color: #ffffff !important;
+      box-shadow: 1px 1px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .ar-member-remove:hover {
+      background: #f05a5a !important;
+      transform: translate(-1px, -1px) !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .nav-lock-badge {
+      background: #ef4444 !important;
+      border: 1.5px solid #191919 !important;
+      color: #ffffff !important;
+      box-shadow: 1px 1px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .section-header,
+    [data-theme="cartoon"] .ar-header,
+    [data-theme="cartoon"] .ar-members-header,
+    [data-theme="cartoon"] .giftcode-actions,
+    [data-theme="cartoon"] .reminder-card-actions {
+      border-bottom-color: #191919 !important;
+      border-top-color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] .empty-state {
+      background: #ffffff !important;
+      border: 2px solid #191919 !important;
+      box-shadow: 4px 4px 0px #191919 !important;
+      color: #191919 !important;
+      border-radius: 8px !important;
+    }
+
+    [data-theme="cartoon"] .result-item {
+      background: #FAF8F2 !important;
+      border: 1.5px solid #191919 !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+      color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] .result-item.success {
+      border-left: 6px solid #10b981 !important;
+    }
+
+    [data-theme="cartoon"] .result-item.already {
+      border-left: 6px solid #FDDF3C !important;
+    }
+
+    [data-theme="cartoon"] .result-item.failed {
+      border-left: 6px solid #ef4444 !important;
+    }
+
+    [data-theme="cartoon"] .loading-overlay {
+      background: rgba(250, 248, 242, 0.8) !important;
+    }
+
+    [data-theme="cartoon"] .spinner {
+      border: 4px solid rgba(25, 25, 25, 0.1) !important;
+      border-top-color: #F75C82 !important;
+    }
+
+    [data-theme="cartoon"] .notification {
+      background: #10b981 !important;
+      border: 2px solid #191919 !important;
+      box-shadow: 4px 4px 0px #191919 !important;
+      color: #ffffff !important;
+      border-radius: 8px !important;
+    }
+
+    [data-theme="cartoon"] .notification.error {
+      background: #ef4444 !important;
+    }
+
+    [data-theme="cartoon"] ::-webkit-scrollbar-thumb {
+      background: #191919 !important;
+      border: 1px solid #ffffff !important;
+    }
+
+    [data-theme="cartoon"] .swatch {
+      border-color: #191919 !important;
+      box-shadow: 1px 1px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .swatch.active {
+      transform: scale(1.15) !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .img-upload-zone {
+      border: 2px dashed #191919 !important;
+      background: #ffffff !important;
+      color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] .img-upload-zone:hover,
+    [data-theme="cartoon"] .img-upload-zone.dragover {
+      background: #FAF8F2 !important;
+      border-color: #F75C82 !important;
+    }
+
+    [data-theme="cartoon"] .chip-button {
+      background: #ffffff !important;
+      border: 1.5px solid #191919 !important;
+      color: #191919 !important;
+      box-shadow: 1px 1px 0px #191919 !important;
+      font-weight: 600 !important;
+    }
+
+    [data-theme="cartoon"] .chip-button:hover {
+      background: #FAF8F2 !important;
+      border-color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] .chip-button.active {
+      background: #FDDF3C !important;
+      border-color: #191919 !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+      font-weight: bold !important;
+    }
         .timezone-select:focus {
             border-color: var(--primary);
         }

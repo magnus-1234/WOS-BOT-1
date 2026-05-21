@@ -12,7 +12,7 @@
   <title>Whiteout Survival - Global Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;800&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     :root {
@@ -95,39 +95,132 @@
     }
 
     [data-theme="cartoon"] {
-      --radius: 18px;
-      --bg: #f6fbff;
-      --panel: rgba(255, 255, 255, 0.94);
-      --panel-2: rgba(255, 255, 255, 0.9);
-      --line: rgba(23, 32, 51, 0.14);
-      --text: #172033;
-      --muted: #5b6478;
-      --primary: #ff5f8f;
+      --radius: 8px;
+      --bg: #FAF8F2;
+      --panel: #ffffff;
+      --panel-2: #ffffff;
+      --line: #191919;
+      --text: #191919;
+      --muted: #5a5a5a;
+      --primary: #F75C82;
+    }
+
+    [data-theme="cartoon"] body {
+      background-color: #FAF8F2 !important;
+      background-image: 
+        radial-gradient(circle at 80% 20%, rgba(253, 223, 60, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 20% 80%, rgba(247, 92, 130, 0.1) 0%, transparent 40%) !important;
+      font-family: "Lora", Georgia, serif !important;
+    }
+
+    [data-theme="cartoon"] h1,
+    [data-theme="cartoon"] h2,
+    [data-theme="cartoon"] h3,
+    [data-theme="cartoon"] h4,
+    [data-theme="cartoon"] h5,
+    [data-theme="cartoon"] h6,
+    [data-theme="cartoon"] .brand strong,
+    [data-theme="cartoon"] .stat b,
+    [data-theme="cartoon"] .server-name {
+      font-family: 'Newsreader', 'Lora', Georgia, serif !important;
+      font-weight: 800 !important;
+      letter-spacing: -0.02em !important;
+      color: #191919 !important;
     }
 
     [data-theme="cartoon"] .panel,
     [data-theme="cartoon"] .table-row,
-    [data-theme="cartoon"] header {
-      border: 1px solid rgba(23, 32, 51, 0.14) !important;
-      box-shadow: 0 18px 42px -32px rgba(23, 32, 51, 0.5) !important;
-      border-radius: 18px !important;
+    [data-theme="cartoon"] .stat,
+    [data-theme="cartoon"] .server-row {
+      border: 1.5px solid #191919 !important;
+      background: #ffffff !important;
+      color: #191919 !important;
+      box-shadow: 4px 4px 0px #191919 !important;
+      border-radius: 8px !important;
+      backdrop-filter: none !important;
     }
 
+    [data-theme="cartoon"] .btn,
     [data-theme="cartoon"] button,
     [data-theme="cartoon"] .theme-toggle,
-    [data-theme="cartoon"] .btn {
-      border: 1px solid rgba(23, 32, 51, 0.16) !important;
-      background: #ffe36d !important;
-      color: #172033 !important;
-      box-shadow: 0 10px 22px -16px rgba(23, 32, 51, 0.45) !important;
-      border-radius: 12px !important;
+    [data-theme="cartoon"] input,
+    [data-theme="cartoon"] select {
+      border: 1.5px solid #191919 !important;
+      background: #F75C82 !important;
+      color: #191919 !important;
+      box-shadow: 3px 3px 0px #191919 !important;
+      border-radius: 8px !important;
+      text-shadow: none !important;
+      transition: transform 0.15s ease, box-shadow 0.15s ease !important;
     }
 
-    [data-theme="cartoon"] body {
-      background:
-        linear-gradient(135deg, rgba(255, 227, 109, 0.22) 0 13%, transparent 13% 100%),
-        linear-gradient(165deg, transparent 0 62%, rgba(121, 220, 176, 0.2) 62% 100%),
-        #f6fbff !important;
+    [data-theme="cartoon"] input,
+    [data-theme="cartoon"] select {
+      background: #ffffff !important;
+      box-shadow: none !important;
+    }
+
+    [data-theme="cartoon"] .btn:hover,
+    [data-theme="cartoon"] button:hover,
+    [data-theme="cartoon"] .theme-toggle:hover {
+      transform: translate(-2px, -2px) !important;
+      box-shadow: 5px 5px 0px #191919 !important;
+      background: #f87293 !important;
+    }
+
+    [data-theme="cartoon"] .btn:active,
+    [data-theme="cartoon"] button:active,
+    [data-theme="cartoon"] .theme-toggle:active {
+      transform: translate(0px, 0px) !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .btn.danger {
+      background: #ffffff !important;
+      color: #ef5b5b !important;
+      border-color: #ef5b5b !important;
+    }
+
+    [data-theme="cartoon"] .btn.danger:hover {
+      background: #fff5f5 !important;
+    }
+
+    [data-theme="cartoon"] .btn.success {
+      background: #FDDF3C !important;
+      color: #191919 !important;
+      border-color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] .btn.success:hover {
+      background: #ffe36d !important;
+    }
+
+    [data-theme="cartoon"] .theme-toggle {
+      background: #ffffff !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .theme-toggle:hover {
+      background: #FAF8F2 !important;
+    }
+
+    [data-theme="cartoon"] header {
+      border-bottom: 2px solid #191919 !important;
+      background: #FDDF3C !important;
+      box-shadow: none !important;
+    }
+
+    [data-theme="cartoon"] header a,
+    [data-theme="cartoon"] header span,
+    [data-theme="cartoon"] header div,
+    [data-theme="cartoon"] header button,
+    [data-theme="cartoon"] header strong {
+      color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] .server-row img {
+      border: 2px solid #191919 !important;
+      border-radius: 6px !important;
     }
 
     /* Theme Toggle styles */

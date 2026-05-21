@@ -2,13 +2,19 @@
 <html lang="en">
 
 <head>
+  <script>
+    const savedTheme = localStorage.getItem('theme') || 'cartoon';
+    if (savedTheme && savedTheme !== 'dark') {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login — Whiteout Survival Dashboard</title>
   <!-- Modern Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;800&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
   
   <style>
     :root {
@@ -232,6 +238,88 @@
       .back-link {
         margin-top: 22px;
       }
+    }
+
+    /* ── Cartoon Theme Style Overrides ── */
+    [data-theme="cartoon"] {
+      --radius: 8px;
+      --bg-dark: #FAF8F2;
+      --glass-bg: #ffffff;
+      --glass-border: #191919;
+      --primary: #5865F2;
+      --primary-hover: #4752C4;
+    }
+
+    [data-theme="cartoon"] body {
+      background-color: #FAF8F2 !important;
+      background-image: 
+        radial-gradient(circle at 80% 20%, rgba(253, 223, 60, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 20% 80%, rgba(247, 92, 130, 0.1) 0%, transparent 40%) !important;
+      font-family: "Lora", Georgia, serif !important;
+      color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] h1,
+    [data-theme="cartoon"] .back-link {
+      font-family: 'Newsreader', 'Lora', Georgia, serif !important;
+      font-weight: 800 !important;
+      color: #191919 !important;
+      background: none !important;
+      -webkit-text-fill-color: initial !important;
+      text-shadow: none !important;
+    }
+
+    [data-theme="cartoon"] .subtitle {
+      color: #3d3d3d !important;
+      font-weight: 500 !important;
+    }
+
+    [data-theme="cartoon"] .login-container {
+      background: #ffffff !important;
+      border: 2px solid #191919 !important;
+      box-shadow: 6px 6px 0px #191919 !important;
+      border-radius: 8px !important;
+      color: #191919 !important;
+      backdrop-filter: none !important;
+    }
+
+    [data-theme="cartoon"] .bot-avatar {
+      border: 3px solid #191919 !important;
+      box-shadow: 4px 4px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .discord-btn {
+      background: #5865F2 !important;
+      color: #ffffff !important;
+      border: 2px solid #191919 !important;
+      box-shadow: 3px 3px 0px #191919 !important;
+      border-radius: 8px !important;
+      transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+    }
+
+    [data-theme="cartoon"] .discord-btn:hover {
+      background: #4752C4 !important;
+      transform: translate(-2px, -2px) !important;
+      box-shadow: 5px 5px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .discord-btn:active {
+      transform: translate(0px, 0px) !important;
+      box-shadow: 1px 1px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .back-link {
+      color: #5a5a5a !important;
+      font-weight: bold !important;
+    }
+
+    [data-theme="cartoon"] .back-link:hover {
+      color: #191919 !important;
+      text-decoration: underline !important;
+    }
+
+    [data-theme="cartoon"] .bg-animation {
+      display: none !important;
     }
   </style>
 </head>

@@ -14,7 +14,7 @@
   <!-- Modern Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;800&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
   
   <style>
@@ -110,43 +110,111 @@
     }
 
     [data-theme="cartoon"] {
-      --radius: 18px;
-      --bg-dark: #f6fbff;
-      --card-bg: rgba(255, 255, 255, 0.92);
-      --glass-border: rgba(23, 32, 51, 0.14);
-      --text-main: #172033;
-      --text-muted: #5b6478;
-      --primary: #ff5f8f;
-      --primary-glow: rgba(0, 184, 217, 0.35);
-      --gradient-brand: linear-gradient(135deg, #172033 0%, #ff5f8f 45%, #00a7c7 100%);
+      --radius: 8px;
+      --bg-dark: #FAF8F2;
+      --card-bg: #ffffff;
+      --glass-border: #191919;
+      --text-main: #191919;
+      --text-muted: #5a5a5a;
+      --primary: #F75C82;
+      --primary-glow: #FAF8F2;
+      --gradient-brand: linear-gradient(135deg, #191919 0%, #F75C82 100%);
     }
 
     [data-theme="cartoon"] body {
-      background:
-        linear-gradient(135deg, rgba(255, 227, 109, 0.24) 0 13%, transparent 13% 100%),
-        linear-gradient(165deg, transparent 0 62%, rgba(121, 220, 176, 0.22) 62% 100%),
-        #f6fbff !important;
+      background-color: #FAF8F2 !important;
+      background-image: 
+        radial-gradient(circle at 80% 20%, rgba(253, 223, 60, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 20% 80%, rgba(247, 92, 130, 0.1) 0%, transparent 40%) !important;
+      font-family: "Lora", Georgia, serif !important;
+    }
+
+    [data-theme="cartoon"] h1,
+    [data-theme="cartoon"] h2,
+    [data-theme="cartoon"] h3,
+    [data-theme="cartoon"] h4,
+    [data-theme="cartoon"] h5,
+    [data-theme="cartoon"] h6,
+    [data-theme="cartoon"] .brand-text,
+    [data-theme="cartoon"] #profile-name,
+    [data-theme="cartoon"] .section-title,
+    [data-theme="cartoon"] .server-name {
+      font-family: 'Newsreader', 'Lora', Georgia, serif !important;
+      font-weight: 800 !important;
+      letter-spacing: -0.02em !important;
+      color: #191919 !important;
     }
 
     [data-theme="cartoon"] .sidebar,
     [data-theme="cartoon"] .main-content,
     [data-theme="cartoon"] .stat-card,
     [data-theme="cartoon"] .console-panel,
-    [data-theme="cartoon"] .header,
-    [data-theme="cartoon"] .server-selector {
-      border: 1px solid rgba(23, 32, 51, 0.14) !important;
-      box-shadow: 0 18px 42px -32px rgba(23, 32, 51, 0.5) !important;
-      border-radius: 18px !important;
+    [data-theme="cartoon"] .server-selector,
+    [data-theme="cartoon"] .user-profile,
+    [data-theme="cartoon"] .server-card,
+    [data-theme="cartoon"] .heroes-gallery {
+      border: 1.5px solid #191919 !important;
+      background: #ffffff !important;
+      color: #191919 !important;
+      box-shadow: 4px 4px 0px #191919 !important;
+      border-radius: 8px !important;
+      backdrop-filter: none !important;
     }
 
+    [data-theme="cartoon"] .server-card:hover {
+      transform: translate(-4px, -4px) scale(1.01) !important;
+      box-shadow: 8px 8px 0px #191919 !important;
+      border-color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] .btn,
     [data-theme="cartoon"] button,
     [data-theme="cartoon"] .theme-toggle,
     [data-theme="cartoon"] .server-select {
-      border: 1px solid rgba(23, 32, 51, 0.16) !important;
-      background: #ffe36d !important;
-      color: #172033 !important;
-      box-shadow: 0 10px 22px -16px rgba(23, 32, 51, 0.45) !important;
-      border-radius: 12px !important;
+      border: 1.5px solid #191919 !important;
+      background: #F75C82 !important;
+      color: #191919 !important;
+      box-shadow: 3px 3px 0px #191919 !important;
+      border-radius: 8px !important;
+      text-shadow: none !important;
+      transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+    }
+
+    [data-theme="cartoon"] .btn:hover,
+    [data-theme="cartoon"] button:hover,
+    [data-theme="cartoon"] .theme-toggle:hover,
+    [data-theme="cartoon"] .server-select:hover {
+      transform: translate(-2px, -2px) !important;
+      box-shadow: 5px 5px 0px #191919 !important;
+      background: #f87293 !important;
+    }
+
+    [data-theme="cartoon"] .btn:active,
+    [data-theme="cartoon"] button:active,
+    [data-theme="cartoon"] .theme-toggle:active,
+    [data-theme="cartoon"] .server-select:active {
+      transform: translate(0px, 0px) !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .btn.danger {
+      background: #ffffff !important;
+      color: #f43f5e !important;
+      border-color: #f43f5e !important;
+    }
+    
+    [data-theme="cartoon"] .btn.danger:hover {
+      background: #fff5f6 !important;
+    }
+
+    [data-theme="cartoon"] .theme-toggle {
+      background: #ffffff !important;
+      color: #191919 !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+    }
+
+    [data-theme="cartoon"] .theme-toggle:hover {
+      background: #FAF8F2 !important;
     }
 
     [data-theme="cartoon"] .bg-animation,
@@ -154,14 +222,46 @@
       display: none !important;
     }
 
-    [data-theme="cartoon"] header,
+    [data-theme="cartoon"] header {
+      border-bottom: 2px solid #191919 !important;
+      background: #FDDF3C !important;
+      box-shadow: none !important;
+    }
+
+    [data-theme="cartoon"] header a,
+    [data-theme="cartoon"] header span,
+    [data-theme="cartoon"] header div,
+    [data-theme="cartoon"] header button {
+      color: #191919 !important;
+    }
+
+    [data-theme="cartoon"] #user-container {
+      background: #ffffff !important;
+      border: 1.5px solid #191919 !important;
+      box-shadow: 2px 2px 0px #191919 !important;
+    }
+
     [data-theme="cartoon"] footer {
-      background: rgba(255, 255, 255, 0.88) !important;
+      background: #FAF8F2 !important;
+      color: #191919 !important;
+      border-top: 1.5px solid #191919 !important;
+    }
+
+    [data-theme="cartoon"] .server-icon {
+      border: 3px solid #191919 !important;
+      background: #ffffff !important;
+    }
+
+    [data-theme="cartoon"] .member-count {
+      color: #4b4b4b !important;
     }
 
     [data-theme="cartoon"] .live-bot-widget {
-      border: 1px solid rgba(23, 32, 51, 0.16) !important;
-      box-shadow: 0 18px 42px -28px rgba(23, 32, 51, 0.52) !important;
+      border: 1.5px solid #191919 !important;
+      box-shadow: 4px 4px 0px #191919 !important;
+      background: #ffffff !important;
+      color: #191919 !important;
+      border-radius: 8px !important;
       animation: cartoonWidgetFloat 4.5s ease-in-out infinite;
     }
 

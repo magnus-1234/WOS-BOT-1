@@ -144,6 +144,13 @@
       z-index: 50 !important;
     }
 
+    .front-hero-scene:hover .hero-item:not(:hover) {
+      filter: brightness(0.5) grayscale(0.4) blur(3px) !important;
+      opacity: 0.55;
+      transform: scale(0.95) translateY(10px) !important;
+      transition: filter 0.4s ease, transform 0.4s ease !important;
+    }
+
     .hero-item img {
       width: 100%;
       height: auto;
@@ -1091,6 +1098,31 @@
             <img src="assets/whiteout-official/hero_full_pic.D8rdKeCr.png" alt="Charlie">
             <div class="hero-node"><span>Charlie</span></div>
           </div>
+          <!-- Logan -->
+          <div class="hero-item hero-item--large" data-name="Logan" style="left: -9%; bottom: 4%; z-index: 12;">
+            <img src="assets/whiteout-official/hero_full_pic.logan.png" alt="Logan">
+            <div class="hero-node"><span>Logan</span></div>
+          </div>
+          <!-- Philly -->
+          <div class="hero-item" data-name="Philly" style="left: 4%; bottom: 26%; z-index: 6;">
+            <img src="assets/whiteout-official/hero_full_pic.philly.png" alt="Philly">
+            <div class="hero-node"><span>Philly</span></div>
+          </div>
+          <!-- Flint -->
+          <div class="hero-item hero-item--large" data-name="Flint" style="left: 82%; bottom: 8%; z-index: 10;">
+            <img src="assets/whiteout-official/hero_full_pic.flint.png" alt="Flint">
+            <div class="hero-node"><span>Flint</span></div>
+          </div>
+          <!-- Alonso -->
+          <div class="hero-item" data-name="Alonso" style="left: 91%; bottom: 25%; z-index: 7;">
+            <img src="assets/whiteout-official/hero_full_pic.alonso.png" alt="Alonso">
+            <div class="hero-node"><span>Alonso</span></div>
+          </div>
+          <!-- Mia -->
+          <div class="hero-item hero-item--small" data-name="Mia" style="left: 87%; bottom: 53%; z-index: 3;">
+            <img src="assets/whiteout-official/hero_full_pic.mia.png" alt="Mia">
+            <div class="hero-node"><span>Mia</span></div>
+          </div>
         </div>
       </div>
     </section>
@@ -1306,6 +1338,7 @@
         liveFeed.classList.remove('dragging');
       });
     });
+  </script>
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {

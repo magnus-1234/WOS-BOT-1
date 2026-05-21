@@ -166,6 +166,43 @@
       z-index: 2;
     }
 
+    .fire-particles {
+      position: absolute;
+      inset: -20%;
+      pointer-events: none;
+      z-index: 41; /* In front of mid row, behind front row */
+      background-image: 
+        radial-gradient(2px 2px at 15% 25%, rgba(255, 150, 50, 0.8) 50%, transparent 100%),
+        radial-gradient(3px 3px at 45% 65%, rgba(255, 120, 30, 0.9) 50%, transparent 100%),
+        radial-gradient(2px 2px at 85% 35%, rgba(255, 180, 80, 0.7) 50%, transparent 100%),
+        radial-gradient(4px 4px at 25% 85%, rgba(255, 100, 20, 1) 50%, transparent 100%);
+      background-size: 250px 250px;
+      animation: fireDrift 35s linear infinite;
+      mix-blend-mode: screen;
+      filter: drop-shadow(0 0 8px rgba(255, 100, 0, 0.8));
+    }
+
+    .fire-particles.fast {
+      z-index: 55; /* In front of everything */
+      background-image: 
+        radial-gradient(3px 3px at 10% 10%, rgba(255, 160, 50, 0.9) 50%, transparent 100%),
+        radial-gradient(4px 4px at 60% 80%, rgba(255, 140, 40, 1) 50%, transparent 100%),
+        radial-gradient(2px 2px at 90% 20%, rgba(255, 180, 60, 0.8) 50%, transparent 100%),
+        radial-gradient(3px 3px at 30% 50%, rgba(255, 120, 30, 0.9) 50%, transparent 100%);
+      background-size: 180px 180px;
+      animation: fireDriftFast 20s linear infinite;
+    }
+
+    @keyframes fireDrift {
+      0% { transform: translateY(0) translateX(0); }
+      100% { transform: translateY(-250px) translateX(-50px); }
+    }
+
+    @keyframes fireDriftFast {
+      0% { transform: translateY(0) translateX(0); }
+      100% { transform: translateY(-350px) translateX(80px); }
+    }
+
     .hero-sun {
       position: absolute;
       left: 50%;
@@ -346,9 +383,10 @@
     /* Front row (non-lead): sharp, naturally lit, no blur */
     .hero-item--fg {
       filter:
+        drop-shadow(0 0 35px rgba(141, 232, 255, 0.45))
         drop-shadow(0 28px 52px rgba(0, 0, 0, 0.74))
-        brightness(1.02)
-        saturate(1.04);
+        brightness(1.15)
+        saturate(1.1);
       animation: floatFg 4.5s ease-in-out infinite alternate;
     }
 
@@ -1349,6 +1387,10 @@
             </div>
           </div>
 
+          <!-- Fire / Dust Particles -->
+          <div class="fire-particles"></div>
+          <div class="fire-particles fast"></div>
+
           <!-- ═══ BACK ROW (5): Deep background arc ═══ -->
           <div class="hero-item hero-item--bg delay-8" data-name="Cloris" style="left: 22%; bottom: 43%; z-index: 15;">
             <img src="assets/whiteout-official/hero_full_pic.DtU2xPuV.png" alt="Cloris">
@@ -1394,19 +1436,19 @@
           </div>
 
           <!-- ═══ FRONT ROW (4): The Vanguard Wedge ═══ -->
-          <div class="hero-item hero-item--large hero-item--fg delay-5" data-name="Sergey" style="left: 25%; bottom: 3%; z-index: 42;">
+          <div class="hero-item hero-item--large hero-item--fg delay-5" data-name="Sergey" style="left: 25%; bottom: 7%; z-index: 42;">
             <img src="assets/whiteout-official/hero_full_pic.CCAtLVc1.png" alt="Sergey">
             <div class="hero-node"><span>Sergey</span></div>
           </div>
-          <div class="hero-item hero-item--large hero-item--fg delay-2" data-name="Jeronimo" style="left: 40%; bottom: 9%; z-index: 45;">
+          <div class="hero-item hero-item--large hero-item--fg delay-2" data-name="Jeronimo" style="left: 40%; bottom: 7%; z-index: 45;">
             <img src="assets/whiteout-official/hero_full_pic.BSa3ljeO.png" alt="Jeronimo">
             <div class="hero-node"><span>Jeronimo</span></div>
           </div>
-          <div class="hero-item hero-item--lead delay-3" data-name="Molly" style="left: 55%; bottom: 11%; z-index: 50;">
+          <div class="hero-item hero-item--lead delay-3" data-name="Molly" style="left: 55%; bottom: 7%; z-index: 50;">
             <img src="assets/whiteout-official/hero_full_pic.iEiT7Zbo.png" alt="Molly">
             <div class="hero-node"><span>Molly</span></div>
           </div>
-          <div class="hero-item hero-item--large hero-item--fg delay-1" data-name="Natalia" style="left: 72%; bottom: 5%; z-index: 48;">
+          <div class="hero-item hero-item--large hero-item--fg delay-1" data-name="Natalia" style="left: 72%; bottom: 7%; z-index: 48;">
             <img src="assets/whiteout-official/hero_full_pic.vgPvkTh1.png" alt="Natalia">
             <div class="hero-node"><span>Natalia</span></div>
           </div>

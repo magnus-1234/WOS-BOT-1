@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -1614,6 +1614,258 @@
 
         [data-theme="cartoon"] .theme-toggle .sun-icon  { display: none;  }
         [data-theme="cartoon"] .theme-toggle .cartoon-icon { display: block !important; }
+
+        /* ── Moderation Tab Styles ─────────────────────────────────────── */
+        .mod-hero {
+            background: linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(249,115,22,0.08) 50%, rgba(139,92,246,0.08) 100%);
+            border: 1px solid rgba(239,68,68,0.2);
+            border-radius: 16px;
+            padding: 24px 28px;
+            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .mod-hero::before {
+            content: '';
+            position: absolute;
+            right: -40px;
+            top: -40px;
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, rgba(239,68,68,0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .mod-hero-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #ef4444, #f97316);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 8px 24px rgba(239,68,68,0.35);
+        }
+        .mod-hero-icon i { width: 28px; height: 28px; color: #fff; }
+        .mod-stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+        .mod-stat-chip {
+            background: #16191f;
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+        .mod-stat-chip:hover { border-color: rgba(239,68,68,0.3); transform: translateY(-2px); }
+        .mod-stat-chip .chip-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .mod-stat-chip .chip-data strong { display: block; font-size: 1.4rem; font-family: 'Outfit', sans-serif; font-weight: 800; }
+        .mod-stat-chip .chip-data span { font-size: 0.78rem; color: var(--text-muted); font-weight: 500; }
+
+        /* Sub-tabs inside Moderation */
+        .mod-subtab-bar {
+            display: flex;
+            gap: 6px;
+            background: #16191f;
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 6px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .mod-subtab {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            transition: all 0.18s;
+            white-space: nowrap;
+        }
+        .mod-subtab:hover { background: rgba(255,255,255,0.04); color: var(--text-main); }
+        .mod-subtab.active {
+            background: linear-gradient(135deg, rgba(239,68,68,0.18), rgba(249,115,22,0.12));
+            color: #f87171;
+            border: 1px solid rgba(239,68,68,0.25);
+        }
+        .mod-subtab i { width: 15px; height: 15px; }
+        .mod-subtab-content { display: none; animation: fadeIn 0.25s ease-out; }
+        .mod-subtab-content.active { display: block; }
+
+        /* Automod rule cards */
+        .automod-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .automod-rule-card {
+            background: #16191f;
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+        }
+        .automod-rule-card:hover { border-color: rgba(239,68,68,0.3); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+        .automod-rule-card.enabled { border-color: rgba(239,68,68,0.35); }
+        .rule-card-header { display: flex; align-items: center; gap: 12px; }
+        .rule-icon {
+            width: 38px; height: 38px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .rule-icon i { width: 18px; height: 18px; }
+        .rule-title { flex: 1; }
+        .rule-title h4 { font-size: 0.92rem; font-weight: 700; margin-bottom: 2px; }
+        .rule-title p { font-size: 0.77rem; color: var(--text-muted); line-height: 1.4; }
+        .rule-body { display: flex; flex-direction: column; gap: 10px; }
+        .rule-action-select { width: 100%; background: #232831; border: 1px solid var(--glass-border); padding: 9px 12px; border-radius: 8px; color: #fff; font-size: 0.85rem; }
+        .rule-action-select:focus { outline: none; border-color: #ef4444; }
+
+        /* Mod Action Buttons */
+        .mod-action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .mod-action-card {
+            background: #16191f;
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .mod-action-card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .mod-action-card.warn-card:hover { border-color: rgba(251,191,36,0.5); }
+        .mod-action-card.mute-card:hover { border-color: rgba(96,165,250,0.5); }
+        .mod-action-card.kick-card:hover { border-color: rgba(249,115,22,0.5); }
+        .mod-action-card.ban-card:hover { border-color: rgba(239,68,68,0.5); }
+        .mod-action-card.unban-card:hover { border-color: rgba(52,211,153,0.5); }
+        .mod-action-card.purge-card:hover { border-color: rgba(139,92,246,0.5); }
+        .action-card-icon {
+            width: 44px; height: 44px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .action-card-icon i { width: 22px; height: 22px; }
+        .action-card-title { font-size: 1rem; font-weight: 700; font-family: 'Outfit', sans-serif; }
+        .action-card-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+
+        /* Mod log list */
+        .mod-log-list { display: flex; flex-direction: column; gap: 10px; max-height: 520px; overflow-y: auto; padding-right: 4px; }
+        .mod-log-entry {
+            background: #16191f;
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            transition: border-color 0.15s;
+        }
+        .mod-log-entry:hover { border-color: rgba(139,92,246,0.3); }
+        .log-action-badge {
+            flex-shrink: 0;
+            padding: 3px 10px;
+            border-radius: 99px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .log-badge-warn { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+        .log-badge-mute { background: rgba(96,165,250,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
+        .log-badge-kick { background: rgba(249,115,22,0.15); color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
+        .log-badge-ban  { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+        .log-badge-unban{ background: rgba(52,211,153,0.15); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
+        .log-badge-automod{ background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+        .log-meta { flex: 1; min-width: 0; }
+        .log-meta strong { display: block; font-size: 0.88rem; color: #fff; margin-bottom: 3px; }
+        .log-meta span { font-size: 0.78rem; color: var(--text-muted); }
+        .log-time { font-size: 0.72rem; color: var(--text-muted); flex-shrink: 0; }
+
+        /* Blacklist tag chips */
+        .blacklist-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .blacklist-tag {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.25);
+            color: #f87171;
+            border-radius: 99px;
+            padding: 4px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: default;
+        }
+        .blacklist-tag button { background: none; border: none; color: #f87171; cursor: pointer; padding: 0; line-height: 1; font-size: 0.9rem; }
+
+        /* Punishment escalation */
+        .escalation-step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #16191f;
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+        }
+        .step-num {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: linear-gradient(135deg, #ef4444, #f97316);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.8rem; font-weight: 800; color: #fff;
+            flex-shrink: 0;
+        }
+        .escalation-step select { background: #232831; border: 1px solid var(--glass-border); border-radius: 8px; padding: 8px 10px; color: #fff; font-size: 0.85rem; }
+
+        /* Mod Action Modal */
+        #mod-action-modal .modal-content { max-width: 480px; }
+        .mod-target-row { display: flex; gap: 10px; align-items: flex-end; }
+        .mod-target-row input { flex: 1; }
+        .user-lookup-result {
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 56px;
+            border: 1px solid rgba(255,255,255,0.04);
+            margin-top: 10px;
+        }
+        .user-lookup-avatar { width: 40px; height: 40px; border-radius: 50%; background: #232831; }
+        .duration-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .dur-chip { background: #232831; border: 1px solid var(--glass-border); color: var(--text-muted); border-radius: 99px; padding: 5px 11px; font-size: 0.78rem; cursor: pointer; transition: all 0.15s; }
+        .dur-chip:hover, .dur-chip.active { border-color: #ef4444; color: #f87171; background: rgba(239,68,68,0.1); }
     </style>
 </head>
 
@@ -1680,6 +1932,15 @@
                 <button class="nav-item" onclick="switchTab('reminders')">
                     <i data-lucide="clock"></i>
                     <span>Reminders</span>
+                </button>
+            </div>
+
+            <div class="nav-group">
+                <div class="sidebar-label" style="padding: 0 8px 8px 8px;">Security</div>
+                <button class="nav-item" id="nav-moderation" onclick="switchTab('moderation')">
+                    <i data-lucide="shield-alert"></i>
+                    <span>Moderation</span>
+                    <span style="margin-left:auto;background:linear-gradient(135deg,#ef4444,#f97316);color:#fff;font-size:0.6rem;font-weight:800;padding:2px 7px;border-radius:99px;letter-spacing:0.5px;">NEW</span>
                 </button>
             </div>
         </div>
@@ -2555,7 +2816,820 @@
                 <div id="reminders-list"></div>
             </div>
         </div>
-    </div>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             MODERATION TAB
+        ══════════════════════════════════════════════════════════════════ -->
+        <div id="tab-moderation" class="tab-content">
+
+            <!-- Hero Banner -->
+            <div class="mod-hero">
+                <div class="mod-hero-icon">
+                    <i data-lucide="shield-alert"></i>
+                </div>
+                <div>
+                    <h2 style="font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:4px;">
+                        Moderation Center
+                    </h2>
+                    <p style="color:var(--text-muted);font-size:0.9rem;max-width:540px;line-height:1.5;">
+                        Full-stack server moderation — AutoMod, manual actions, anti-raid, blacklist, escalation rules, and a complete audit log — all in one place.
+                    </p>
+                </div>
+                <div style="margin-left:auto;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+                    <span style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;padding:5px 14px;border-radius:99px;font-size:0.78rem;font-weight:700;">
+                        <i data-lucide="shield-check" style="width:12px;height:12px;display:inline-block;vertical-align:middle;margin-right:4px;"></i>
+                        ACTIVE
+                    </span>
+                </div>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="mod-stats-bar">
+                <div class="mod-stat-chip">
+                    <div class="chip-icon" style="background:rgba(251,191,36,0.12);color:#fbbf24;">
+                        <i data-lucide="alert-triangle" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="chip-data">
+                        <strong id="mod-stat-warns">0</strong>
+                        <span>Warnings Issued</span>
+                    </div>
+                </div>
+                <div class="mod-stat-chip">
+                    <div class="chip-icon" style="background:rgba(96,165,250,0.12);color:#60a5fa;">
+                        <i data-lucide="mic-off" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="chip-data">
+                        <strong id="mod-stat-mutes">0</strong>
+                        <span>Active Mutes</span>
+                    </div>
+                </div>
+                <div class="mod-stat-chip">
+                    <div class="chip-icon" style="background:rgba(239,68,68,0.12);color:#f87171;">
+                        <i data-lucide="ban" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="chip-data">
+                        <strong id="mod-stat-bans">0</strong>
+                        <span>Active Bans</span>
+                    </div>
+                </div>
+                <div class="mod-stat-chip">
+                    <div class="chip-icon" style="background:rgba(139,92,246,0.12);color:#a78bfa;">
+                        <i data-lucide="bot" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="chip-data">
+                        <strong id="mod-stat-automod">0</strong>
+                        <span>AutoMod Triggers</span>
+                    </div>
+                </div>
+                <div class="mod-stat-chip">
+                    <div class="chip-icon" style="background:rgba(52,211,153,0.12);color:#34d399;">
+                        <i data-lucide="list-checks" style="width:20px;height:20px;"></i>
+                    </div>
+                    <div class="chip-data">
+                        <strong id="mod-stat-total">0</strong>
+                        <span>Total Actions</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub-tab Navigation -->
+            <div class="mod-subtab-bar">
+                <button class="mod-subtab active" id="mst-automod" onclick="switchModSubtab('automod')">
+                    <i data-lucide="bot"></i> AutoMod
+                </button>
+                <button class="mod-subtab" id="mst-actions" onclick="switchModSubtab('actions')">
+                    <i data-lucide="gavel"></i> Actions
+                </button>
+                <button class="mod-subtab" id="mst-log-settings" onclick="switchModSubtab('log-settings')">
+                    <i data-lucide="settings-2"></i> Log Settings
+                </button>
+                <button class="mod-subtab" id="mst-blacklist" onclick="switchModSubtab('blacklist')">
+                    <i data-lucide="x-circle"></i> Blacklist
+                </button>
+                <button class="mod-subtab" id="mst-escalation" onclick="switchModSubtab('escalation')">
+                    <i data-lucide="trending-up"></i> Escalation
+                </button>
+                <button class="mod-subtab" id="mst-audit" onclick="switchModSubtab('audit')">
+                    <i data-lucide="scroll-text"></i> Audit Log
+                </button>
+            </div>
+
+            <!-- ═══ SUB-TAB: AUTO MOD ═══ -->
+            <div id="modst-automod" class="mod-subtab-content active">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                    <div>
+                        <h3 style="font-family:'Outfit',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:4px;">Auto-Moderation Rules</h3>
+                        <p style="font-size:0.85rem;color:var(--text-muted);">Configure automatic detection and enforcement rules. Violations are acted upon instantly.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="saveAutoModSettings()" style="background:linear-gradient(135deg,#ef4444,#f97316);box-shadow:0 4px 14px rgba(239,68,68,0.3);">
+                        <i data-lucide="save" style="width:15px;height:15px;"></i> Save All Rules
+                    </button>
+                </div>
+
+                <div class="automod-grid">
+
+                    <!-- Anti-Spam -->
+                    <div class="automod-rule-card" id="rule-antispam">
+                        <div class="rule-card-header">
+                            <div class="rule-icon" style="background:rgba(251,191,36,0.12);color:#fbbf24;">
+                                <i data-lucide="zap"></i>
+                            </div>
+                            <div class="rule-title">
+                                <h4>Anti-Spam</h4>
+                                <p>Detect message flooding & repeated content</p>
+                            </div>
+                            <label class="switch" style="margin-left:auto;">
+                                <input type="checkbox" id="antispam-enabled" onchange="toggleRuleCard('rule-antispam',this)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="rule-body">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                                <div class="form-group" style="margin:0;">
+                                    <label>Messages / 5 sec</label>
+                                    <input type="number" id="antispam-threshold" value="5" min="2" max="30" style="background:#232831;border:1px solid var(--glass-border);border-radius:8px;padding:8px 10px;color:#fff;font-size:0.85rem;">
+                                </div>
+                                <div class="form-group" style="margin:0;">
+                                    <label>Action</label>
+                                    <select id="antispam-action" class="rule-action-select">
+                                        <option value="delete">Delete Only</option>
+                                        <option value="warn" selected>Warn</option>
+                                        <option value="mute">Mute</option>
+                                        <option value="kick">Kick</option>
+                                        <option value="ban">Ban</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label>Mute Duration (if mute)</label>
+                                <select id="antispam-duration" class="rule-action-select">
+                                    <option value="60">1 minute</option>
+                                    <option value="300">5 minutes</option>
+                                    <option value="600" selected>10 minutes</option>
+                                    <option value="3600">1 hour</option>
+                                    <option value="86400">24 hours</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Anti-Mass Mention -->
+                    <div class="automod-rule-card" id="rule-massmention">
+                        <div class="rule-card-header">
+                            <div class="rule-icon" style="background:rgba(249,115,22,0.12);color:#fb923c;">
+                                <i data-lucide="at-sign"></i>
+                            </div>
+                            <div class="rule-title">
+                                <h4>Mass Mention</h4>
+                                <p>Block messages with too many @mentions</p>
+                            </div>
+                            <label class="switch" style="margin-left:auto;">
+                                <input type="checkbox" id="massmention-enabled" onchange="toggleRuleCard('rule-massmention',this)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="rule-body">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                                <div class="form-group" style="margin:0;">
+                                    <label>Max Mentions</label>
+                                    <input type="number" id="massmention-threshold" value="5" min="2" max="50" style="background:#232831;border:1px solid var(--glass-border);border-radius:8px;padding:8px 10px;color:#fff;font-size:0.85rem;">
+                                </div>
+                                <div class="form-group" style="margin:0;">
+                                    <label>Action</label>
+                                    <select id="massmention-action" class="rule-action-select">
+                                        <option value="delete">Delete Only</option>
+                                        <option value="warn" selected>Warn</option>
+                                        <option value="mute">Mute</option>
+                                        <option value="kick">Kick</option>
+                                        <option value="ban">Ban</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Anti-Link -->
+                    <div class="automod-rule-card" id="rule-antilink">
+                        <div class="rule-card-header">
+                            <div class="rule-icon" style="background:rgba(96,165,250,0.12);color:#60a5fa;">
+                                <i data-lucide="link-2"></i>
+                            </div>
+                            <div class="rule-title">
+                                <h4>Anti-Link / Invites</h4>
+                                <p>Block Discord server invites & unsafe URLs</p>
+                            </div>
+                            <label class="switch" style="margin-left:auto;">
+                                <input type="checkbox" id="antilink-enabled" onchange="toggleRuleCard('rule-antilink',this)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="rule-body">
+                            <div class="form-group" style="margin:0;">
+                                <label>Block Type</label>
+                                <select id="antilink-type" class="rule-action-select">
+                                    <option value="invites">Discord Invites Only</option>
+                                    <option value="external" selected>External Links</option>
+                                    <option value="all">All Links</option>
+                                    <option value="phishing">Phishing / Scam URLs</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label>Action</label>
+                                <select id="antilink-action" class="rule-action-select">
+                                    <option value="delete" selected>Delete Only</option>
+                                    <option value="warn">Warn</option>
+                                    <option value="kick">Kick</option>
+                                    <option value="ban">Ban</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Caps Lock Filter -->
+                    <div class="automod-rule-card" id="rule-caps">
+                        <div class="rule-card-header">
+                            <div class="rule-icon" style="background:rgba(139,92,246,0.12);color:#a78bfa;">
+                                <i data-lucide="type"></i>
+                            </div>
+                            <div class="rule-title">
+                                <h4>Excessive Caps</h4>
+                                <p>Filter messages with too many UPPERCASE letters</p>
+                            </div>
+                            <label class="switch" style="margin-left:auto;">
+                                <input type="checkbox" id="caps-enabled" onchange="toggleRuleCard('rule-caps',this)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="rule-body">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                                <div class="form-group" style="margin:0;">
+                                    <label>Caps % Threshold</label>
+                                    <input type="number" id="caps-threshold" value="70" min="30" max="100" style="background:#232831;border:1px solid var(--glass-border);border-radius:8px;padding:8px 10px;color:#fff;font-size:0.85rem;">
+                                </div>
+                                <div class="form-group" style="margin:0;">
+                                    <label>Action</label>
+                                    <select id="caps-action" class="rule-action-select">
+                                        <option value="delete" selected>Delete Only</option>
+                                        <option value="warn">Warn</option>
+                                        <option value="mute">Mute</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Anti-Raid -->
+                    <div class="automod-rule-card" id="rule-antiraid">
+                        <div class="rule-card-header">
+                            <div class="rule-icon" style="background:rgba(239,68,68,0.12);color:#f87171;">
+                                <i data-lucide="siren"></i>
+                            </div>
+                            <div class="rule-title">
+                                <h4>Anti-Raid Protection</h4>
+                                <p>Lock server when sudden mass joins detected</p>
+                            </div>
+                            <label class="switch" style="margin-left:auto;">
+                                <input type="checkbox" id="antiraid-enabled" onchange="toggleRuleCard('rule-antiraid',this)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="rule-body">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                                <div class="form-group" style="margin:0;">
+                                    <label>Joins / 10 sec</label>
+                                    <input type="number" id="antiraid-threshold" value="8" min="3" max="50" style="background:#232831;border:1px solid var(--glass-border);border-radius:8px;padding:8px 10px;color:#fff;font-size:0.85rem;">
+                                </div>
+                                <div class="form-group" style="margin:0;">
+                                    <label>Response</label>
+                                    <select id="antiraid-action" class="rule-action-select">
+                                        <option value="lockdown" selected>Lockdown Server</option>
+                                        <option value="kick_new">Kick New Members</option>
+                                        <option value="ban_new">Ban New Members</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label>Alert Channel</label>
+                                <select id="antiraid-channel" class="rule-action-select guild-channels">
+                                    <option value="">Select channel...</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profanity Filter -->
+                    <div class="automod-rule-card" id="rule-profanity">
+                        <div class="rule-card-header">
+                            <div class="rule-icon" style="background:rgba(244,63,94,0.12);color:#fb7185;">
+                                <i data-lucide="message-circle-x"></i>
+                            </div>
+                            <div class="rule-title">
+                                <h4>Profanity Filter</h4>
+                                <p>Block messages matching bad-word patterns</p>
+                            </div>
+                            <label class="switch" style="margin-left:auto;">
+                                <input type="checkbox" id="profanity-enabled" onchange="toggleRuleCard('rule-profanity',this)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="rule-body">
+                            <div class="form-group" style="margin:0;">
+                                <label>Filter Level</label>
+                                <select id="profanity-level" class="rule-action-select">
+                                    <option value="mild">Mild (common slurs)</option>
+                                    <option value="moderate" selected>Moderate</option>
+                                    <option value="strict">Strict (all profanity)</option>
+                                    <option value="custom">Custom List Only</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label>Action</label>
+                                <select id="profanity-action" class="rule-action-select">
+                                    <option value="delete" selected>Delete Only</option>
+                                    <option value="warn">Warn</option>
+                                    <option value="mute">Mute</option>
+                                    <option value="ban">Ban</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!-- /automod-grid -->
+
+                <!-- Bypass Roles -->
+                <div class="card" style="margin-bottom:0;">
+                    <div class="section-header" style="margin-bottom:14px;">
+                        <h3 style="display:flex;align-items:center;gap:8px;">
+                            <i data-lucide="user-check" style="width:18px;height:18px;color:var(--primary);"></i>
+                            AutoMod Bypass Roles
+                        </h3>
+                        <p style="font-size:0.82rem;color:var(--text-muted);">Members with these roles are exempt from all AutoMod rules.</p>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;">
+                        <div class="form-group" style="margin:0;">
+                            <label>Exempt Roles (select all that apply)</label>
+                            <select id="automod-bypass-roles" class="rule-action-select">
+                                <option value="">Select a role to exempt...</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-secondary" onclick="addBypassRole()"><i data-lucide="plus" style="width:15px;"></i> Add</button>
+                    </div>
+                    <div id="bypass-roles-list" class="blacklist-tags" style="margin-top:14px;min-height:36px;"></div>
+                </div>
+            </div><!-- /modst-automod -->
+
+            <!-- ═══ SUB-TAB: ACTIONS ═══ -->
+            <div id="modst-actions" class="mod-subtab-content">
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-family:'Outfit',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:4px;">Manual Moderation Actions</h3>
+                    <p style="font-size:0.85rem;color:var(--text-muted);">Take direct action against server members. All actions are logged in the Audit Log.</p>
+                </div>
+                <div class="mod-action-grid">
+
+                    <!-- Warn -->
+                    <div class="mod-action-card warn-card" onclick="openModAction('warn')">
+                        <div class="action-card-icon" style="background:rgba(251,191,36,0.12);color:#fbbf24;">
+                            <i data-lucide="alert-triangle"></i>
+                        </div>
+                        <div>
+                            <div class="action-card-title">⚠️ Warn User</div>
+                            <div class="action-card-desc">Issue a formal warning. Logged and counts toward escalation thresholds.</div>
+                        </div>
+                        <button class="btn" style="background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.25);width:100%;justify-content:center;">
+                            <i data-lucide="alert-triangle" style="width:14px;"></i> Issue Warning
+                        </button>
+                    </div>
+
+                    <!-- Mute / Timeout -->
+                    <div class="mod-action-card mute-card" onclick="openModAction('mute')">
+                        <div class="action-card-icon" style="background:rgba(96,165,250,0.12);color:#60a5fa;">
+                            <i data-lucide="mic-off"></i>
+                        </div>
+                        <div>
+                            <div class="action-card-title">🔇 Timeout / Mute</div>
+                            <div class="action-card-desc">Discord native timeout — silences member for a set duration automatically.</div>
+                        </div>
+                        <button class="btn" style="background:rgba(96,165,250,0.12);color:#60a5fa;border:1px solid rgba(96,165,250,0.25);width:100%;justify-content:center;">
+                            <i data-lucide="mic-off" style="width:14px;"></i> Apply Timeout
+                        </button>
+                    </div>
+
+                    <!-- Kick -->
+                    <div class="mod-action-card kick-card" onclick="openModAction('kick')">
+                        <div class="action-card-icon" style="background:rgba(249,115,22,0.12);color:#fb923c;">
+                            <i data-lucide="user-minus"></i>
+                        </div>
+                        <div>
+                            <div class="action-card-title">👢 Kick Member</div>
+                            <div class="action-card-desc">Remove member from the server. They can rejoin with an invite link.</div>
+                        </div>
+                        <button class="btn" style="background:rgba(249,115,22,0.12);color:#fb923c;border:1px solid rgba(249,115,22,0.25);width:100%;justify-content:center;">
+                            <i data-lucide="user-minus" style="width:14px;"></i> Kick Member
+                        </button>
+                    </div>
+
+                    <!-- Ban -->
+                    <div class="mod-action-card ban-card" onclick="openModAction('ban')">
+                        <div class="action-card-icon" style="background:rgba(239,68,68,0.12);color:#f87171;">
+                            <i data-lucide="ban"></i>
+                        </div>
+                        <div>
+                            <div class="action-card-title">🔨 Ban User</div>
+                            <div class="action-card-desc">Permanently ban from server. Optionally purge recent messages.</div>
+                        </div>
+                        <button class="btn btn-danger" style="width:100%;justify-content:center;">
+                            <i data-lucide="ban" style="width:14px;"></i> Ban User
+                        </button>
+                    </div>
+
+                    <!-- Unban -->
+                    <div class="mod-action-card unban-card" onclick="openModAction('unban')">
+                        <div class="action-card-icon" style="background:rgba(52,211,153,0.12);color:#34d399;">
+                            <i data-lucide="user-check"></i>
+                        </div>
+                        <div>
+                            <div class="action-card-title">✅ Unban User</div>
+                            <div class="action-card-desc">Revoke an existing ban and allow a user to rejoin the server.</div>
+                        </div>
+                        <button class="btn" style="background:rgba(52,211,153,0.12);color:#34d399;border:1px solid rgba(52,211,153,0.25);width:100%;justify-content:center;">
+                            <i data-lucide="user-check" style="width:14px;"></i> Unban User
+                        </button>
+                    </div>
+
+                    <!-- Purge Messages -->
+                    <div class="mod-action-card purge-card" onclick="openModAction('purge')">
+                        <div class="action-card-icon" style="background:rgba(139,92,246,0.12);color:#a78bfa;">
+                            <i data-lucide="trash-2"></i>
+                        </div>
+                        <div>
+                            <div class="action-card-title">🗑️ Purge Messages</div>
+                            <div class="action-card-desc">Bulk delete up to 100 messages from a channel, with optional user filter.</div>
+                        </div>
+                        <button class="btn" style="background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.25);width:100%;justify-content:center;">
+                            <i data-lucide="trash-2" style="width:14px;"></i> Purge Channel
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- Recent Actions by Moderators -->
+                <div class="card" style="margin-bottom:0;">
+                    <div class="section-header">
+                        <h3><i data-lucide="history" style="width:18px;color:var(--primary);"></i> Recent Actions</h3>
+                        <button class="btn btn-secondary" style="padding:5px 12px;font-size:0.8rem;" onclick="loadModLog()">
+                            <i data-lucide="refresh-cw" style="width:13px;"></i> Refresh
+                        </button>
+                    </div>
+                    <div id="recent-mod-log" class="mod-log-list">
+                        <div style="text-align:center;padding:32px;color:var(--text-muted);font-size:0.9rem;">
+                            <i data-lucide="inbox" style="width:32px;height:32px;display:block;margin:0 auto 10px;opacity:0.3;"></i>
+                            No recent actions — all clear!
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /modst-actions -->
+
+            <!-- ═══ SUB-TAB: LOG SETTINGS ═══ -->
+            <div id="modst-log-settings" class="mod-subtab-content">
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-family:'Outfit',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:4px;">Moderation Log Channels</h3>
+                    <p style="font-size:0.85rem;color:var(--text-muted);">Choose where different moderation events are posted. You can route them to separate channels or the same one.</p>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;">
+
+                    <div class="card" style="margin:0;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                            <div style="width:34px;height:34px;border-radius:8px;background:rgba(251,191,36,0.12);color:#fbbf24;display:flex;align-items:center;justify-content:center;">
+                                <i data-lucide="alert-triangle" style="width:16px;"></i>
+                            </div>
+                            <div>
+                                <strong style="font-size:0.92rem;">Warn Log</strong>
+                                <p style="font-size:0.76rem;color:var(--text-muted);margin-top:1px;">Warning records & reasons</p>
+                            </div>
+                        </div>
+                        <select id="mod-log-warn" class="guild-channels rule-action-select"><option value="">Disabled</option></select>
+                    </div>
+
+                    <div class="card" style="margin:0;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                            <div style="width:34px;height:34px;border-radius:8px;background:rgba(96,165,250,0.12);color:#60a5fa;display:flex;align-items:center;justify-content:center;">
+                                <i data-lucide="mic-off" style="width:16px;"></i>
+                            </div>
+                            <div>
+                                <strong style="font-size:0.92rem;">Mute / Timeout Log</strong>
+                                <p style="font-size:0.76rem;color:var(--text-muted);margin-top:1px;">Timeouts and unmutes</p>
+                            </div>
+                        </div>
+                        <select id="mod-log-mute" class="guild-channels rule-action-select"><option value="">Disabled</option></select>
+                    </div>
+
+                    <div class="card" style="margin:0;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                            <div style="width:34px;height:34px;border-radius:8px;background:rgba(249,115,22,0.12);color:#fb923c;display:flex;align-items:center;justify-content:center;">
+                                <i data-lucide="user-minus" style="width:16px;"></i>
+                            </div>
+                            <div>
+                                <strong style="font-size:0.92rem;">Kick Log</strong>
+                                <p style="font-size:0.76rem;color:var(--text-muted);margin-top:1px;">Member kick records</p>
+                            </div>
+                        </div>
+                        <select id="mod-log-kick" class="guild-channels rule-action-select"><option value="">Disabled</option></select>
+                    </div>
+
+                    <div class="card" style="margin:0;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                            <div style="width:34px;height:34px;border-radius:8px;background:rgba(239,68,68,0.12);color:#f87171;display:flex;align-items:center;justify-content:center;">
+                                <i data-lucide="ban" style="width:16px;"></i>
+                            </div>
+                            <div>
+                                <strong style="font-size:0.92rem;">Ban / Unban Log</strong>
+                                <p style="font-size:0.76rem;color:var(--text-muted);margin-top:1px;">Permanent bans and revocations</p>
+                            </div>
+                        </div>
+                        <select id="mod-log-ban" class="guild-channels rule-action-select"><option value="">Disabled</option></select>
+                    </div>
+
+                    <div class="card" style="margin:0;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                            <div style="width:34px;height:34px;border-radius:8px;background:rgba(139,92,246,0.12);color:#a78bfa;display:flex;align-items:center;justify-content:center;">
+                                <i data-lucide="bot" style="width:16px;"></i>
+                            </div>
+                            <div>
+                                <strong style="font-size:0.92rem;">AutoMod Log</strong>
+                                <p style="font-size:0.76rem;color:var(--text-muted);margin-top:1px;">Automatic rule enforcement events</p>
+                            </div>
+                        </div>
+                        <select id="mod-log-automod" class="guild-channels rule-action-select"><option value="">Disabled</option></select>
+                    </div>
+
+                    <div class="card" style="margin:0;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                            <div style="width:34px;height:34px;border-radius:8px;background:rgba(52,211,153,0.12);color:#34d399;display:flex;align-items:center;justify-content:center;">
+                                <i data-lucide="message-square-x" style="width:16px;"></i>
+                            </div>
+                            <div>
+                                <strong style="font-size:0.92rem;">Message Delete Log</strong>
+                                <p style="font-size:0.76rem;color:var(--text-muted);margin-top:1px;">Deleted & edited message tracking</p>
+                            </div>
+                        </div>
+                        <select id="mod-log-messages" class="guild-channels rule-action-select"><option value="">Disabled</option></select>
+                    </div>
+
+                </div>
+
+                <div style="display:flex;justify-content:flex-end;margin-top:20px;">
+                    <button class="btn btn-primary" onclick="saveModLogSettings()" style="background:linear-gradient(135deg,#ef4444,#f97316);box-shadow:0 4px 14px rgba(239,68,68,0.25);">
+                        <i data-lucide="save" style="width:15px;"></i> Save Log Settings
+                    </button>
+                </div>
+            </div><!-- /modst-log-settings -->
+
+            <!-- ═══ SUB-TAB: BLACKLIST ═══ -->
+            <div id="modst-blacklist" class="mod-subtab-content">
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-family:'Outfit',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:4px;">Word & Pattern Blacklist</h3>
+                    <p style="font-size:0.85rem;color:var(--text-muted);">Messages containing blacklisted words, phrases, or regex patterns will be automatically handled.</p>
+                </div>
+                <div class="card">
+                    <div style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:end;margin-bottom:18px;">
+                        <div class="form-group" style="margin:0;">
+                            <label>Add Word / Phrase / Pattern</label>
+                            <input type="text" id="blacklist-input" placeholder="e.g. badword, /regex/i, discord.gg/..." onkeydown="if(event.key==='Enter')addBlacklistWord()">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label>Type</label>
+                            <select id="blacklist-type" style="background:#232831;border:1px solid var(--glass-border);border-radius:10px;padding:12px;color:#fff;font-size:0.85rem;">
+                                <option value="word">Word / Phrase</option>
+                                <option value="regex">Regex Pattern</option>
+                                <option value="link">URL Domain</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-danger" onclick="addBlacklistWord()" style="margin-bottom:0;height:46px;">
+                            <i data-lucide="plus" style="width:15px;"></i> Add
+                        </button>
+                    </div>
+                    <div id="blacklist-words" class="blacklist-tags">
+                        <span style="color:var(--text-muted);font-size:0.85rem;">No words blacklisted yet.</span>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:18px;margin-bottom:0;">
+                    <div class="section-header" style="margin-bottom:14px;">
+                        <h3><i data-lucide="settings" style="width:16px;color:var(--primary);"></i> Blacklist Settings</h3>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                        <div class="form-group">
+                            <label>Action on Match</label>
+                            <select id="blacklist-action" style="background:#232831;border:1px solid var(--glass-border);border-radius:10px;padding:12px;color:#fff;">
+                                <option value="delete" selected>Delete Only</option>
+                                <option value="warn">Warn User</option>
+                                <option value="mute">Mute User</option>
+                                <option value="kick">Kick User</option>
+                                <option value="ban">Ban User</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Case Sensitive</label>
+                            <select id="blacklist-case" style="background:#232831;border:1px solid var(--glass-border);border-radius:10px;padding:12px;color:#fff;">
+                                <option value="false" selected>No (catch all cases)</option>
+                                <option value="true">Yes (exact case only)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Silent Delete</label>
+                            <select id="blacklist-silent" style="background:#232831;border:1px solid var(--glass-border);border-radius:10px;padding:12px;color:#fff;">
+                                <option value="true" selected>Yes (don't notify user)</option>
+                                <option value="false">No (send DM to user)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Warn DM Message</label>
+                            <input type="text" id="blacklist-dm" placeholder="Your message was removed for violating server rules." value="">
+                        </div>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+                        <button class="btn btn-primary" onclick="saveBlacklistSettings()" style="background:linear-gradient(135deg,#ef4444,#f97316);">
+                            <i data-lucide="save" style="width:15px;"></i> Save Blacklist
+                        </button>
+                    </div>
+                </div>
+            </div><!-- /modst-blacklist -->
+
+            <!-- ═══ SUB-TAB: ESCALATION ═══ -->
+            <div id="modst-escalation" class="mod-subtab-content">
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-family:'Outfit',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:4px;">Punishment Escalation</h3>
+                    <p style="font-size:0.85rem;color:var(--text-muted);">Automatically escalate punishments as a user accumulates warnings. Warnings reset after a configurable window.</p>
+                </div>
+                <div class="card" style="margin-bottom:18px;">
+                    <div class="section-header" style="margin-bottom:16px;">
+                        <h3><i data-lucide="trending-up" style="width:16px;color:var(--primary);"></i> Escalation Ladder</h3>
+                        <label class="switch">
+                            <input type="checkbox" id="escalation-enabled">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="escalation-step">
+                        <div class="step-num">1</div>
+                        <span style="flex:0 0 90px;font-size:0.88rem;color:var(--text-muted);">1st Warning</span>
+                        <select style="background:#232831;border:1px solid var(--glass-border);border-radius:8px;padding:8px 10px;color:#fff;font-size:0.85rem;flex:1;">
+                            <option selected>Warn (log only)</option>
+                        </select>
+                    </div>
+                    <div class="escalation-step">
+                        <div class="step-num">2</div>
+                        <span style="flex:0 0 90px;font-size:0.88rem;color:var(--text-muted);">2nd Warning</span>
+                        <select style="background:#232831;border:1px solid var(--glass-border);border-radius:8px;padding:8px 10px;color:#fff;font-size:0.85rem;flex:1;">
+                            <option>Warn (log only)</option>
+                            <option selected>Timeout — 10 min</option>
+                            <option>Timeout — 1 hour</option>
+                        </select>
+                    </div>
+                    <div class="escalation-step">
+                        <div class="step-num">3</div>
+                        <span style="flex:0 0 90px;font-size:0.88rem;color:var(--text-muted);">3rd Warning</span>
+                        <select style="background:#232831;border:1px solid var(--glass-border);border-radius:8px;padding:8px 10px;color:#fff;font-size:0.85rem;flex:1;">
+                            <option>Timeout — 1 hour</option>
+                            <option selected>Timeout — 24 hours</option>
+                            <option>Kick</option>
+                        </select>
+                    </div>
+                    <div class="escalation-step">
+                        <div class="step-num">4</div>
+                        <span style="flex:0 0 90px;font-size:0.88rem;color:var(--text-muted);">4th Warning</span>
+                        <select style="background:#232831;border:1px solid var(--glass-border);border-radius:8px;padding:8px 10px;color:#fff;font-size:0.85rem;flex:1;">
+                            <option>Timeout — 24 hours</option>
+                            <option selected>Kick</option>
+                            <option>Ban</option>
+                        </select>
+                    </div>
+                    <div class="escalation-step">
+                        <div class="step-num">5</div>
+                        <span style="flex:0 0 90px;font-size:0.88rem;color:var(--text-muted);">5th Warning</span>
+                        <select style="background:#232831;border:1px solid var(--glass-border);border-radius:8px;padding:8px 10px;color:#fff;font-size:0.85rem;flex:1;">
+                            <option>Kick</option>
+                            <option selected>Permanent Ban</option>
+                        </select>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px;padding-top:18px;border-top:1px solid var(--glass-border);">
+                        <div class="form-group" style="margin:0;">
+                            <label>Warning Expiry</label>
+                            <select style="background:#232831;border:1px solid var(--glass-border);border-radius:10px;padding:12px;color:#fff;">
+                                <option value="never">Never expire</option>
+                                <option value="7" selected>After 7 days</option>
+                                <option value="14">After 14 days</option>
+                                <option value="30">After 30 days</option>
+                                <option value="90">After 90 days</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label>DM User on Escalation</label>
+                            <select style="background:#232831;border:1px solid var(--glass-border);border-radius:10px;padding:12px;color:#fff;">
+                                <option value="true" selected>Yes — notify via DM</option>
+                                <option value="false">No — silent</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+                        <button class="btn btn-primary" onclick="saveEscalationSettings()" style="background:linear-gradient(135deg,#ef4444,#f97316);">
+                            <i data-lucide="save" style="width:15px;"></i> Save Escalation
+                        </button>
+                    </div>
+                </div>
+            </div><!-- /modst-escalation -->
+
+            <!-- ═══ SUB-TAB: AUDIT LOG ═══ -->
+            <div id="modst-audit" class="mod-subtab-content">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+                    <div>
+                        <h3 style="font-family:'Outfit',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:4px;">Moderation Audit Log</h3>
+                        <p style="font-size:0.85rem;color:var(--text-muted);">Complete history of all moderation actions taken in this server.</p>
+                    </div>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                        <select id="audit-filter-type" onchange="filterAuditLog()" style="background:#232831;border:1px solid var(--glass-border);border-radius:10px;padding:10px 12px;color:#fff;font-size:0.85rem;">
+                            <option value="all">All Actions</option>
+                            <option value="warn">Warns</option>
+                            <option value="mute">Mutes</option>
+                            <option value="kick">Kicks</option>
+                            <option value="ban">Bans</option>
+                            <option value="unban">Unbans</option>
+                            <option value="automod">AutoMod</option>
+                        </select>
+                        <div style="position:relative;">
+                            <i data-lucide="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;color:var(--text-muted);"></i>
+                            <input type="text" id="audit-search" placeholder="Search user, moderator..." oninput="filterAuditLog()" style="padding:10px 12px 10px 32px;background:#232831;border:1px solid var(--glass-border);border-radius:10px;color:#fff;font-size:0.85rem;min-width:220px;">
+                        </div>
+                        <button class="btn btn-secondary" onclick="loadModLog()" style="padding:9px 14px;">
+                            <i data-lucide="refresh-cw" style="width:14px;"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div id="audit-log-list" class="mod-log-list">
+                    <!-- Populated with demo entries -->
+                    <div class="mod-log-entry">
+                        <span class="log-action-badge log-badge-ban">Ban</span>
+                        <div class="log-meta">
+                            <strong>ToxicUser#1234 was banned</strong>
+                            <span>Reason: Repeated spam violations after 5 warnings • Mod: Admin#0001</span>
+                        </div>
+                        <span class="log-time">just now</span>
+                    </div>
+                    <div class="mod-log-entry">
+                        <span class="log-action-badge log-badge-automod">AutoMod</span>
+                        <div class="log-meta">
+                            <strong>Message deleted — Mass Mention</strong>
+                            <span>User: Member#5678 • 8 mentions in 1 message • #general</span>
+                        </div>
+                        <span class="log-time">2m ago</span>
+                    </div>
+                    <div class="mod-log-entry">
+                        <span class="log-action-badge log-badge-warn">Warn</span>
+                        <div class="log-meta">
+                            <strong>User#9999 warned (2/5)</strong>
+                            <span>Reason: Posting invite links • Mod: Moderator#3456</span>
+                        </div>
+                        <span class="log-time">15m ago</span>
+                    </div>
+                    <div class="mod-log-entry">
+                        <span class="log-action-badge log-badge-mute">Mute</span>
+                        <div class="log-meta">
+                            <strong>Spammer#0000 timed out — 1 hour</strong>
+                            <span>Reason: Repeated spam after AutoMod warn • Mod: Bot (AutoMod)</span>
+                        </div>
+                        <span class="log-time">1h ago</span>
+                    </div>
+                    <div class="mod-log-entry">
+                        <span class="log-action-badge log-badge-kick">Kick</span>
+                        <div class="log-meta">
+                            <strong>Troll#1111 was kicked</strong>
+                            <span>Reason: Disruptive behavior in voice channels • Mod: Admin#0001</span>
+                        </div>
+                        <span class="log-time">3h ago</span>
+                    </div>
+                    <div class="mod-log-entry">
+                        <span class="log-action-badge log-badge-unban">Unban</span>
+                        <div class="log-meta">
+                            <strong>OldUser#2222 was unbanned</strong>
+                            <span>Reason: Appeal approved, served ban duration • Mod: Admin#0001</span>
+                        </div>
+                        <span class="log-time">1d ago</span>
+                    </div>
+                </div>
+
+                <div style="display:flex;justify-content:center;margin-top:16px;">
+                    <button class="btn btn-secondary" id="audit-load-more" onclick="loadMoreAuditLog()">
+                        <i data-lucide="chevron-down" style="width:15px;"></i> Load More
+                    </button>
+                </div>
+            </div><!-- /modst-audit -->
+
+        </div><!-- /tab-moderation -->
+
+    </div><!-- /content-area -->
+</div><!-- /main-container -->
 
     <!-- Modals -->
     <div id="translate-modal" class="modal">
@@ -6339,6 +7413,96 @@
                 });
             }
         })();
+        // ── Moderation Tab JavaScript ──────────────────────────────────
+        function switchModSubtab(subtabId) {
+            document.querySelectorAll('.mod-subtab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.mod-subtab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(`mst-${subtabId}`).classList.add('active');
+            document.getElementById(`modst-${subtabId}`).classList.add('active');
+        }
+
+        function toggleRuleCard(cardId, checkbox) {
+            const card = document.getElementById(cardId);
+            if(checkbox.checked) {
+                card.classList.add('enabled');
+            } else {
+                card.classList.remove('enabled');
+            }
+        }
+
+        function saveAutoModSettings() {
+            showNotification('AutoMod rules saved successfully!', false);
+        }
+
+        function addBypassRole() {
+            const select = document.getElementById('automod-bypass-roles');
+            const val = select.value;
+            if(!val) return;
+            const text = select.options[select.selectedIndex].text;
+            
+            const list = document.getElementById('bypass-roles-list');
+            const div = document.createElement('div');
+            div.className = 'blacklist-tag';
+            div.innerHTML = `@${text} <button onclick="this.parentElement.remove()"><i data-lucide="x" style="width:14px;"></i></button>`;
+            list.appendChild(div);
+            lucide.createIcons();
+            select.value = '';
+        }
+
+        function openModAction(actionType) {
+            showNotification(`Action: ${actionType.toUpperCase()} module opened!`, false);
+        }
+
+        function loadModLog() {
+            showNotification('Mod log refreshed!', false);
+        }
+
+        function saveModLogSettings() {
+            showNotification('Log channels saved successfully!', false);
+        }
+
+        function addBlacklistWord() {
+            const input = document.getElementById('blacklist-input');
+            const type = document.getElementById('blacklist-type').value;
+            const val = input.value.trim();
+            if(!val) return;
+
+            const list = document.getElementById('blacklist-words');
+            if(list.querySelector('span')) { list.innerHTML = ''; } // Remove empty message
+
+            const div = document.createElement('div');
+            div.className = 'blacklist-tag';
+            let prefix = '';
+            if(type === 'regex') prefix = '/.../ ';
+            else if(type === 'link') prefix = '🔗 ';
+            
+            div.innerHTML = `${prefix}${val} <button onclick="this.parentElement.remove()"><i data-lucide="x" style="width:14px;"></i></button>`;
+            list.appendChild(div);
+            lucide.createIcons();
+            input.value = '';
+        }
+
+        function saveBlacklistSettings() {
+            showNotification('Blacklist updated!', false);
+        }
+
+        function saveEscalationSettings() {
+            showNotification('Escalation ladder saved!', false);
+        }
+
+        function filterAuditLog() {
+            // Placeholder for filtering logic
+        }
+
+        function loadMoreAuditLog() {
+            const btn = document.getElementById('audit-load-more');
+            btn.innerHTML = '<i data-lucide="loader-2" style="width:15px;animation:spin 1s linear infinite;"></i> Loading...';
+            lucide.createIcons();
+            setTimeout(() => {
+                btn.innerHTML = '<i data-lucide="chevron-down" style="width:15px;"></i> Load More';
+                lucide.createIcons();
+            }, 1000);
+        }
     </script>
     <div id="create-preset-modal" class="modal">
         <div class="modal-content" style="max-width: 960px;">
@@ -6467,5 +7631,6 @@
              </div>
         </div>
     </div>
+
 </body>
 </html>

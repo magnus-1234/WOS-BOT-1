@@ -1070,7 +1070,7 @@
       document.documentElement.removeAttribute("data-theme");
     }
 
-    const themes = ['cartoon', 'dark', 'light', 'high-contrast', 'hacker'];
+    const themes = ['cartoon', 'dark', 'light', 'high-contrast', 'hacker', 'aurora'];
 
     themeToggle.addEventListener("click", () => {
       const currentTheme = localStorage.getItem("theme") || "dark";

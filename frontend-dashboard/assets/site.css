@@ -2847,7 +2847,6 @@ body,
 
 [data-theme="cartoon"] .hero-glow,
 [data-theme="cartoon"] .grid-bg,
-[data-theme="cartoon"] .hero-art img,
 [data-theme="cartoon"] .hero-art-tiles,
 [data-theme="cartoon"] .hero-art::after {
   display: none;
@@ -2857,12 +2856,25 @@ body,
   background:
     linear-gradient(155deg, rgba(247, 92, 130, 0.08) 0 18%, transparent 18% 100%),
     linear-gradient(20deg, transparent 0 66%, rgba(253, 223, 60, 0.1) 66% 100%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.2)),
     #FAF8F2;
-  border: 1.5px solid #191919;
-  box-shadow: 4px 4px 0px #191919;
-  border-radius: 8px;
+  inset: 0;
+  z-index: 1;
+}
+
+[data-theme="cartoon"] .hero-art img {
+  display: block !important;
+  position: absolute;
+  z-index: 2;
+  width: 85%;
+  height: 80%;
+  top: 10%;
+  left: 7.5%;
+  border: 3px solid #191919;
+  box-shadow: 8px 8px 0px #191919;
+  border-radius: 16px;
   animation: cartoonDrift 18s ease-in-out infinite alternate;
+  object-fit: cover;
+  filter: saturate(1.1) contrast(1.05);
 }
 
 [data-theme="cartoon"] .eyebrow {
@@ -3043,19 +3055,197 @@ body,
   to { transform: translate3d(0, -18px, 0) scale(1.02); }
 }
 
-/* Theme toggle icon helper states */
-.theme-toggle .contrast-icon,
-.theme-toggle .hacker-icon,
-.theme-toggle .cartoon-icon {
-  display: none;
+/* Aurora Theme */
+[data-theme="aurora"] {
+  --radius: 12px;
+  --background: #020c1b;
+  --foreground: #e0f2fe;
+  --card: rgba(4, 19, 43, 0.45);
+  --primary: #00e5ff;
+  --primary-glow: rgba(0, 229, 255, 0.4);
+  --primary-foreground: #020c1b;
+  --secondary: #0a2540;
+  --secondary-foreground: #e0f2fe;
+  --muted-foreground: #38bdf8;
+  --border: rgba(0, 229, 255, 0.16);
+  --input: rgba(0, 229, 255, 0.1);
+  --shadow-glow: 0 0 50px rgba(0, 229, 255, 0.25);
+  --accent: #00e676; /* Emerald/Mint green accent */
+  --accent-glow: rgba(0, 230, 118, 0.4);
+  --glass-bg: rgba(4, 19, 43, 0.35);
+  --glass-border: rgba(0, 229, 255, 0.15);
 }
 
-[data-theme="high-contrast"] .theme-toggle .sun-icon { display: none; }
+[data-theme="aurora"] body {
+  background: #020c1b;
+  color: #e0f2fe;
+  position: relative;
+}
+
+[data-theme="aurora"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background: radial-gradient(circle at 20% 30%, rgba(0, 229, 255, 0.15) 0%, transparent 50%),
+              radial-gradient(circle at 80% 80%, rgba(0, 230, 118, 0.12) 0%, transparent 50%),
+              #020c1b;
+  background-size: 200% 200%;
+  animation: auroraShift 25s ease infinite alternate;
+  pointer-events: none;
+}
+
+[data-theme="aurora"] .site-header {
+  background: rgba(2, 12, 27, 0.7);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 229, 255, 0.15);
+}
+
+[data-theme="aurora"] .primary-nav {
+  background: rgba(4, 19, 43, 0.5);
+  border: 1px solid rgba(0, 229, 255, 0.15);
+}
+
+[data-theme="aurora"] .primary-nav a {
+  color: #e0f2fe;
+}
+
+[data-theme="aurora"] .primary-nav a:hover,
+[data-theme="aurora"] .primary-nav a.active {
+  color: #00e5ff;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+}
+
+[data-theme="aurora"] .brand-mark {
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
+}
+
+[data-theme="aurora"] .button {
+  background: linear-gradient(135deg, #00e5ff, #00e676) !important;
+  color: #020c1b !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.3) !important;
+}
+
+[data-theme="aurora"] .button:hover {
+  box-shadow: 0 0 30px rgba(0, 229, 255, 0.5) !important;
+  transform: translateY(-2px);
+}
+
+[data-theme="aurora"] .button.secondary {
+  background: rgba(4, 19, 43, 0.6) !important;
+  color: #00e5ff !important;
+  border: 1px solid rgba(0, 229, 255, 0.3) !important;
+  box-shadow: none !important;
+}
+
+[data-theme="aurora"] .button.secondary:hover {
+  background: rgba(4, 19, 43, 0.8) !important;
+  border-color: #00e5ff !important;
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.2) !important;
+}
+
+[data-theme="aurora"] .feature-card,
+[data-theme="aurora"] .stats-grid article,
+[data-theme="aurora"] .cta-card,
+[data-theme="aurora"] .showcase-card,
+[data-theme="aurora"] .live-metrics article,
+[data-theme="aurora"] .spotlight-event,
+[data-theme="aurora"] .dispatch-bubble,
+[data-theme="aurora"] .live-command-center,
+[data-theme="aurora"] .card,
+[data-theme="aurora"] .overview-card,
+[data-theme="aurora"] .overview-stat-box,
+[data-theme="aurora"] .progress-card,
+[data-theme="aurora"] .modal-content,
+[data-theme="aurora"] .config-item,
+[data-theme="aurora"] .manual-redeem-card,
+[data-theme="aurora"] .giftcode-card,
+[data-theme="aurora"] .preset-card,
+[data-theme="aurora"] .reminder-card,
+[data-theme="aurora"] .player-info-display,
+[data-theme="aurora"] .auto-redeem-section,
+[data-theme="aurora"] .ar-config-card,
+[data-theme="aurora"] .ar-member-card {
+  background: rgba(4, 19, 43, 0.45) !important;
+  border: 1px solid rgba(0, 229, 255, 0.15) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px 0 rgba(2, 12, 27, 0.37);
+}
+
+[data-theme="aurora"] .feature-card:hover,
+[data-theme="aurora"] .showcase-card:hover,
+[data-theme="aurora"] .card:hover,
+[data-theme="aurora"] .overview-card:hover,
+[data-theme="aurora"] .preset-card:hover {
+  border-color: rgba(0, 229, 255, 0.4) !important;
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.2) !important;
+  transform: translateY(-4px);
+}
+
+[data-theme="aurora"] .hero-live-feed {
+  background: rgba(4, 19, 43, 0.6) !important;
+  border: 1px solid rgba(0, 229, 255, 0.2) !important;
+}
+
+[data-theme="aurora"] .hero-feed-top b {
+  color: #00e676 !important;
+}
+
+[data-theme="aurora"] .hero-feed-top b::before {
+  background: #00e676 !important;
+  box-shadow: 0 0 10px #00e676 !important;
+}
+
+[data-theme="aurora"] .hero-feed-copy strong {
+  color: #00e5ff !important;
+}
+
+[data-theme="aurora"] .hero-feed-copy span {
+  color: #e0f2fe !important;
+}
+
+[data-theme="aurora"] .theme-toggle {
+  background: rgba(4, 19, 43, 0.5);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  color: #00e5ff;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.15);
+}
+
+[data-theme="aurora"] .theme-toggle:hover {
+  background: rgba(4, 19, 43, 0.8);
+  border-color: #00e5ff;
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+}
+
+[data-theme="aurora"] b,
+[data-theme="aurora"] strong {
+  color: #00e5ff;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+}
+
+@keyframes auroraShift {
+  0% {
+    background-position: 0% 0%, 0% 0%;
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    background-position: 10% 15%, -10% -15%;
+    filter: hue-rotate(15deg);
+  }
+  100% {
+    background-position: -5% 5%, 5% -5%;
+    filter: hue-rotate(-15deg);
+  }
+}
 
 /* Theme toggle icon helper states */
 .theme-toggle .contrast-icon,
 .theme-toggle .hacker-icon,
-.theme-toggle .cartoon-icon {
+.theme-toggle .cartoon-icon,
+.theme-toggle .aurora-icon {
   display: none;
 }
 
@@ -3067,6 +3257,9 @@ body,
 
 [data-theme="cartoon"] .theme-toggle .sun-icon { display: none; }
 [data-theme="cartoon"] .theme-toggle .cartoon-icon { display: block !important; }
+
+[data-theme="aurora"] .theme-toggle .sun-icon { display: none; }
+[data-theme="aurora"] .theme-toggle .aurora-icon { display: block !important; }
 
 /* ── Footer Brand Logos (Boxless / Professional) ─────────────────────────── */
 .footer-right {

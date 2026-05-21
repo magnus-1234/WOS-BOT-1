@@ -467,6 +467,7 @@
         <svg class="contrast-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke-width="2"/></svg>
         <svg class="hacker-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 16 4-4-4-4M6 8l-4 4 4 4M14.5 4l-5 16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <svg class="cartoon-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke-width="2"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg class="aurora-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"><path d="M2 8c4-4 6 4 10 0s6-4 10 0M2 13c4-4 6 4 10 0s6-4 10 0M2 18c4-4 6 4 10 0s6-4 10 0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <div class="actions" style="margin:0;">
         <a class="btn" href="dashboard.html"><i data-lucide="layout-dashboard"></i> Dashboard</a>
@@ -896,7 +897,7 @@
       // Theme toggle logic
       const themeToggle = document.getElementById("theme-toggle");
       if (themeToggle) {
-        const themes = ['cartoon', 'dark', 'light', 'high-contrast', 'hacker'];
+        const themes = ['cartoon', 'dark', 'light', 'high-contrast', 'hacker', 'aurora'];
         themeToggle.addEventListener("click", () => {
           const currentTheme = localStorage.getItem("theme") || "cartoon";
           const currentIndex = themes.indexOf(currentTheme);

@@ -18,6 +18,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/site.css">
+  <link rel="stylesheet" href="assets/hacker-video.css">
   <style>
     /* Hero scene (characters, globe, flames) — only visible in cartoon (animated) theme */
     .front-hero-scene {
@@ -25,6 +26,24 @@
     }
     [data-theme="cartoon"] .front-hero-scene {
       display: block;
+    }
+    
+    .hacker-video-wrapper {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    [data-theme="hacker"] .hacker-video-wrapper {
+      display: block;
+    }
+    
+    /* Hide conflicting backgrounds in hacker theme */
+    [data-theme="hacker"] .glow-background,
+    [data-theme="hacker"] .hero-art {
+      display: none !important;
     }
 
     .feature-card,
@@ -1317,6 +1336,9 @@
 </head>
 
 <body>
+  <div class="hacker-video-wrapper">
+    <div class="cssToVideo"></div>
+  </div>
   <header class="site-header">
     <div class="header-inner">
       <a class="brand" href="index.html">

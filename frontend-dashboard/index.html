@@ -157,6 +157,37 @@
       mix-blend-mode: screen;
     }
 
+    .frozen-overlay {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, transparent 30%, rgba(141, 232, 255, 0.15) 100%),
+                  repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.02) 0px, rgba(255, 255, 255, 0.02) 1px, transparent 1px, transparent 4px);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .hero-sun {
+      position: absolute;
+      left: 50%;
+      top: -12%;
+      transform: translateX(-50%);
+      width: clamp(14rem, 20vw, 26rem);
+      z-index: 5;
+      animation: floatSun 6s ease-in-out infinite alternate;
+      filter: drop-shadow(0 0 45px rgba(255, 248, 200, 0.55)) brightness(1.15);
+    }
+    
+    .hero-sun img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    
+    @keyframes floatSun {
+      0% { transform: translateX(-50%) translateY(0) rotate(-1.5deg); }
+      100% { transform: translateX(-50%) translateY(-15px) rotate(1.5deg); }
+    }
+
     /* Floating Holographic Cards */
     .holo-card {
       position: absolute;
@@ -295,9 +326,9 @@
       width: clamp(10rem, 13vw, 17rem);
       filter:
         drop-shadow(0 10px 20px rgba(0, 0, 0, 0.9))
-        blur(4px)
-        brightness(0.35)
-        saturate(0.45);
+        blur(2px)
+        brightness(0.65)
+        saturate(0.65);
       animation: floatBg 9s ease-in-out infinite alternate;
     }
 
@@ -306,9 +337,9 @@
       width: clamp(14rem, 19vw, 24rem);
       filter:
         drop-shadow(0 18px 35px rgba(0, 0, 0, 0.72))
-        blur(1px)
-        brightness(0.72)
-        saturate(0.8);
+        blur(0.5px)
+        brightness(0.85)
+        saturate(0.9);
       animation: floatMid 5.5s ease-in-out infinite alternate;
     }
 
@@ -459,11 +490,12 @@
     }
 
     .hero-live-feed {
-      position: fixed;
+      position: absolute;
       right: clamp(1rem, 2.4vw, 1.75rem);
-      top: clamp(6.75rem, 8vw, 8rem);
+      bottom: clamp(1rem, 2vw, 1.5rem);
+      top: auto;
       z-index: 90;
-      width: min(calc(100vw - 6rem), 26rem);
+      width: min(calc(100vw - 2rem), 18rem);
       margin: 0;
       border: 1px solid rgba(141, 232, 255, 0.25);
       border-radius: 0.85rem;
@@ -1281,6 +1313,12 @@
             <div class="volumetric-rays"></div>
             <div class="icy-fog-layer"></div>
             <div class="ambient-blue-glow"></div>
+            <div class="frozen-overlay"></div>
+          </div>
+
+          <!-- The WOS Globe Sun -->
+          <div class="hero-sun">
+            <img src="assets/wos-globe.png" alt="WOS Globe">
           </div>
 
           <!-- Floating Holographic UI Cards -->
@@ -1312,63 +1350,63 @@
           </div>
 
           <!-- ═══ BACK ROW (5): Deep background arc ═══ -->
-          <div class="hero-item hero-item--bg delay-8" data-name="Cloris" style="left: 22%; bottom: 28%; z-index: 15;">
+          <div class="hero-item hero-item--bg delay-8" data-name="Cloris" style="left: 22%; bottom: 43%; z-index: 15;">
             <img src="assets/whiteout-official/hero_full_pic.DtU2xPuV.png" alt="Cloris">
             <div class="hero-node"><span>Cloris</span></div>
           </div>
-          <div class="hero-item hero-item--bg delay-6" data-name="Charlie" style="left: 36%; bottom: 32%; z-index: 20;">
+          <div class="hero-item hero-item--bg delay-6" data-name="Charlie" style="left: 36%; bottom: 47%; z-index: 20;">
             <img src="assets/whiteout-official/hero_full_pic.D8rdKeCr.png" alt="Charlie">
             <div class="hero-node"><span>Charlie</span></div>
           </div>
-          <div class="hero-item hero-item--bg delay-4" data-name="Smith" style="left: 50%; bottom: 36%; z-index: 25;">
+          <div class="hero-item hero-item--bg delay-4" data-name="Smith" style="left: 50%; bottom: 51%; z-index: 25;">
             <img src="assets/whiteout-official/hero_full_pic.5qqeXytO.png" alt="Smith">
             <div class="hero-node"><span>Smith</span></div>
           </div>
-          <div class="hero-item hero-item--bg delay-2" data-name="Eugene" style="left: 64%; bottom: 32%; z-index: 20;">
+          <div class="hero-item hero-item--bg delay-2" data-name="Eugene" style="left: 64%; bottom: 47%; z-index: 20;">
             <img src="assets/whiteout-official/hero_full_pic.Cdw5RPKo.png" alt="Eugene">
             <div class="hero-node"><span>Eugene</span></div>
           </div>
-          <div class="hero-item hero-item--bg delay-1" data-name="Ling Shuang" style="left: 76%; bottom: 26%; z-index: 15;">
+          <div class="hero-item hero-item--bg delay-1" data-name="Ling Shuang" style="left: 76%; bottom: 41%; z-index: 15;">
             <img src="assets/whiteout-official/hero_full_pic.BffOqjkM.png" alt="Ling Shuang">
             <div class="hero-node"><span>Ling Shuang</span></div>
           </div>
 
           <!-- ═══ MID ROW (5): Bridging the depth ═══ -->
-          <div class="hero-item hero-item--mid delay-5" data-name="Bahiti" style="left: 18%; bottom: 8%; z-index: 30;">
+          <div class="hero-item hero-item--mid delay-5" data-name="Bahiti" style="left: 18%; bottom: 23%; z-index: 30;">
             <img src="assets/whiteout-official/hero_full_pic.CF4CXgWm.png" alt="Bahiti">
             <div class="hero-node"><span>Bahiti</span></div>
           </div>
-          <div class="hero-item hero-item--mid delay-7" data-name="Jessie" style="left: 32%; bottom: 12%; z-index: 35;">
+          <div class="hero-item hero-item--mid delay-7" data-name="Jessie" style="left: 32%; bottom: 27%; z-index: 35;">
             <img src="assets/whiteout-official/hero_full_pic.CYHyexL2.png" alt="Jessie">
             <div class="hero-node"><span>Jessie</span></div>
           </div>
-          <div class="hero-item hero-item--mid delay-3" data-name="Patrick" style="left: 48%; bottom: 15%; z-index: 38;">
+          <div class="hero-item hero-item--mid delay-3" data-name="Patrick" style="left: 48%; bottom: 30%; z-index: 38;">
             <img src="assets/whiteout-official/hero_full_pic.Bt7jAvmg.png" alt="Patrick">
             <div class="hero-node"><span>Patrick</span></div>
           </div>
-          <div class="hero-item hero-item--mid delay-2" data-name="Zinman" style="left: 64%; bottom: 12%; z-index: 35;">
+          <div class="hero-item hero-item--mid delay-2" data-name="Zinman" style="left: 64%; bottom: 27%; z-index: 35;">
             <img src="assets/whiteout-official/hero_full_pic.CMoGjx7f.png" alt="Zinman">
             <div class="hero-node"><span>Zinman</span></div>
           </div>
-          <div class="hero-item hero-item--mid delay-4" data-name="Gina" style="left: 80%; bottom: 6%; z-index: 30;">
+          <div class="hero-item hero-item--mid delay-4" data-name="Gina" style="left: 80%; bottom: 21%; z-index: 30;">
             <img src="assets/whiteout-official/hero_full_pic.Ca2eJcB8.png" alt="Gina">
             <div class="hero-node"><span>Gina</span></div>
           </div>
 
           <!-- ═══ FRONT ROW (4): The Vanguard Wedge ═══ -->
-          <div class="hero-item hero-item--large hero-item--fg delay-5" data-name="Sergey" style="left: 25%; bottom: -12%; z-index: 42;">
+          <div class="hero-item hero-item--large hero-item--fg delay-5" data-name="Sergey" style="left: 25%; bottom: 3%; z-index: 42;">
             <img src="assets/whiteout-official/hero_full_pic.CCAtLVc1.png" alt="Sergey">
             <div class="hero-node"><span>Sergey</span></div>
           </div>
-          <div class="hero-item hero-item--large hero-item--fg delay-2" data-name="Jeronimo" style="left: 40%; bottom: -6%; z-index: 45;">
+          <div class="hero-item hero-item--large hero-item--fg delay-2" data-name="Jeronimo" style="left: 40%; bottom: 9%; z-index: 45;">
             <img src="assets/whiteout-official/hero_full_pic.BSa3ljeO.png" alt="Jeronimo">
             <div class="hero-node"><span>Jeronimo</span></div>
           </div>
-          <div class="hero-item hero-item--lead delay-3" data-name="Molly" style="left: 55%; bottom: -4%; z-index: 50;">
+          <div class="hero-item hero-item--lead delay-3" data-name="Molly" style="left: 55%; bottom: 11%; z-index: 50;">
             <img src="assets/whiteout-official/hero_full_pic.iEiT7Zbo.png" alt="Molly">
             <div class="hero-node"><span>Molly</span></div>
           </div>
-          <div class="hero-item hero-item--large hero-item--fg delay-1" data-name="Natalia" style="left: 72%; bottom: -10%; z-index: 48;">
+          <div class="hero-item hero-item--large hero-item--fg delay-1" data-name="Natalia" style="left: 72%; bottom: 5%; z-index: 48;">
             <img src="assets/whiteout-official/hero_full_pic.vgPvkTh1.png" alt="Natalia">
             <div class="hero-node"><span>Natalia</span></div>
           </div>

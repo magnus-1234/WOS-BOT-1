@@ -1,9 +1,0 @@
-commit 67ba20fa69ab46ec70003ff61fd31b5c7c1cea59
-Author: storage2mohitraj-ui <storage2mohitraj@gmail.com>
-Date:   Mon Mar 9 12:40:10 2026 +0530
-
-    Fix mongo adapter import and skip processed codes for auto-redeem
-
- cogs/manage_giftcode.py | 6235 +++++++++++++++++++++++++++++++++++++++++++++++
- mongo_adapters.py       |   28 +-
- 2 files changed, 6259 insertions(+), 4 deletions(-)

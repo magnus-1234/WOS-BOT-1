@@ -1,7 +1,0 @@
-From https://github.com/storage1mohitraj-cmd/WOS-BOT-1
- * branch            main       -> FETCH_HEAD
-Updating 3c5870b..67ba20f
-error: The following untracked working tree files would be overwritten by merge:
-	cogs/manage_giftcode.py
-Please move or remove them before you merge.
-Aborting

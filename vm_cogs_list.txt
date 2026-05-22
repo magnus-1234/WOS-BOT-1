@@ -1,2 +1,0 @@
-manage_giftcode.py
-__pycache__

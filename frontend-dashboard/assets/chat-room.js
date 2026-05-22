@@ -47,6 +47,9 @@
   let presenceTimer = null;
   let mediaRecorder = null;
   let voiceChunks = [];
+  let tinodeInstance = null;
+  let tinodeTopic = null;
+  let tinodeConfig = { enabled: false };
 
   const getToken = () => localStorage.getItem("discord_access_token");
   const authHeaders = () => {
@@ -116,6 +119,7 @@
   const resolveDiscordIdentity = async () => {
     if (!getToken()) {
       updateIdentityView();
+      initTinode();
       return;
     }
     try {
@@ -126,6 +130,221 @@
       currentUser = null;
     } finally {
       updateIdentityView();
+      initTinode();
+    }
+  };
+
+  const initTinode = async () => {
+    try {
+      const res = await fetch("/api/chat/config");
+      if (!res.ok) throw new Error("Failed to load chat config");
+      tinodeConfig = await res.json();
+    } catch (e) {
+      console.warn("Failed to fetch Tinode config, using fallback polling.", e);
+      startFallbackPolling();
+      return;
+    }
+
+    if (!tinodeConfig.enabled || typeof Tinode === "undefined") {
+      console.log("Tinode is disabled or library not loaded, using fallback polling.");
+      startFallbackPolling();
+      return;
+    }
+
+    console.log("Tinode is enabled, connecting to:", tinodeConfig.server_url);
+    connectTinode();
+  };
+
+  const connectTinode = async () => {
+    if (tinodeInstance) {
+      try {
+        tinodeInstance.disconnect();
+      } catch (e) {}
+    }
+
+    try {
+      tinodeInstance = new Tinode({
+        appName: "WhiteoutSurvivalChat",
+        host: tinodeConfig.server_url,
+        apiKey: tinodeConfig.api_key,
+        transport: "ws",
+        secure: tinodeConfig.secure
+      });
+      tinodeInstance.enableLogging(true);
+
+      tinodeInstance.onDisconnect = (err) => {
+        console.warn("Tinode disconnected:", err);
+        setStatus("Real-time disconnected. Retrying...", true);
+        setTimeout(connectTinode, 5000);
+      };
+
+      await tinodeInstance.connect();
+
+      const guestName = getGuestName();
+      const currentUserName = currentUser ? (currentUser.global_name || currentUser.username) : guestName;
+
+      if (!currentUser && !guestName) {
+        setStatus("Waiting for user to choose name...", false);
+        return;
+      }
+
+      const uid = currentUser ? `discord_${currentUser.id}` : `guest_${getGuestId()}`;
+      const password = uid + "_secret123";
+
+      let ctrl;
+      try {
+        ctrl = await tinodeInstance.loginBasic(uid, password);
+      } catch (err) {
+        console.log("Login failed, attempting account registration for:", uid);
+        ctrl = await tinodeInstance.createAccountBasic(uid, password, {
+          public: { fn: currentUserName },
+          login: true
+        });
+      }
+
+      console.log("Tinode logged in as:", tinodeInstance.getCurrentUserId());
+
+      tinodeTopic = tinodeInstance.getTopic(tinodeConfig.topic);
+
+      tinodeTopic.onData = (msg) => {
+        handleIncomingTinodeMessage(msg);
+      };
+
+      tinodeTopic.onMeta = (meta) => {
+        if (meta.sub) {
+          const onlineCount = meta.sub.length;
+          el.online.textContent = String(onlineCount);
+        }
+      };
+
+      await tinodeTopic.subscribe({
+        get: {
+          desc: {},
+          sub: {},
+          data: { limit: 80 }
+        }
+      });
+
+      setStatus("Live global room (Real-time)");
+    } catch (error) {
+      console.error("Tinode connection/subscription failed:", error);
+      setStatus("Real-time offline. Falling back...", true);
+      startFallbackPolling();
+    }
+  };
+
+  const startFallbackPolling = () => {
+    if (!pollTimer) {
+      refreshMessages();
+      pollTimer = window.setInterval(refreshMessages, 5000);
+    }
+    if (!presenceTimer) {
+      sendPresence();
+      presenceTimer = window.setInterval(sendPresence, 25000);
+    }
+  };
+
+  const parseTinodeMessage = (msg) => {
+    let parsed = null;
+    try {
+      parsed = JSON.parse(msg.content);
+    } catch (e) {}
+
+    if (parsed && parsed.ver === "wos-1.0") {
+      return {
+        id: String(msg.seq),
+        seq: msg.seq,
+        content: parsed.content || parsed.text || "",
+        author: parsed.author || { name: msg.from || "User", kind: "guest" },
+        attachments: parsed.attachments || [],
+        reply_to: parsed.reply_to || null,
+        reactions: parsed.reactions || [],
+        created_at: parsed.client_time || msg.ts || new Date().toISOString(),
+        timezone: parsed.timezone || "UTC",
+        type: parsed.type || "message",
+        rawMsg: msg
+      };
+    } else {
+      return {
+        id: String(msg.seq),
+        seq: msg.seq,
+        content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
+        author: {
+          name: msg.from || "User",
+          avatar_url: null,
+          kind: "guest"
+        },
+        attachments: [],
+        reply_to: null,
+        reactions: [],
+        created_at: msg.ts || new Date().toISOString(),
+        timezone: "UTC",
+        type: "message",
+        rawMsg: msg
+      };
+    }
+  };
+
+  const handleIncomingTinodeMessage = (msg) => {
+    const parsed = parseTinodeMessage(msg);
+    if (parsed.type === "reaction") {
+      handleTinodeReaction(parsed);
+      return;
+    }
+
+    const existingIndex = messagesCache.findIndex(m => m.seq === parsed.seq);
+    if (existingIndex > -1) {
+      messagesCache[existingIndex] = parsed;
+    } else {
+      messagesCache.push(parsed);
+    }
+
+    messagesCache.sort((a, b) => a.seq - b.seq);
+
+    if (messagesCache.length > 150) {
+      messagesCache = messagesCache.slice(messagesCache.length - 150);
+    }
+
+    renderMessages();
+    
+    if (messagesCache.length) {
+      localStorage.setItem(STORAGE_KEYS.lastSeen, messagesCache[messagesCache.length - 1].created_at);
+    }
+  };
+
+  const handleTinodeReaction = (parsedReaction) => {
+    let parsedContent;
+    try {
+      parsedContent = JSON.parse(parsedReaction.rawMsg.content);
+    } catch (e) {
+      return;
+    }
+    const targetSeq = parsedContent.target_seq;
+    const emoji = parsedContent.emoji;
+    const userId = parsedContent.author ? parsedContent.author.id : null;
+    if (!targetSeq || !emoji || !userId) return;
+
+    const targetMsg = messagesCache.find(m => m.seq === targetSeq);
+    if (targetMsg) {
+      if (!targetMsg.reactions) targetMsg.reactions = [];
+      let group = targetMsg.reactions.find(r => r.emoji === emoji);
+      if (!group) {
+        group = { emoji: emoji, count: 0, users: [] };
+        targetMsg.reactions.push(group);
+      }
+      if (!group.users) group.users = [];
+      
+      const idx = group.users.indexOf(userId);
+      if (idx > -1) {
+        group.users.splice(idx, 1);
+        group.count = Math.max(0, group.count - 1);
+      } else {
+        group.users.push(userId);
+        group.count++;
+      }
+      
+      targetMsg.reactions = targetMsg.reactions.filter(r => r.count > 0);
+      renderMessages();
     }
   };
 
@@ -392,29 +611,64 @@
     const content = el.input.value.trim();
     if (!content && !pendingAttachments.length) return;
 
-    try {
-      const response = await fetch("/api/chat/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({
-          content,
-          display_name: guestName,
-          guest_id: getGuestId(),
+    if (tinodeConfig.enabled && tinodeTopic && tinodeTopic.isSubscribed) {
+      try {
+        const payload = {
+          ver: "wos-1.0",
+          type: "message",
+          content: content,
+          author: {
+            name: currentUser ? (currentUser.global_name || currentUser.username) : guestName,
+            avatar_url: currentUser ? currentUser.avatar_url : null,
+            kind: currentUser ? "discord" : "guest",
+            id: currentUser ? currentUser.id : getGuestId()
+          },
+          attachments: pendingAttachments,
+          reply_to: replyTo ? {
+            id: String(replyTo.seq || replyTo.id),
+            author_name: replyTo.author.name,
+            content: replyTo.content
+          } : null,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-          client_time: new Date().toISOString(),
-          reply_to_id: replyTo ? replyTo.id : null,
-          attachments: pendingAttachments
-        })
-      });
-      if (!response.ok) throw new Error("Message failed");
-      el.input.value = "";
-      el.input.style.height = "";
-      pendingAttachments = [];
-      renderPendingAttachments();
-      clearReply();
-      await refreshMessages();
-    } catch (error) {
-      setStatus("Message was not sent", true);
+          client_time: new Date().toISOString()
+        };
+
+        tinodeTopic.publish(JSON.stringify(payload));
+        
+        el.input.value = "";
+        el.input.style.height = "";
+        pendingAttachments = [];
+        renderPendingAttachments();
+        clearReply();
+      } catch (error) {
+        console.error("Failed to publish Tinode message:", error);
+        setStatus("Message failed to send", true);
+      }
+    } else {
+      try {
+        const response = await fetch("/api/chat/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...authHeaders() },
+          body: JSON.stringify({
+            content,
+            display_name: guestName,
+            guest_id: getGuestId(),
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+            client_time: new Date().toISOString(),
+            reply_to_id: replyTo ? replyTo.id : null,
+            attachments: pendingAttachments
+          })
+        });
+        if (!response.ok) throw new Error("Message failed");
+        el.input.value = "";
+        el.input.style.height = "";
+        pendingAttachments = [];
+        renderPendingAttachments();
+        clearReply();
+        await refreshMessages();
+      } catch (error) {
+        setStatus("Message was not sent", true);
+      }
     }
   };
 
@@ -449,16 +703,37 @@
   };
 
   const reactToMessage = async (messageId, emoji) => {
-    try {
-      const response = await fetch(`/api/chat/messages/${encodeURIComponent(messageId)}/react`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ emoji, display_name: getGuestName() || el.name.value, guest_id: getGuestId() })
-      });
-      if (!response.ok) throw new Error("Reaction failed");
-      await refreshMessages();
-    } catch (error) {
-      setStatus("Reaction failed", true);
+    const isTinodeMsg = typeof messageId === "number" || /^\d+$/.test(messageId);
+    
+    if (tinodeConfig.enabled && tinodeTopic && tinodeTopic.isSubscribed && isTinodeMsg) {
+      try {
+        const reactionPayload = {
+          ver: "wos-1.0",
+          type: "reaction",
+          target_seq: parseInt(messageId, 10),
+          emoji: emoji,
+          author: {
+            id: currentUser ? currentUser.id : getGuestId(),
+            name: currentUser ? (currentUser.global_name || currentUser.username) : getGuestName()
+          }
+        };
+        tinodeTopic.publish(JSON.stringify(reactionPayload));
+      } catch (error) {
+        console.error("Failed to react via Tinode:", error);
+        setStatus("Reaction failed", true);
+      }
+    } else {
+      try {
+        const response = await fetch(`/api/chat/messages/${encodeURIComponent(messageId)}/react`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...authHeaders() },
+          body: JSON.stringify({ emoji, display_name: getGuestName() || el.name.value, guest_id: getGuestId() })
+        });
+        if (!response.ok) throw new Error("Reaction failed");
+        await refreshMessages();
+      } catch (error) {
+        setStatus("Reaction failed", true);
+      }
     }
   };
 
@@ -469,7 +744,13 @@
       const response = await fetch(`/api/chat/messages/${encodeURIComponent(message.id)}/report`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ reason, display_name: getGuestName() || el.name.value, guest_id: getGuestId() })
+        body: JSON.stringify({
+          reason,
+          display_name: getGuestName() || el.name.value,
+          guest_id: getGuestId(),
+          reported_content: message.content,
+          reported_author_name: message.author.name
+        })
       });
       if (!response.ok) throw new Error("Report failed");
       setStatus("Report sent for review");
@@ -565,10 +846,6 @@
   el.name.value = getGuestName();
   updateIdentityView();
   resolveDiscordIdentity();
-  refreshMessages();
-  sendPresence();
-  pollTimer = window.setInterval(refreshMessages, 5000);
-  presenceTimer = window.setInterval(sendPresence, 25000);
 
   el.guest.addEventListener("click", () => {
     const name = setGuestName(el.name.value);
@@ -579,9 +856,15 @@
     }
     currentUser = null;
     updateIdentityView();
-    sendPresence();
     setStatus("Guest login ready");
     el.input.focus();
+
+    if (tinodeConfig.enabled && typeof Tinode !== "undefined") {
+      connectTinode();
+    } else {
+      sendPresence();
+      refreshMessages();
+    }
   });
 
   el.refresh.addEventListener("click", refreshMessages);

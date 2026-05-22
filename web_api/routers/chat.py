@@ -22,6 +22,18 @@ except ImportError:
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/chat", tags=["Global Chat"])
 
+
+@router.get("/config")
+async def get_tinode_config():
+    return {
+        "enabled": os.getenv("TINODE_ENABLED", "false").lower() == "true",
+        "server_url": os.getenv("TINODE_SERVER_URL", "localhost:6060"),
+        "secure": os.getenv("TINODE_SECURE", "false").lower() == "true",
+        "api_key": os.getenv("TINODE_API_KEY", "AQEAAAABAAD_rAp4DJh05a1HAwFT3A6K"),
+        "topic": os.getenv("TINODE_TOPIC", "grpCommunityRoom"),
+    }
+
+
 CHAT_COLLECTION = "global_chat_messages"
 PRESENCE_COLLECTION = "global_chat_presence"
 REPORTS_COLLECTION = "global_chat_reports"
@@ -84,6 +96,8 @@ class ReportRequest(BaseModel):
     details: Optional[str] = Field(default=None, max_length=500)
     display_name: Optional[str] = Field(default=None, max_length=MAX_NAME_LENGTH)
     guest_id: Optional[str] = Field(default=None, max_length=80)
+    reported_content: Optional[str] = None
+    reported_author_name: Optional[str] = None
 
 
 class PresenceRequest(BaseModel):
@@ -527,11 +541,13 @@ async def react_to_message(message_id: str, payload: ReactionRequest, request: R
 @router.post("/messages/{message_id}/report")
 async def report_message(message_id: str, payload: ReportRequest, request: Request):
     message = await _find_message(message_id)
-    if not message:
-        raise HTTPException(status_code=404, detail="Message not found.")
 
     author = await _resolve_chat_actor(request, payload.display_name, payload.guest_id)
     now = _utc_now_iso()
+    
+    reported_content = payload.reported_content or (message.get("content") if message else "Unknown content (Tinode)")
+    reported_author_name = payload.reported_author_name or (message.get("author", {}).get("name") if message else "Unknown author")
+
     report = {
         "_id": uuid.uuid4().hex,
         "message_id": str(message_id),
@@ -539,6 +555,8 @@ async def report_message(message_id: str, payload: ReportRequest, request: Reque
         "reason": _clean_text(payload.reason, 120),
         "details": _clean_text(payload.details or "", 500),
         "created_at": now,
+        "reported_content": reported_content,
+        "reported_author_name": reported_author_name,
     }
 
     reports_collection = await _get_collection(REPORTS_COLLECTION)
@@ -549,12 +567,14 @@ async def report_message(message_id: str, payload: ReportRequest, request: Reque
         reports.append(report)
         _write_fallback_reports(reports)
 
-    def updater(doc: Dict[str, Any]) -> Dict[str, Any]:
-        doc["report_count"] = int(doc.get("report_count", 0) or 0) + 1
-        doc["updated_at"] = now
-        return doc
+    if message:
+        def updater(doc: Dict[str, Any]) -> Dict[str, Any]:
+            doc["report_count"] = int(doc.get("report_count", 0) or 0) + 1
+            doc["updated_at"] = now
+            return doc
 
-    await _update_message_doc(message_id, updater)
+        await _update_message_doc(message_id, updater)
+        
     return {"status": "ok", "message": "Report sent for review."}
 
 

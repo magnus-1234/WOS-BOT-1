@@ -47,9 +47,13 @@
   let presenceTimer = null;
   let mediaRecorder = null;
   let voiceChunks = [];
-  let tinodeInstance = null;
-  let tinodeTopic = null;
-  let tinodeConfig = { enabled: false };
+  let ws = null;
+  let wsReconnectTimer = null;
+  let wsConnected = false;
+  let soundEnabled = true;
+  let searchQuery = "";
+  let onlineUsers = [];
+  let typingTimer = null;
 
   const getToken = () => localStorage.getItem("discord_access_token");
   const authHeaders = () => {
@@ -119,7 +123,7 @@
   const resolveDiscordIdentity = async () => {
     if (!getToken()) {
       updateIdentityView();
-      initTinode();
+      initWebSocket();
       return;
     }
     try {
@@ -130,107 +134,225 @@
       currentUser = null;
     } finally {
       updateIdentityView();
-      initTinode();
+      initWebSocket();
     }
   };
 
-  const initTinode = async () => {
+  // ── Web Audio API chime synthesizer ─────────────────────────────────────
+  const playChime = (type = "message") => {
+    if (!soundEnabled) return;
     try {
-      const res = await fetch("/api/chat/config");
-      if (!res.ok) throw new Error("Failed to load chat config");
-      tinodeConfig = await res.json();
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const gain = ctx.createGain();
+      gain.connect(ctx.destination);
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+
+      const freqs = type === "connect" ? [523.25, 659.25] : [659.25, 783.99];
+      freqs.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        osc.type = i === 0 ? "sine" : "triangle";
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.1);
+        osc.connect(gain);
+        osc.start(ctx.currentTime + i * 0.1);
+        osc.stop(ctx.currentTime + 0.6);
+      });
     } catch (e) {
-      console.warn("Failed to fetch Tinode config, using fallback polling.", e);
-      startFallbackPolling();
-      return;
+      // Audio not supported
     }
-
-    if (!tinodeConfig.enabled || typeof Tinode === "undefined") {
-      console.log("Tinode is disabled or library not loaded, using fallback polling.");
-      startFallbackPolling();
-      return;
-    }
-
-    console.log("Tinode is enabled, connecting to:", tinodeConfig.server_url);
-    connectTinode();
   };
 
-  const connectTinode = async () => {
-    if (tinodeInstance) {
-      try {
-        tinodeInstance.disconnect();
-      } catch (e) {}
-    }
+  // ── Native WebSocket engine ──────────────────────────────────────────────
+  const initWebSocket = () => {
+    addSoundToggleButton();
+    addSearchInput();
+    addTypingContainer();
+    startFallbackPolling();   // also polls on first load
+    connectWebSocket();
+  };
 
+  const connectWebSocket = () => {
+    if (ws) {
+      try { ws.close(); } catch (e) {}
+    }
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    const wsUrl = `${proto}://${location.host}/api/chat/ws`;
     try {
-      tinodeInstance = new Tinode({
-        appName: "WhiteoutSurvivalChat",
-        host: tinodeConfig.server_url,
-        apiKey: tinodeConfig.api_key,
-        transport: "ws",
-        secure: tinodeConfig.secure
-      });
-      tinodeInstance.enableLogging(true);
-
-      tinodeInstance.onDisconnect = (err) => {
-        console.warn("Tinode disconnected:", err);
-        setStatus("Real-time disconnected. Retrying...", true);
-        setTimeout(connectTinode, 5000);
-      };
-
-      await tinodeInstance.connect();
-
-      const guestName = getGuestName();
-      const currentUserName = currentUser ? (currentUser.global_name || currentUser.username) : guestName;
-
-      if (!currentUser && !guestName) {
-        setStatus("Waiting for user to choose name...", false);
-        return;
-      }
-
-      const uid = currentUser ? `discord_${currentUser.id}` : `guest_${getGuestId()}`;
-      const password = uid + "_secret123";
-
-      let ctrl;
-      try {
-        ctrl = await tinodeInstance.loginBasic(uid, password);
-      } catch (err) {
-        console.log("Login failed, attempting account registration for:", uid);
-        ctrl = await tinodeInstance.createAccountBasic(uid, password, {
-          public: { fn: currentUserName },
-          login: true
-        });
-      }
-
-      console.log("Tinode logged in as:", tinodeInstance.getCurrentUserId());
-
-      tinodeTopic = tinodeInstance.getTopic(tinodeConfig.topic);
-
-      tinodeTopic.onData = (msg) => {
-        handleIncomingTinodeMessage(msg);
-      };
-
-      tinodeTopic.onMeta = (meta) => {
-        if (meta.sub) {
-          const onlineCount = meta.sub.length;
-          el.online.textContent = String(onlineCount);
-        }
-      };
-
-      await tinodeTopic.subscribe({
-        get: {
-          desc: {},
-          sub: {},
-          data: { limit: 80 }
-        }
-      });
-
-      setStatus("Live global room (Real-time)");
-    } catch (error) {
-      console.error("Tinode connection/subscription failed:", error);
-      setStatus("Real-time offline. Falling back...", true);
-      startFallbackPolling();
+      ws = new WebSocket(wsUrl);
+    } catch (e) {
+      console.warn("WebSocket construction failed:", e);
+      return;
     }
+
+    ws.addEventListener("open", () => {
+      wsConnected = true;
+      setStatus("🟢 Live global room");
+      playChime("connect");
+      // Register the current user with the server
+      const userInfo = currentUser
+        ? { id: currentUser.id, name: currentUser.global_name || currentUser.username, avatar_url: currentUser.avatar_url, kind: "discord" }
+        : { id: getGuestId(), name: getGuestName() || "Guest Player", avatar_url: null, kind: "guest" };
+      ws.send(JSON.stringify({ type: "register", user: userInfo }));
+      // Stop polling - WebSocket takes over
+      if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    });
+
+    ws.addEventListener("message", (event) => {
+      try { handleWsEvent(JSON.parse(event.data)); } catch (e) {}
+    });
+
+    ws.addEventListener("close", () => {
+      wsConnected = false;
+      setStatus("⚠️ Reconnecting...", true);
+      startFallbackPolling();
+      if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+      wsReconnectTimer = setTimeout(connectWebSocket, 5000);
+    });
+
+    ws.addEventListener("error", () => {
+      wsConnected = false;
+    });
+  };
+
+  const handleWsEvent = (data) => {
+    switch (data.type) {
+      case "message": {
+        const msg = data.message;
+        const existingIndex = messagesCache.findIndex(m => m.id === msg.id);
+        if (existingIndex > -1) {
+          messagesCache[existingIndex] = msg;
+        } else {
+          messagesCache.push(msg);
+          playChime("message");
+        }
+        if (messagesCache.length > 200) messagesCache = messagesCache.slice(-200);
+        renderMessages();
+        if (messagesCache.length) localStorage.setItem(STORAGE_KEYS.lastSeen, messagesCache[messagesCache.length - 1].created_at);
+        break;
+      }
+      case "reaction": {
+        const target = messagesCache.find(m => m.id === data.message_id);
+        if (target) {
+          target.reactions = data.reactions;
+          renderMessages();
+        }
+        break;
+      }
+      case "presence": {
+        el.online.textContent = String(data.online_count || 0);
+        onlineUsers = data.users || [];
+        break;
+      }
+      case "typing": {
+        renderTypingIndicator(data.users || []);
+        break;
+      }
+      case "pong":
+        break;
+    }
+  };
+
+  // ── Typing indicator ─────────────────────────────────────────────────────
+  const sendTypingStatus = (isTyping) => {
+    if (!wsConnected || !ws) return;
+    try { ws.send(JSON.stringify({ type: "typing", is_typing: isTyping })); } catch (e) {}
+  };
+
+  const handleUserTyping = () => {
+    sendTypingStatus(true);
+    if (typingTimer) clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => sendTypingStatus(false), 3000);
+  };
+
+  const addTypingContainer = () => {
+    if (roomRoot.querySelector("[data-room-typing]")) return;
+    const typingDiv = document.createElement("div");
+    typingDiv.dataset.roomTyping = "";
+    typingDiv.className = "chat-typing-indicator";
+    typingDiv.hidden = true;
+    el.messages && el.messages.after(typingDiv);
+  };
+
+  const renderTypingIndicator = (users) => {
+    const typingDiv = roomRoot.querySelector("[data-room-typing]");
+    if (!typingDiv) return;
+    if (!users || users.length === 0) {
+      typingDiv.hidden = true;
+      typingDiv.textContent = "";
+      return;
+    }
+    const myId = currentUser ? currentUser.id : getGuestId();
+    const others = users.filter(u => u.id !== myId);
+    if (others.length === 0) { typingDiv.hidden = true; return; }
+    const names = others.slice(0, 3).map(u => u.name || "Someone").join(", ");
+    typingDiv.textContent = `${names} ${others.length === 1 ? "is" : "are"} typing...`;
+    typingDiv.hidden = false;
+  };
+
+  // ── Sound toggle button ──────────────────────────────────────────────────
+  const addSoundToggleButton = () => {
+    const topbar = roomRoot.querySelector(".chat-room-topbar");
+    if (!topbar || topbar.querySelector("[data-sound-toggle]")) return;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.dataset.soundToggle = "";
+    btn.className = "chat-icon-button";
+    btn.title = "Toggle sound notifications";
+    btn.setAttribute("aria-label", "Toggle sound");
+    btn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>`;
+    btn.addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      btn.style.opacity = soundEnabled ? "1" : "0.4";
+      btn.title = soundEnabled ? "Sound on" : "Sound off";
+    });
+    topbar.appendChild(btn);
+  };
+
+  // ── Message search bar ───────────────────────────────────────────────────
+  const addSearchInput = () => {
+    const topbar = roomRoot.querySelector(".chat-room-topbar");
+    if (!topbar || topbar.querySelector("[data-msg-search]")) return;
+    const wrap = document.createElement("div");
+    wrap.className = "chat-search-wrap";
+    const input = document.createElement("input");
+    input.type = "search";
+    input.placeholder = "Search messages...";
+    input.dataset.msgSearch = "";
+    input.className = "chat-search-input";
+    input.setAttribute("aria-label", "Search chat messages");
+    input.addEventListener("input", () => {
+      searchQuery = input.value.trim().toLowerCase();
+      renderMessages();
+    });
+    wrap.appendChild(input);
+    topbar.appendChild(wrap);
+  };
+
+  // ── Online users popover ─────────────────────────────────────────────────
+  const showOnlineUsersPopover = (anchor) => {
+    let popover = document.getElementById("online-users-popover");
+    if (popover) { popover.remove(); return; }
+    popover = document.createElement("div");
+    popover.id = "online-users-popover";
+    popover.className = "online-users-popover";
+    if (!onlineUsers.length) {
+      popover.innerHTML = "<p>No one online right now.</p>";
+    } else {
+      const ul = document.createElement("ul");
+      onlineUsers.slice(0, 20).forEach(user => {
+        const li = document.createElement("li");
+        const dot = document.createElement("span");
+        dot.className = "online-dot";
+        const name = document.createElement("span");
+        name.textContent = user.name || "Guest";
+        li.append(dot, name);
+        ul.appendChild(li);
+      });
+      popover.appendChild(ul);
+    }
+    anchor.after(popover);
+    const dismiss = (e) => { if (!popover.contains(e.target) && e.target !== anchor) { popover.remove(); document.removeEventListener("click", dismiss); } };
+    setTimeout(() => document.addEventListener("click", dismiss), 10);
   };
 
   const startFallbackPolling = () => {
@@ -244,109 +366,7 @@
     }
   };
 
-  const parseTinodeMessage = (msg) => {
-    let parsed = null;
-    try {
-      parsed = JSON.parse(msg.content);
-    } catch (e) {}
 
-    if (parsed && parsed.ver === "wos-1.0") {
-      return {
-        id: String(msg.seq),
-        seq: msg.seq,
-        content: parsed.content || parsed.text || "",
-        author: parsed.author || { name: msg.from || "User", kind: "guest" },
-        attachments: parsed.attachments || [],
-        reply_to: parsed.reply_to || null,
-        reactions: parsed.reactions || [],
-        created_at: parsed.client_time || msg.ts || new Date().toISOString(),
-        timezone: parsed.timezone || "UTC",
-        type: parsed.type || "message",
-        rawMsg: msg
-      };
-    } else {
-      return {
-        id: String(msg.seq),
-        seq: msg.seq,
-        content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
-        author: {
-          name: msg.from || "User",
-          avatar_url: null,
-          kind: "guest"
-        },
-        attachments: [],
-        reply_to: null,
-        reactions: [],
-        created_at: msg.ts || new Date().toISOString(),
-        timezone: "UTC",
-        type: "message",
-        rawMsg: msg
-      };
-    }
-  };
-
-  const handleIncomingTinodeMessage = (msg) => {
-    const parsed = parseTinodeMessage(msg);
-    if (parsed.type === "reaction") {
-      handleTinodeReaction(parsed);
-      return;
-    }
-
-    const existingIndex = messagesCache.findIndex(m => m.seq === parsed.seq);
-    if (existingIndex > -1) {
-      messagesCache[existingIndex] = parsed;
-    } else {
-      messagesCache.push(parsed);
-    }
-
-    messagesCache.sort((a, b) => a.seq - b.seq);
-
-    if (messagesCache.length > 150) {
-      messagesCache = messagesCache.slice(messagesCache.length - 150);
-    }
-
-    renderMessages();
-    
-    if (messagesCache.length) {
-      localStorage.setItem(STORAGE_KEYS.lastSeen, messagesCache[messagesCache.length - 1].created_at);
-    }
-  };
-
-  const handleTinodeReaction = (parsedReaction) => {
-    let parsedContent;
-    try {
-      parsedContent = JSON.parse(parsedReaction.rawMsg.content);
-    } catch (e) {
-      return;
-    }
-    const targetSeq = parsedContent.target_seq;
-    const emoji = parsedContent.emoji;
-    const userId = parsedContent.author ? parsedContent.author.id : null;
-    if (!targetSeq || !emoji || !userId) return;
-
-    const targetMsg = messagesCache.find(m => m.seq === targetSeq);
-    if (targetMsg) {
-      if (!targetMsg.reactions) targetMsg.reactions = [];
-      let group = targetMsg.reactions.find(r => r.emoji === emoji);
-      if (!group) {
-        group = { emoji: emoji, count: 0, users: [] };
-        targetMsg.reactions.push(group);
-      }
-      if (!group.users) group.users = [];
-      
-      const idx = group.users.indexOf(userId);
-      if (idx > -1) {
-        group.users.splice(idx, 1);
-        group.count = Math.max(0, group.count - 1);
-      } else {
-        group.users.push(userId);
-        group.count++;
-      }
-      
-      targetMsg.reactions = targetMsg.reactions.filter(r => r.count > 0);
-      renderMessages();
-    }
-  };
 
   const renderPendingAttachments = () => {
     el.attachments.hidden = pendingAttachments.length === 0;
@@ -555,8 +575,11 @@
   };
 
   const renderMessages = () => {
+    const filtered = searchQuery
+      ? messagesCache.filter(m => (m.content || "").toLowerCase().includes(searchQuery) || ((m.author || {}).name || "").toLowerCase().includes(searchQuery))
+      : messagesCache;
     el.messages.replaceChildren();
-    messagesCache.forEach((message) => el.messages.appendChild(renderMessage(message)));
+    filtered.forEach((message) => el.messages.appendChild(renderMessage(message)));
     el.messages.scrollTop = el.messages.scrollHeight;
   };
 
@@ -611,64 +634,34 @@
     const content = el.input.value.trim();
     if (!content && !pendingAttachments.length) return;
 
-    if (tinodeConfig.enabled && tinodeTopic && tinodeTopic.isSubscribed) {
-      try {
-        const payload = {
-          ver: "wos-1.0",
-          type: "message",
-          content: content,
-          author: {
-            name: currentUser ? (currentUser.global_name || currentUser.username) : guestName,
-            avatar_url: currentUser ? currentUser.avatar_url : null,
-            kind: currentUser ? "discord" : "guest",
-            id: currentUser ? currentUser.id : getGuestId()
-          },
-          attachments: pendingAttachments,
-          reply_to: replyTo ? {
-            id: String(replyTo.seq || replyTo.id),
-            author_name: replyTo.author.name,
-            content: replyTo.content
-          } : null,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-          client_time: new Date().toISOString()
-        };
+    // Stop typing indicator on send
+    if (typingTimer) { clearTimeout(typingTimer); typingTimer = null; }
+    sendTypingStatus(false);
 
-        tinodeTopic.publish(JSON.stringify(payload));
-        
-        el.input.value = "";
-        el.input.style.height = "";
-        pendingAttachments = [];
-        renderPendingAttachments();
-        clearReply();
-      } catch (error) {
-        console.error("Failed to publish Tinode message:", error);
-        setStatus("Message failed to send", true);
-      }
-    } else {
-      try {
-        const response = await fetch("/api/chat/messages", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...authHeaders() },
-          body: JSON.stringify({
-            content,
-            display_name: guestName,
-            guest_id: getGuestId(),
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-            client_time: new Date().toISOString(),
-            reply_to_id: replyTo ? replyTo.id : null,
-            attachments: pendingAttachments
-          })
-        });
-        if (!response.ok) throw new Error("Message failed");
-        el.input.value = "";
-        el.input.style.height = "";
-        pendingAttachments = [];
-        renderPendingAttachments();
-        clearReply();
-        await refreshMessages();
-      } catch (error) {
-        setStatus("Message was not sent", true);
-      }
+    try {
+      const response = await fetch("/api/chat/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({
+          content,
+          display_name: guestName,
+          guest_id: getGuestId(),
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+          client_time: new Date().toISOString(),
+          reply_to_id: replyTo ? replyTo.id : null,
+          attachments: pendingAttachments
+        })
+      });
+      if (!response.ok) throw new Error("Message failed");
+      el.input.value = "";
+      el.input.style.height = "";
+      pendingAttachments = [];
+      renderPendingAttachments();
+      clearReply();
+      // If WebSocket is live, it will broadcast. Otherwise refresh.
+      if (!wsConnected) await refreshMessages();
+    } catch (error) {
+      setStatus("Message was not sent", true);
     }
   };
 
@@ -703,37 +696,17 @@
   };
 
   const reactToMessage = async (messageId, emoji) => {
-    const isTinodeMsg = typeof messageId === "number" || /^\d+$/.test(messageId);
-    
-    if (tinodeConfig.enabled && tinodeTopic && tinodeTopic.isSubscribed && isTinodeMsg) {
-      try {
-        const reactionPayload = {
-          ver: "wos-1.0",
-          type: "reaction",
-          target_seq: parseInt(messageId, 10),
-          emoji: emoji,
-          author: {
-            id: currentUser ? currentUser.id : getGuestId(),
-            name: currentUser ? (currentUser.global_name || currentUser.username) : getGuestName()
-          }
-        };
-        tinodeTopic.publish(JSON.stringify(reactionPayload));
-      } catch (error) {
-        console.error("Failed to react via Tinode:", error);
-        setStatus("Reaction failed", true);
-      }
-    } else {
-      try {
-        const response = await fetch(`/api/chat/messages/${encodeURIComponent(messageId)}/react`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...authHeaders() },
-          body: JSON.stringify({ emoji, display_name: getGuestName() || el.name.value, guest_id: getGuestId() })
-        });
-        if (!response.ok) throw new Error("Reaction failed");
-        await refreshMessages();
-      } catch (error) {
-        setStatus("Reaction failed", true);
-      }
+    try {
+      const response = await fetch(`/api/chat/messages/${encodeURIComponent(messageId)}/react`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ emoji, display_name: getGuestName() || el.name.value, guest_id: getGuestId() })
+      });
+      if (!response.ok) throw new Error("Reaction failed");
+      // WebSocket broadcast will update reactions; only poll as fallback
+      if (!wsConnected) await refreshMessages();
+    } catch (error) {
+      setStatus("Reaction failed", true);
     }
   };
 
@@ -847,6 +820,12 @@
   updateIdentityView();
   resolveDiscordIdentity();
 
+  if (el.online) {
+    el.online.style.cursor = "pointer";
+    el.online.title = "Click to see online users";
+    el.online.addEventListener("click", () => showOnlineUsersPopover(el.online));
+  }
+
   el.guest.addEventListener("click", () => {
     const name = setGuestName(el.name.value);
     if (!name) {
@@ -858,9 +837,9 @@
     updateIdentityView();
     setStatus("Guest login ready");
     el.input.focus();
-
-    if (tinodeConfig.enabled && typeof Tinode !== "undefined") {
-      connectTinode();
+    // Re-register with new guest name over WebSocket
+    if (wsConnected && ws) {
+      ws.send(JSON.stringify({ type: "register", user: { id: getGuestId(), name, avatar_url: null, kind: "guest" } }));
     } else {
       sendPresence();
       refreshMessages();
@@ -876,6 +855,7 @@
   el.input.addEventListener("input", () => {
     el.input.style.height = "auto";
     el.input.style.height = `${Math.min(el.input.scrollHeight, 140)}px`;
+    handleUserTyping();
   });
   el.input.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -904,5 +884,7 @@
   window.addEventListener("beforeunload", () => {
     if (pollTimer) window.clearInterval(pollTimer);
     if (presenceTimer) window.clearInterval(presenceTimer);
+    if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+    if (ws) try { ws.close(); } catch (e) {}
   });
 })();

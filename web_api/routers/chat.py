@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import httpx
-from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
 try:
@@ -23,6 +23,110 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/chat", tags=["Global Chat"])
 
 
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[WebSocket, Dict[str, Any]] = {}
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections[websocket] = {
+            "id": None,
+            "name": "Connecting User",
+            "avatar_url": None,
+            "kind": "guest",
+            "is_typing": False
+        }
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            del self.active_connections[websocket]
+
+    async def register_user(self, websocket: WebSocket, user_info: Dict[str, Any]):
+        if websocket in self.active_connections:
+            self.active_connections[websocket].update({
+                "id": user_info.get("id"),
+                "name": user_info.get("name", "Guest Player"),
+                "avatar_url": user_info.get("avatar_url"),
+                "kind": user_info.get("kind", "guest"),
+            })
+            await self.broadcast_presence()
+
+    async def set_typing(self, websocket: WebSocket, is_typing: bool):
+        if websocket in self.active_connections:
+            self.active_connections[websocket]["is_typing"] = is_typing
+            await self.broadcast_typing()
+
+    async def broadcast(self, message: Dict[str, Any]):
+        for ws in list(self.active_connections.keys()):
+            try:
+                await ws.send_json(message)
+            except Exception:
+                self.disconnect(ws)
+
+    async def broadcast_presence(self):
+        users = []
+        seen = set()
+        for info in self.active_connections.values():
+            user_id = info.get("id") or info.get("name")
+            if user_id and user_id not in seen:
+                seen.add(user_id)
+                users.append({
+                    "id": info.get("id"),
+                    "name": info.get("name"),
+                    "avatar_url": info.get("avatar_url"),
+                    "kind": info.get("kind")
+                })
+        
+        await self.broadcast({
+            "type": "presence",
+            "online_count": len(users),
+            "users": users
+        })
+
+    async def broadcast_typing(self):
+        typing_users = []
+        for info in self.active_connections.values():
+            if info.get("is_typing") and info.get("id"):
+                typing_users.append({
+                    "id": info.get("id"),
+                    "name": info.get("name")
+                })
+        
+        await self.broadcast({
+            "type": "typing",
+            "users": typing_users
+        })
+
+
+manager = ConnectionManager()
+
+
+@router.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            event_type = data.get("type")
+            if event_type == "register":
+                user_info = data.get("user", {})
+                await manager.register_user(websocket, user_info)
+            elif event_type == "typing":
+                is_typing = data.get("is_typing", False)
+                await manager.set_typing(websocket, is_typing)
+            elif event_type == "ping":
+                await websocket.send_json({"type": "pong"})
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        await manager.broadcast_presence()
+        await manager.broadcast_typing()
+    except Exception as exc:
+        logger.error(f"WebSocket error: {exc}")
+        manager.disconnect(websocket)
+        await manager.broadcast_presence()
+        await manager.broadcast_typing()
+
+
 @router.get("/config")
 async def get_tinode_config():
     return {
@@ -32,6 +136,7 @@ async def get_tinode_config():
         "api_key": os.getenv("TINODE_API_KEY", "AQEAAAABAAD_rAp4DJh05a1HAwFT3A6K"),
         "topic": os.getenv("TINODE_TOPIC", "grpCommunityRoom"),
     }
+
 
 
 CHAT_COLLECTION = "global_chat_messages"
@@ -465,9 +570,9 @@ async def create_message(payload: ChatMessageCreate, request: Request):
     else:
         messages = _read_fallback_messages()
         messages.append(doc)
-        _write_fallback_messages(messages)
-
-    return {"message": _public_message(doc)}
+    public_msg = _public_message(doc)
+    await manager.broadcast({"type": "message", "message": public_msg})
+    return {"message": public_msg}
 
 
 @router.post("/presence")
@@ -535,7 +640,13 @@ async def react_to_message(message_id: str, payload: ReactionRequest, request: R
     updated = await _update_message_doc(message_id, updater)
     if not updated:
         raise HTTPException(status_code=404, detail="Message not found.")
-    return {"message": _public_message(updated), "reactions": _reaction_summary(updated.get("reactions", []))}
+    reactions_sum = _reaction_summary(updated.get("reactions", []))
+    await manager.broadcast({
+        "type": "reaction",
+        "message_id": str(message_id),
+        "reactions": reactions_sum
+    })
+    return {"message": _public_message(updated), "reactions": reactions_sum}
 
 
 @router.post("/messages/{message_id}/report")

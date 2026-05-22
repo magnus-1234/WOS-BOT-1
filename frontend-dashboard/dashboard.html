@@ -169,8 +169,7 @@
     [data-theme="cartoon"] .console-panel,
     [data-theme="cartoon"] .server-selector,
     [data-theme="cartoon"] .user-profile,
-    [data-theme="cartoon"] .server-card,
-    [data-theme="cartoon"] .heroes-gallery {
+    [data-theme="cartoon"] .server-card {
       border: 1.5px solid #191919 !important;
       background: #ffffff !important;
       color: #191919 !important;
@@ -577,67 +576,6 @@
       letter-spacing: -0.5px;
     }
 
-    .heroes-section {
-      margin-bottom: 60px;
-    }
-
-    .heroes-gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-      gap: 16px;
-      padding: 24px;
-      background: var(--card-bg);
-      border: 1px solid var(--glass-border);
-      border-radius: 20px;
-      backdrop-filter: blur(12px);
-    }
-
-    .hero-item {
-      position: relative;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .hero-badge {
-      width: 100%;
-      aspect-ratio: 1;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      border: 2px solid transparent;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2.5em;
-      transition: all 0.3s;
-      position: relative;
-    }
-
-    .hero-item:hover .hero-badge {
-      transform: scale(1.1) rotate(5deg);
-      border-color: var(--primary);
-      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
-    }
-
-    .hero-label {
-      position: absolute;
-      bottom: -28px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.95);
-      color: #fff;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 0.8em;
-      white-space: nowrap;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s;
-      z-index: 10;
-    }
-
-    .hero-item:hover .hero-label {
-      opacity: 1;
-    }
 
     .servers-grid {
       display: grid;
@@ -1007,15 +945,6 @@
       </div>
     </div>
 
-    <div class="heroes-section">
-      <div class="section-header">
-        <h3 class="section-title">Featured Heroes</h3>
-      </div>
-      <div class="heroes-gallery" id="heroes-gallery">
-        <!-- Heroes will be loaded here -->
-      </div>
-    </div>
-
     <div class="section-header">
       <h3 class="section-title">Your Servers</h3>
     </div>
@@ -1222,42 +1151,6 @@
     style.textContent = `@keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }`;
     document.head.appendChild(style);
 
-    // ── Load Featured Heroes ──────────────────────────────────────
-    async function loadFeaturedHeroes() {
-      try {
-        const response = await fetch('heroes-data.json');
-        const data = await response.json();
-        
-        // Display only first 8 heroes as featured
-        const featured = data.heroes.slice(0, 8);
-        const gallery = document.getElementById('heroes-gallery');
-        gallery.innerHTML = '';
-
-        featured.forEach(hero => {
-          const heroItem = document.createElement('div');
-          heroItem.className = 'hero-item';
-          const emoji = getHeroEmoji(hero.type);
-          
-          heroItem.innerHTML = `
-            <div class="hero-badge">${emoji}</div>
-            <div class="hero-label">${hero.name}</div>
-          `;
-          gallery.appendChild(heroItem);
-        });
-      } catch (error) {
-        console.error('Failed to load heroes:', error);
-      }
-    }
-
-    function getHeroEmoji(type) {
-      const emojis = {
-        'attacker': '⚔️',
-        'tank': '🛡️',
-        'healer': '✨',
-        'support': '🌟'
-      };
-      return emojis[type] || '👤';
-    }
 
     async function checkAuth() {
       const token = localStorage.getItem('discord_access_token');
@@ -1385,7 +1278,6 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       checkAuth();
-      loadFeaturedHeroes();
       // Show widget only if not previously closed
       if (!localStorage.getItem('live-bot-widget-closed')) {
         initLiveBotWidget();

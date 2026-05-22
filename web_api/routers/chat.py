@@ -63,6 +63,23 @@ class ConnectionManager:
             except Exception:
                 self.disconnect(ws)
 
+    async def broadcast_message(self, message: Dict[str, Any]):
+        msg_data = message.get("message", {})
+        target_id = msg_data.get("target_user_id")
+        author = msg_data.get("author", {})
+        sender_id = author.get("id") or author.get("name")
+        
+        for ws, info in list(self.active_connections.items()):
+            try:
+                # If it's a private message, only send to sender and target
+                if target_id:
+                    ws_user_id = info.get("id") or info.get("name")
+                    if ws_user_id not in (target_id, sender_id):
+                        continue
+                await ws.send_json(message)
+            except Exception:
+                self.disconnect(ws)
+
     async def broadcast_presence(self):
         users = []
         seen = set()
@@ -183,6 +200,7 @@ class ChatMessageCreate(BaseModel):
     timezone: Optional[str] = Field(default=None, max_length=80)
     client_time: Optional[str] = Field(default=None, max_length=80)
     reply_to_id: Optional[str] = Field(default=None, max_length=80)
+    target_user_id: Optional[str] = Field(default=None, max_length=80)
     attachments: List[ChatAttachment] = Field(default_factory=list)
 
 
@@ -236,6 +254,7 @@ def _public_message(doc: Dict[str, Any]) -> Dict[str, Any]:
         "author": doc.get("author", {}),
         "attachments": doc.get("attachments", []),
         "reply_to": doc.get("reply_to"),
+        "target_user_id": doc.get("target_user_id"),
         "reactions": _reaction_summary(doc.get("reactions", [])),
         "report_count": int(doc.get("report_count", 0) or 0),
         "created_at": doc.get("created_at"),
@@ -514,16 +533,37 @@ async def _resolve_discord_user(auth_header: Optional[str]) -> Optional[Dict[str
 
 
 @router.get("/messages")
-async def list_messages(limit: int = 80):
+async def list_messages(request: Request, limit: int = 80, guest_id: Optional[str] = None):
     safe_limit = min(max(int(limit or 80), 1), 100)
+    
+    # Resolve the caller to filter private messages
+    author = await _resolve_chat_actor(request, None, guest_id)
+    caller_id = author.get("id")
+
+    def _is_visible(doc: Dict[str, Any]) -> bool:
+        target_id = doc.get("target_user_id")
+        if not target_id:
+            return True
+        msg_author = doc.get("author", {})
+        author_id = msg_author.get("id") or msg_author.get("name")
+        return caller_id in (target_id, author_id)
+
     collection = await _get_collection()
     if collection is not None:
-        cursor = collection.find({}).sort("created_at", -1).limit(safe_limit)
+        # Build query for public or private intended for me or by me
+        query = {
+            "$or": [
+                {"target_user_id": {"$in": [None, ""]}},
+                {"target_user_id": caller_id},
+                {"author.id": caller_id}
+            ]
+        }
+        cursor = collection.find(query).sort("created_at", -1).limit(safe_limit)
         docs = await cursor.to_list(length=safe_limit)
         docs.reverse()
         return {"messages": [_public_message(doc) for doc in docs], "online_count": await _online_count()}
 
-    messages = _read_fallback_messages()[-safe_limit:]
+    messages = [doc for doc in _read_fallback_messages() if _is_visible(doc)][-safe_limit:]
     return {"messages": [_public_message(doc) for doc in messages], "online_count": await _online_count()}
 
 
@@ -548,6 +588,7 @@ async def create_message(payload: ChatMessageCreate, request: Request):
         "author": author,
         "attachments": attachments,
         "reply_to": reply_to,
+        "target_user_id": payload.target_user_id,
         "reactions": [],
         "report_count": 0,
         "timezone": _clean_text(payload.timezone or "", 80),
@@ -570,9 +611,43 @@ async def create_message(payload: ChatMessageCreate, request: Request):
     else:
         messages = _read_fallback_messages()
         messages.append(doc)
+        _write_fallback_messages(messages)
+        
     public_msg = _public_message(doc)
-    await manager.broadcast({"type": "message", "message": public_msg})
+    await manager.broadcast_message({"type": "message", "message": public_msg})
     return {"message": public_msg}
+
+@router.delete("/messages/{message_id}")
+async def delete_message(message_id: str, request: Request, guest_id: Optional[str] = None):
+    author = await _resolve_chat_actor(request, None, guest_id)
+    caller_id = author.get("id")
+    
+    collection = await _get_collection()
+    if collection is not None:
+        doc = await collection.find_one({"_id": str(message_id)})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Message not found.")
+        
+        msg_author = doc.get("author", {})
+        if msg_author.get("id") != caller_id:
+            raise HTTPException(status_code=403, detail="You can only delete your own messages.")
+            
+        await collection.delete_one({"_id": str(message_id)})
+    else:
+        messages = _read_fallback_messages()
+        target_idx = next((i for i, m in enumerate(messages) if str(m.get("_id") or m.get("id")) == message_id), None)
+        if target_idx is None:
+            raise HTTPException(status_code=404, detail="Message not found.")
+            
+        msg_author = messages[target_idx].get("author", {})
+        if msg_author.get("id") != caller_id:
+            raise HTTPException(status_code=403, detail="You can only delete your own messages.")
+            
+        messages.pop(target_idx)
+        _write_fallback_messages(messages)
+
+    await manager.broadcast({"type": "delete", "message_id": message_id})
+    return {"status": "deleted"}
 
 
 @router.post("/presence")
@@ -720,6 +795,51 @@ async def search_tenor(q: str = "whiteout survival", limit: int = 12):
         raise
     except Exception as exc:
         logger.error("Tenor search error: %s", exc)
+        raise HTTPException(status_code=502, detail="GIF search failed.")
+
+@router.get("/giphy")
+async def search_giphy(q: str = "whiteout survival", limit: int = 12):
+    api_key = os.getenv("GIPHY_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="Giphy search is not configured.")
+
+    safe_limit = _coerce_int(limit, 12, 1, 24)
+    query = _clean_text(q or "whiteout survival", 80) or "whiteout survival"
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.get(
+                "https://api.giphy.com/v1/gifs/search",
+                params={
+                    "api_key": api_key,
+                    "q": query,
+                    "limit": safe_limit,
+                    "rating": "pg-13",
+                },
+            )
+        if response.status_code >= 400:
+            logger.warning("Giphy search failed: %s %s", response.status_code, response.text[:160])
+            raise HTTPException(status_code=502, detail="Giphy search failed.")
+        data = response.json()
+        
+        results = []
+        for item in data.get("data", []):
+            images = item.get("images", {})
+            original = images.get("original", {})
+            fixed_width = images.get("fixed_width", {})
+            
+            if original.get("url"):
+                results.append({
+                    "id": item.get("id"),
+                    "title": item.get("title") or "Giphy GIF",
+                    "url": original.get("url"),
+                    "preview_url": fixed_width.get("url") or original.get("url")
+                })
+                
+        return {"results": results}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Giphy search error: %s", exc)
         raise HTTPException(status_code=502, detail="GIF search failed.")
 
 

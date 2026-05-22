@@ -35,14 +35,24 @@
   const STORAGE_KEYS = {
     guestId: "wos_global_chat_guest_id",
     guestName: "wos_global_chat_guest_name",
+    guestAvatar: "wos_global_chat_guest_avatar",
     lastSeen: "wos_global_chat_last_seen_at"
   };
-  const emojis = ["😀", "😂", "🔥", "❄️", "🎁", "⚔️", "🛡️", "🏆", "💎", "✅", "👀", "🤝", "🙏", "🚀", "💬", "❤️"];
+  
+  const emojiCategories = {
+    "Smileys": ["😀","😂","🤣","😊","🥰","😍","😎","🤔","🙄","😴","😷","🤢","🥵","🥶"],
+    "Gestures": ["👍","👎","👌","✌️","🤞","🤝","🙏","💪","👋","👏","🙌","🫶"],
+    "Objects": ["🎁","🏆","💎","📱","💻","💣","💡","🔥","💧","❄️","💥","✨"],
+    "Symbols": ["✅","❌","❓","❗","💯","💢","💬","❤️","💔","💕","☢️","☣️"]
+  };
   const quickReactions = ["👍", "❤️", "😂", "🔥", "❄️", "🎁"];
+  
   let currentUser = null;
   let pendingAttachments = [];
   let messagesCache = [];
   let replyTo = null;
+  let replyToUser = null; // target_user_id for private messages
+  let activeGifSource = 'tenor'; // tenor or giphy
   let pollTimer = null;
   let presenceTimer = null;
   let mediaRecorder = null;
@@ -69,10 +79,14 @@
     return guestId;
   };
   const getGuestName = () => localStorage.getItem(STORAGE_KEYS.guestName) || "";
+  const getGuestAvatar = () => localStorage.getItem(STORAGE_KEYS.guestAvatar) || null;
   const setGuestName = (name) => {
     const cleaned = (name || "").trim().slice(0, 32);
     if (cleaned) localStorage.setItem(STORAGE_KEYS.guestName, cleaned);
     return cleaned;
+  };
+  const setGuestAvatar = (url) => {
+    if (url) localStorage.setItem(STORAGE_KEYS.guestAvatar, url);
   };
   const setStatus = (message, isError = false) => {
     el.status.textContent = message;
@@ -107,17 +121,18 @@
   const updateIdentityView = () => {
     const guestName = getGuestName();
     if (currentUser) {
-      el.identity.textContent = `Discord: ${currentUser.global_name || currentUser.username}`;
+      el.identity.innerHTML = `Discord: ${currentUser.global_name || currentUser.username} <button type="button" data-edit-profile style="background:none;border:none;cursor:pointer;color:var(--primary);margin-left:8px;font-size:0.8em;" title="Edit Profile">✏️</button>`;
       el.login.classList.add("is-hidden");
-      return;
-    }
-    if (guestName) {
-      el.identity.textContent = `Guest: ${guestName}`;
+    } else if (guestName) {
+      el.identity.innerHTML = `Guest: ${guestName} <button type="button" data-edit-profile style="background:none;border:none;cursor:pointer;color:var(--primary);margin-left:8px;font-size:0.8em;" title="Edit Profile">✏️</button>`;
       el.login.classList.add("is-hidden");
-      return;
+    } else {
+      el.identity.textContent = "Guest access";
+      el.login.classList.remove("is-hidden");
     }
-    el.identity.textContent = "Guest access";
-    el.login.classList.remove("is-hidden");
+    
+    const editBtn = roomRoot.querySelector("[data-edit-profile]");
+    if (editBtn) editBtn.addEventListener("click", openProfileModal);
   };
 
   const resolveDiscordIdentity = async () => {
@@ -136,6 +151,71 @@
       updateIdentityView();
       initWebSocket();
     }
+  };
+
+  // ── Profile Modal ────────────────────────────────────────────────────────
+  const openProfileModal = () => {
+    let modal = document.getElementById('chat-profile-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'chat-profile-modal';
+      modal.className = 'chat-profile-modal';
+      modal.innerHTML = `
+        <div class="chat-profile-content">
+          <h2>Edit Profile</h2>
+          <img class="chat-profile-avatar-preview" src="${currentUser ? currentUser.avatar_url : (getGuestAvatar() || 'https://cdn.discordapp.com/embed/avatars/0.png')}" alt="Avatar">
+          <input type="file" id="profile-avatar-upload" accept="image/*" style="display:none;">
+          <button type="button" class="btn secondary" onclick="document.getElementById('profile-avatar-upload').click()">Upload New Picture</button>
+          <input type="text" id="profile-name-input" class="chat-profile-input" placeholder="Display Name" value="${currentUser ? (currentUser.global_name || currentUser.username) : getGuestName()}" maxlength="32">
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button type="button" class="btn secondary" style="flex:1;" id="profile-cancel">Cancel</button>
+            <button type="button" class="btn" style="flex:1;" id="profile-save">Save</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      document.getElementById('profile-cancel').addEventListener('click', () => modal.classList.remove('open'));
+      document.getElementById('profile-save').addEventListener('click', () => {
+        const newName = document.getElementById('profile-name-input').value.trim();
+        if (newName) setGuestName(newName);
+        
+        if (wsConnected && ws) {
+           const userInfo = currentUser
+            ? { id: currentUser.id, name: newName, avatar_url: currentUser.avatar_url, kind: "discord" }
+            : { id: getGuestId(), name: newName, avatar_url: getGuestAvatar(), kind: "guest" };
+           ws.send(JSON.stringify({ type: "register", user: userInfo }));
+        }
+        updateIdentityView();
+        modal.classList.remove('open');
+      });
+
+      document.getElementById('profile-avatar-upload').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+          const btn = document.querySelector('#profile-avatar-upload').nextElementSibling;
+          btn.textContent = "Uploading...";
+          const formData = new FormData();
+          formData.append("file", file, file.name);
+          const response = await fetch("/api/chat/upload", { method: "POST", headers: authHeaders(), body: formData });
+          if (!response.ok) throw new Error("Upload failed");
+          const { attachment } = await response.json();
+          document.querySelector('.chat-profile-avatar-preview').src = attachment.url;
+          setGuestAvatar(attachment.url);
+          btn.textContent = "Upload New Picture";
+        } catch (error) {
+          alert("Failed to upload avatar");
+          document.querySelector('#profile-avatar-upload').nextElementSibling.textContent = "Upload New Picture";
+        }
+      });
+    }
+    
+    // Update fields before opening
+    document.querySelector('.chat-profile-avatar-preview').src = currentUser ? (currentUser.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png') : (getGuestAvatar() || 'https://cdn.discordapp.com/embed/avatars/0.png');
+    document.getElementById('profile-name-input').value = currentUser ? (currentUser.global_name || currentUser.username) : getGuestName();
+    
+    setTimeout(() => modal.classList.add('open'), 10);
   };
 
   // ── Web Audio API chime synthesizer ─────────────────────────────────────
@@ -191,7 +271,7 @@
       // Register the current user with the server
       const userInfo = currentUser
         ? { id: currentUser.id, name: currentUser.global_name || currentUser.username, avatar_url: currentUser.avatar_url, kind: "discord" }
-        : { id: getGuestId(), name: getGuestName() || "Guest Player", avatar_url: null, kind: "guest" };
+        : { id: getGuestId(), name: getGuestName() || "Guest Player", avatar_url: getGuestAvatar(), kind: "guest" };
       ws.send(JSON.stringify({ type: "register", user: userInfo }));
       // Stop polling - WebSocket takes over
       if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
@@ -235,6 +315,15 @@
         if (target) {
           target.reactions = data.reactions;
           renderMessages();
+        }
+        break;
+      }
+      case "delete": {
+        messagesCache = messagesCache.filter(m => m.id !== data.message_id);
+        const elMsg = el.messages.querySelector(`[data-message-id="${data.message_id}"]`);
+        if (elMsg) {
+          elMsg.classList.add("deleting");
+          setTimeout(() => elMsg.remove(), 300);
         }
         break;
       }
@@ -390,16 +479,20 @@
     });
   };
 
-  const setReply = (message) => {
+  const setReply = (message, isPrivate = false) => {
     replyTo = message;
+    if (isPrivate) {
+      replyToUser = (message.author || {}).id || (message.author || {}).name;
+    }
     el.reply.hidden = false;
     el.replyName.textContent = (message.author || {}).name || "Player";
-    el.replyContent.textContent = message.content || "Attachment";
+    el.replyContent.textContent = isPrivate ? "(Private Message) " + (message.content || "Attachment") : (message.content || "Attachment");
     el.input.focus();
   };
 
   const clearReply = () => {
     replyTo = null;
+    replyToUser = null;
     el.reply.hidden = true;
     el.replyName.textContent = "";
     el.replyContent.textContent = "";
@@ -507,6 +600,14 @@
       reply.append(replyName, replyText);
       bubble.appendChild(reply);
     }
+    
+    if (message.target_user_id) {
+       bubble.classList.add("chat-bubble-private");
+       const privInd = document.createElement("span");
+       privInd.className = "private-indicator";
+       privInd.textContent = "Private Whisper";
+       top.appendChild(privInd);
+    }
 
     if (message.content) {
       const content = document.createElement("p");
@@ -551,6 +652,14 @@
     replyButton.textContent = "Reply";
     replyButton.addEventListener("click", () => setReply(message));
     actions.appendChild(replyButton);
+    
+    const dmButton = document.createElement("button");
+    dmButton.className = "chat-reply-button";
+    dmButton.type = "button";
+    dmButton.textContent = "Whisper";
+    dmButton.title = "Private Message";
+    dmButton.addEventListener("click", () => setReply(message, true));
+    actions.appendChild(dmButton);
 
     quickReactions.forEach((emoji) => {
       const button = document.createElement("button");
@@ -568,6 +677,18 @@
     report.textContent = "Report";
     report.addEventListener("click", () => reportMessage(message));
     actions.appendChild(report);
+    
+    const myId = currentUser ? currentUser.id : getGuestId();
+    if (author.id === myId) {
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "chat-report-button";
+      deleteBtn.type = "button";
+      deleteBtn.textContent = "🗑️";
+      deleteBtn.title = "Delete Message";
+      deleteBtn.addEventListener("click", () => deleteMessage(message.id));
+      actions.appendChild(deleteBtn);
+    }
+    
     bubble.appendChild(actions);
 
     article.append(avatar, bubble);
@@ -586,7 +707,8 @@
   const refreshMessages = async () => {
     el.loading.hidden = false;
     try {
-      const response = await fetch("/api/chat/messages?limit=100", { headers: { Accept: "application/json" } });
+      const guestId = getGuestId();
+      const response = await fetch(`/api/chat/messages?limit=100&guest_id=${encodeURIComponent(guestId)}`, { headers: { Accept: "application/json", ...authHeaders() } });
       if (!response.ok) throw new Error("Chat unavailable");
       const payload = await response.json();
       messagesCache = payload.messages || [];
@@ -649,6 +771,7 @@
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
           client_time: new Date().toISOString(),
           reply_to_id: replyTo ? replyTo.id : null,
+          target_user_id: replyToUser ? String(replyToUser) : null,
           attachments: pendingAttachments
         })
       });
@@ -662,6 +785,20 @@
       if (!wsConnected) await refreshMessages();
     } catch (error) {
       setStatus("Message was not sent", true);
+    }
+  };
+  
+  const deleteMessage = async (messageId) => {
+    if (!confirm("Are you sure you want to delete this message?")) return;
+    try {
+      const response = await fetch(`/api/chat/messages/${encodeURIComponent(messageId)}?guest_id=${encodeURIComponent(getGuestId())}`, {
+        method: "DELETE",
+        headers: authHeaders()
+      });
+      if (!response.ok) throw new Error("Delete failed");
+      // UI is removed via WebSocket or poll
+    } catch (error) {
+      setStatus("Delete failed", true);
     }
   };
 
@@ -745,7 +882,8 @@
     const q = el.tenorSearch.value.trim() || "whiteout survival";
     el.tenorResults.innerHTML = '<span class="global-chat-status">Loading GIFs...</span>';
     try {
-      const response = await fetch(`/api/chat/tenor?q=${encodeURIComponent(q)}&limit=18`, { headers: authHeaders() });
+      const endpoint = activeGifSource === 'giphy' ? '/api/chat/giphy' : '/api/chat/tenor';
+      const response = await fetch(`${endpoint}?q=${encodeURIComponent(q)}&limit=18`, { headers: authHeaders() });
       if (!response.ok) throw new Error("GIF search unavailable");
       const data = await response.json();
       el.tenorResults.replaceChildren();
@@ -754,10 +892,10 @@
         button.type = "button";
         const image = document.createElement("img");
         image.src = gif.preview_url || gif.url;
-        image.alt = gif.title || "Tenor GIF";
+        image.alt = gif.title || "GIF";
         button.appendChild(image);
         button.addEventListener("click", () => {
-          pendingAttachments.push({ name: gif.title || "Tenor GIF", url: gif.url, type: "image/gif", size: 0 });
+          pendingAttachments.push({ name: gif.title || "GIF", url: gif.url, type: "image/gif", size: 0 });
           renderPendingAttachments();
           el.tenorPanel.hidden = true;
           el.input.focus();
@@ -806,13 +944,41 @@
     }
   };
 
-  emojis.forEach((emoji) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = emoji;
-    button.title = emoji;
-    button.addEventListener("click", () => insertEmoji(emoji));
-    el.emojiPanel.appendChild(button);
+  // Setup Emoji grid
+  const emojiWrap = document.createElement('div');
+  emojiWrap.className = 'emoji-grid-container';
+  Object.entries(emojiCategories).forEach(([category, emojis]) => {
+    const title = document.createElement('div');
+    title.className = 'emoji-category-title';
+    title.textContent = category;
+    emojiWrap.appendChild(title);
+    
+    emojis.forEach((emoji) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = emoji;
+      button.title = emoji;
+      button.addEventListener("click", () => insertEmoji(emoji));
+      emojiWrap.appendChild(button);
+    });
+  });
+  el.emojiPanel.appendChild(emojiWrap);
+  
+  // Setup GIF tabs
+  const gifTabs = document.createElement('div');
+  gifTabs.className = 'gif-source-tabs';
+  gifTabs.innerHTML = `
+    <button type="button" class="active" data-source="tenor">Tenor</button>
+    <button type="button" data-source="giphy">Giphy</button>
+  `;
+  el.tenorSearch.parentElement.before(gifTabs);
+  
+  gifTabs.addEventListener('click', (e) => {
+    if(e.target.tagName !== 'BUTTON') return;
+    Array.from(gifTabs.children).forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    activeGifSource = e.target.dataset.source;
+    searchTenor();
   });
 
   el.discord.href = buildDiscordAuthUrl();

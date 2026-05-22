@@ -33,7 +33,7 @@ except Exception:
     UserTimezonesAdapter = None
     RemindersAdapter = None
 
-USER_TZ_FILE = Path(__file__).with_name('user_timezones.json')
+USER_TZ_FILE = Path(__file__).parent.parent / 'data' / 'user_timezones.json'
 
 
 def _load_user_timezones() -> dict:

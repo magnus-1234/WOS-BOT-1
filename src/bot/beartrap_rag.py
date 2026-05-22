@@ -8,7 +8,7 @@ import math
 # Loads the local Bear Trap guide and returns the most relevant paragraphs
 # for a given question using a bag-of-words overlap scoring.
 
-BASE_DIR = Path(__file__).parent
+BASE_DIR = Path(__file__).parent.parent.parent
 BEARTRAP_PATH = BASE_DIR / "data" / "wos" / "beartrap.txt"
 
 

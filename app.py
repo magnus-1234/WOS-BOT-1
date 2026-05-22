@@ -16,7 +16,7 @@ if os.path.exists(src_path):
     if src_path not in sys.path:
         sys.path.insert(0, src_path)
     # Add subdirectories to path to support legacy direct imports during migration
-    for subdir in ["utils", "api", "bot"]:
+    for subdir in ["utils", "api", "bot", "web"]:
         sub_p = os.path.join(src_path, subdir)
         if os.path.exists(sub_p) and sub_p not in sys.path:
             sys.path.insert(0, sub_p)
@@ -2085,7 +2085,7 @@ async def dice_text(ctx: commands.Context):
 
 
 # ---------- Birthday command and storage ---------------------------------
-BIRTHDAY_FILE = Path(__file__).parent / "birthdays.json"
+BIRTHDAY_FILE = Path(__file__).parent / "data" / "birthdays.json"
 
 # Notify channel helper: read channel ID from env var BIRTHDAY_NOTIFY_CHANNEL
 def get_notify_channel_id_from_env() -> Optional[int]:

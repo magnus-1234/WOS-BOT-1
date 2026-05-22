@@ -19,7 +19,7 @@ except Exception:
 logger = logging.getLogger(__name__)
 
 # State file to persist configured channels and sent codes
-STATE_FILE = os.path.join(os.path.dirname(__file__), 'giftcode_state.json')
+STATE_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'giftcode_state.json')
 
 # Default check interval in seconds (reduced to 10s by default for faster checks)
 DEFAULT_INTERVAL = int(os.getenv('GIFTCODE_CHECK_INTERVAL', '10'))  # 10 seconds

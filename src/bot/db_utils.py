@@ -17,7 +17,7 @@ def get_db_path(db_name: str) -> str:
         Absolute path to the database file as a string
     """
     # Get the repository root (parent of the directory containing this file)
-    repo_root = Path(__file__).resolve().parent
+    repo_root = Path(__file__).resolve().parent.parent.parent
     db_dir = repo_root / "db"
     
     # Ensure db directory exists
@@ -36,7 +36,7 @@ def get_db_dir() -> Path:
     Returns:
         Path object pointing to the db directory
     """
-    repo_root = Path(__file__).resolve().parent
+    repo_root = Path(__file__).resolve().parent.parent.parent
     db_dir = repo_root / "db"
     
     # Ensure db directory exists

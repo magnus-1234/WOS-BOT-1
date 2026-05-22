@@ -23,7 +23,7 @@ try:
     from db_utils import get_db_connection
 except ImportError:
     def get_db_connection(db_name: str, **kwargs):
-        repo_root = Path(__file__).resolve().parent
+        repo_root = Path(__file__).resolve().parent.parent.parent
         db_dir = repo_root / "db"
         db_dir.mkdir(parents=True, exist_ok=True)
         return sqlite3.connect(str(db_dir / db_name), **kwargs)

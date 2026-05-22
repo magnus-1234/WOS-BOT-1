@@ -983,3 +983,61 @@ discord.ext.commands.errors.ExtensionAlreadyLoaded: Extension 'cogs.start_menu' 
 2026-05-15 18:44:16,032 - ✅ Synced commands to guild: FOVFOV
 2026-05-15 18:44:18,617 - ✅ Synced commands to guild: We are ONE | WOS
 2026-05-15 18:44:21,946 - ✅ Synced commands to guild: Ohana Wos
+2026-05-22 16:08:03,193 - 🚀 Web server task created
+2026-05-22 16:08:03,244 - ✅ Loaded cogs.start_menu
+2026-05-22 16:08:03,706 - ✅ Loaded cogs.alliance
+2026-05-22 16:08:03,765 - ✅ Loaded cogs.alliance_member_operations
+2026-05-22 16:08:03,807 - ✅ Loaded cogs.changes
+2026-05-22 16:08:05,130 - ✅ Loaded cogs.web_search
+2026-05-22 16:08:05,201 - ✅ Loaded cogs.welcome_channel
+2026-05-22 16:08:05,238 - ✅ Loaded cogs.control
+2026-05-22 16:08:06,348 - ✅ Loaded cogs.gift_operations
+2026-05-22 16:08:08,315 - ✅ Loaded cogs.manage_giftcode
+2026-05-22 16:08:08,425 - ✅ Loaded cogs.id_channel
+2026-05-22 16:08:08,815 - ✅ Loaded cogs.bot_operations
+2026-05-22 16:08:08,878 - ✅ Loaded cogs.remote_access
+2026-05-22 16:08:08,893 - ✅ Loaded cogs.fid_commands
+2026-05-22 16:08:08,899 - ✅ Loaded cogs.record_commands
+2026-05-22 16:08:08,947 - ✅ Loaded cogs.bear_trap
+2026-05-22 16:08:08,963 - ✅ Loaded cogs.bear_trap_editor
+2026-05-22 16:08:09,112 - ✅ Loaded cogs.attendance
+2026-05-22 16:08:09,191 - ✅ Loaded cogs.minister_schedule
+2026-05-22 16:08:09,197 - ✅ Loaded cogs.other_features
+2026-05-22 16:08:09,203 - ✅ Loaded cogs.support_operations
+2026-05-22 16:08:09,223 - ✅ Loaded cogs.minister_menu
+2026-05-22 16:08:09,235 - ✅ Loaded cogs.playerinfo
+2026-05-22 16:08:09,260 - ✅ Loaded cogs.reminder_system
+2026-05-22 16:08:09,631 - ✅ Loaded cogs.birthday_system
+2026-05-22 16:08:09,641 - ✅ Loaded cogs.events
+2026-05-22 16:08:09,665 - ✅ Loaded cogs.server_age
+2026-05-22 16:08:09,678 - ✅ Loaded cogs.personalise_chat
+2026-05-22 16:08:09,689 - ✅ Loaded cogs.presence
+2026-05-22 16:08:09,748 - ✅ Loaded cogs.auto_translate
+2026-05-22 16:08:09,775 - ✅ Loaded cogs.message_extractor
+2026-05-22 16:08:09,781 - ✅ Loaded cogs.tictactoe
+2026-05-22 16:08:25,087 - ✅ Loaded cogs.alliance_monitor
+2026-05-22 16:08:25,093 - ✅ Loaded cogs.ai_chat
+2026-05-22 16:08:25,101 - ✅ Loaded cogs.registration_admin
+2026-05-22 16:08:25,102 - 📦 Cog loading complete: 34 loaded, 0 failed
+2026-05-22 16:08:25,200 - ✅ User profiles loaded successfully
+2026-05-22 16:08:26,274 - ✅ Playlist storage initialized
+2026-05-22 16:08:28,163 - ✅ Music state storage initialized
+2026-05-22 16:08:28,163 - ✅ Keep-alive task started (runs every 5 minutes)
+2026-05-22 16:08:28,163 - ✅ Giftcode auto-poster background task started (5m interval)
+2026-05-22 16:08:28,255 - 🔄 Restoring 5 persistent views from MongoDB...
+2026-05-22 16:08:28,256 - ✅ View restoration complete: 5 restored, 0 failed
+2026-05-22 16:08:28,256 - ✅ Registered GiftCodeView
+2026-05-22 16:08:28,256 - ✅ Registered PersistentHelpView
+2026-05-22 16:08:28,257 - ✅ Registered Pollinate Views
+2026-05-22 16:08:28,257 - ✅ Registered PersistentMemberListView
+2026-05-22 16:08:28,257 - ✅ Registered BirthdayWishView
+2026-05-22 16:08:28,257 - ✅ Registered Record Views
+2026-05-22 16:08:28,257 - ✨ [STARTUP] setup_hook completed successfully
+2026-05-22 16:08:34,169 - 🤖 Logged in as .Whiteout Survival#3946 (ID: 1399025185046134866)
+2026-05-22 16:08:34,169 - 📊 Connected to 36 guild(s)
+2026-05-22 16:08:35,822 - ✅ Synced 37 commands globally
+2026-05-22 16:08:36,400 - ✅ Synced commands to guild: FightForSurvival #wos3050
+2026-05-22 16:08:39,914 - ✅ Synced commands to guild: FOVFOV
+2026-05-22 16:08:43,374 - ✅ Synced commands to guild: WHITEOUT SURVIVAL BOT
+2026-05-22 16:08:45,854 - ✅ Synced commands to guild: 3063 KOR Alliance
+2026-05-22 16:08:48,333 - ✅ Synced commands to guild: ᲼᲼᲼᲼᲼᲼᲼᲼᲼'s server

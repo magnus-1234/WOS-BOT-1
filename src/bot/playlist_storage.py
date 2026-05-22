@@ -28,7 +28,7 @@ class PlaylistStorage:
         self.initialized = False
         
         # Initialize SQLite as fallback (always available)
-        db_dir = Path(__file__).parent / 'db'
+        db_dir = Path(__file__).parent.parent.parent / 'db'
         db_dir.mkdir(exist_ok=True)
         self.sqlite_path = db_dir / 'playlists.sqlite'
         self._init_sqlite()

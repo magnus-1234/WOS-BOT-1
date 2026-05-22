@@ -2745,13 +2745,26 @@ body,
 }
 
 /* Cartoon Theme */
+@keyframes cartoonBgShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes cartoonRainbow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+
 [data-theme="cartoon"] {
   --radius: 8px;
   --background: #FAF8F2;
   --foreground: #191919;
   --card: #ffffff;
-  --primary: #FFC008;
-  --primary-glow: #FAF8F2;
+  --primary: #FF5E5E;
+  --primary-glow: rgba(255, 94, 94, 0.35);
   --primary-foreground: #191919;
   --secondary: #FFC008;
   --secondary-foreground: #191919;
@@ -2765,9 +2778,14 @@ body,
 
 [data-theme="cartoon"] body {
   background-color: #FAF8F2;
-  background-image: 
-    radial-gradient(circle at 80% 20%, rgba(253, 223, 60, 0.15) 0%, transparent 40%),
-    radial-gradient(circle at 20% 80%, rgba(247, 92, 130, 0.1) 0%, transparent 40%);
+  background-image:
+    radial-gradient(ellipse at 0%   0%,   rgba(255, 107, 107, 0.40) 0%, transparent 48%),
+    radial-gradient(ellipse at 100% 0%,   rgba(78,  205, 196, 0.38) 0%, transparent 48%),
+    radial-gradient(ellipse at 0%   100%, rgba(161, 140, 209, 0.38) 0%, transparent 48%),
+    radial-gradient(ellipse at 100% 100%, rgba(255, 200,  71, 0.40) 0%, transparent 48%),
+    radial-gradient(ellipse at 50%  50%,  rgba(254, 127, 156, 0.22) 0%, transparent 58%);
+  background-size: 200% 200%;
+  animation: cartoonBgShift 14s ease infinite;
   color: #191919;
 }
 
@@ -2793,7 +2811,7 @@ body,
 
 [data-theme="cartoon"] .primary-nav a.active,
 [data-theme="cartoon"] .primary-nav a:hover {
-  background: #FFC008;
+  background: linear-gradient(135deg, #FFC008, #FF5E5E);
   color: #191919 !important;
   border-color: #191919;
 }
@@ -2807,7 +2825,9 @@ body,
 [data-theme="cartoon"] .button,
 [data-theme="cartoon"] .ghost-link.dashboard-cta {
   border: 1.5px solid #191919 !important;
-  background: #FFC008 !important;
+  background: linear-gradient(135deg, #FFC008 0%, #FF5E5E 33%, #4FACFE 66%, #00f2fe 100%) !important;
+  background-size: 300% 300% !important;
+  animation: cartoonRainbow 6s ease infinite !important;
   color: #191919 !important;
   box-shadow: 3px 3px 0px #191919 !important;
   text-shadow: none !important;
@@ -2819,7 +2839,8 @@ body,
 [data-theme="cartoon"] .ghost-link.dashboard-cta:hover {
   transform: translate(-2px, -2px) !important;
   box-shadow: 5px 5px 0px #191919 !important;
-  background: #FFF3CD !important;
+  background: #e8f8ff !important;
+  animation: none !important;
 }
 
 [data-theme="cartoon"] .button:active,
@@ -2861,7 +2882,9 @@ body,
 }
 
 [data-theme="cartoon"] .typing-line {
-  background: linear-gradient(90deg, #FFC008 0%, #191919 50%, #097969 100%) !important;
+  background: linear-gradient(90deg, #FF5E5E 0%, #FF9F43 20%, #FFC008 40%, #4FACFE 60%, #a29bfe 80%, #fd79a8 100%) !important;
+  background-size: 200% 200% !important;
+  animation: cartoonRainbow 8s ease infinite !important;
   background-clip: text !important;
   -webkit-background-clip: text !important;
   color: transparent !important;
@@ -2869,7 +2892,7 @@ body,
 }
 
 [data-theme="cartoon"] .typing-line i {
-  background: linear-gradient(180deg, #FFC008, #191919) !important;
+  background: linear-gradient(180deg, #FF5E5E, #4FACFE) !important;
 }
 
 [data-theme="cartoon"] .hero-live-feed {
@@ -2906,7 +2929,9 @@ body,
 
 [data-theme="cartoon"] .theme-toggle {
   border: 1.5px solid #191919 !important;
-  background: #FFC008 !important;
+  background: linear-gradient(135deg, #FFC008 0%, #FF5E5E 33%, #4FACFE 66%, #00f2fe 100%) !important;
+  background-size: 300% 300% !important;
+  animation: cartoonRainbow 6s ease infinite !important;
   color: #191919 !important;
   box-shadow: 2px 2px 0px #191919 !important;
   border-radius: 8px !important;
@@ -2956,7 +2981,9 @@ body,
 
 [data-theme="cartoon"] .chat-room-refresh {
   border: 1.5px solid #191919 !important;
-  background: #FFC008 !important;
+  background: linear-gradient(135deg, #FFC008 0%, #FF5E5E 33%, #4FACFE 66%, #00f2fe 100%) !important;
+  background-size: 300% 300% !important;
+  animation: cartoonRainbow 6s ease infinite !important;
   color: #191919 !important;
   box-shadow: 2px 2px 0px #191919 !important;
   border-radius: 8px !important;
@@ -2988,7 +3015,9 @@ body,
 }
 
 [data-theme="cartoon"] .chat-send-button {
-  background: #FFC008 !important;
+  background: linear-gradient(135deg, #FFC008 0%, #FF5E5E 33%, #4FACFE 66%, #00f2fe 100%) !important;
+  background-size: 300% 300% !important;
+  animation: cartoonRainbow 6s ease infinite !important;
 }
 
 [data-theme="cartoon"] .chat-icon-button:hover,
@@ -3013,7 +3042,9 @@ body,
 [data-theme="cartoon"] .room-login button,
 [data-theme="cartoon"] .room-login a {
   border: 1.5px solid #191919 !important;
-  background: #FFC008 !important;
+  background: linear-gradient(135deg, #FFC008 0%, #FF5E5E 33%, #4FACFE 66%, #00f2fe 100%) !important;
+  background-size: 300% 300% !important;
+  animation: cartoonRainbow 6s ease infinite !important;
   color: #191919 !important;
   box-shadow: 2px 2px 0px #191919 !important;
   border-radius: 8px !important;
@@ -3372,7 +3403,9 @@ body,
 
 [data-theme="cartoon"] .feature-icon {
   border: 1.5px solid #191919 !important;
-  background: #FFC008 !important;
+  background: linear-gradient(135deg, #FFC008 0%, #FF5E5E 33%, #4FACFE 66%, #00f2fe 100%) !important;
+  background-size: 300% 300% !important;
+  animation: cartoonRainbow 6s ease infinite !important;
   color: #191919 !important;
   box-shadow: 2px 2px 0px #191919 !important;
 }
@@ -3416,7 +3449,9 @@ body,
 }
 
 [data-theme="cartoon"] .module-card .command-tags span {
-  background: #FFC008 !important;
+  background: linear-gradient(135deg, #FFC008 0%, #FF5E5E 33%, #4FACFE 66%, #00f2fe 100%) !important;
+  background-size: 300% 300% !important;
+  animation: cartoonRainbow 6s ease infinite !important;
   border: 1.5px solid #191919 !important;
   color: #191919 !important;
   box-shadow: 1px 1px 0px #191919 !important;
@@ -3452,7 +3487,9 @@ body,
 }
 
 [data-theme="cartoon"] .category-panel button.active {
-  background: #FFC008 !important;
+  background: linear-gradient(135deg, #FFC008 0%, #FF5E5E 33%, #4FACFE 66%, #00f2fe 100%) !important;
+  background-size: 300% 300% !important;
+  animation: cartoonRainbow 6s ease infinite !important;
   color: #191919 !important;
   font-weight: bold !important;
   border: 1.5px solid #191919 !important;
@@ -3510,7 +3547,9 @@ body,
 }
 
 [data-theme="cartoon"] .command-card > span {
-  background: #FFC008 !important;
+  background: linear-gradient(135deg, #FFC008 0%, #FF5E5E 33%, #4FACFE 66%, #00f2fe 100%) !important;
+  background-size: 300% 300% !important;
+  animation: cartoonRainbow 6s ease infinite !important;
   border: 1.5px solid #191919 !important;
   color: #191919 !important;
   box-shadow: 1px 1px 0px #191919 !important;
@@ -3561,7 +3600,9 @@ body,
 }
 
 [data-theme="cartoon"] .global-chat-fab {
-  background: #FFC008 !important;
+  background: linear-gradient(135deg, #FFC008 0%, #FF5E5E 33%, #4FACFE 66%, #00f2fe 100%) !important;
+  background-size: 300% 300% !important;
+  animation: cartoonRainbow 6s ease infinite !important;
   color: #191919 !important;
   border: 2px solid #191919 !important;
   box-shadow: 3px 3px 0px #191919 !important;

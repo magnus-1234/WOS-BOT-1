@@ -112,7 +112,20 @@
             border-radius: 0 !important;
         }
 
-        [data-theme="cartoon"] {
+    
+    @keyframes cartoonBgShift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes cartoonRainbow {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    [data-theme="cartoon"] {
             --radius: 18px;
             --bg-dark: #f6fbff;
             --sidebar-bg: rgba(255, 255, 255, 0.94);
@@ -121,7 +134,7 @@
             --glass-border: rgba(23, 32, 51, 0.14);
             --text-main: #172033;
             --text-muted: #5b6478;
-            --primary: #FFC008;
+            --primary: #FF5E5E;
         }
 
         [data-theme="cartoon"] .sidebar,
@@ -141,7 +154,9 @@
         [data-theme="cartoon"] .theme-toggle,
         [data-theme="cartoon"] .btn {
             border: 1px solid rgba(23, 32, 51, 0.16) !important;
-            background: #FFC008 !important;
+            background: linear-gradient(135deg, #FFC008 0%, #FF5E5E 33%, #4FACFE 66%, #00f2fe 100%) !important;
+            background-size: 300% 300% !important;
+            animation: cartoonRainbow 6s ease infinite !important;
             color: #172033 !important;
             box-shadow: 0 10px 22px -16px rgba(23, 32, 51, 0.45) !important;
             border-radius: 12px !important;
@@ -151,7 +166,8 @@
         [data-theme="cartoon"] button:hover,
         [data-theme="cartoon"] .theme-toggle:hover,
         [data-theme="cartoon"] .btn:hover {
-            background: #FFF3CD !important;
+            background: #e8f8ff !important;
+      animation: none !important;
             transform: translateY(-1px) !important;
         }
 

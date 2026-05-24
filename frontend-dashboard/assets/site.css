@@ -5324,3 +5324,60 @@ body,
   color: #fff;
   border-color: var(--primary-glow);
 }
+
+/* ── Viper Theme Style Overrides ── */
+[data-theme="viper"] {
+  --radius: 4px;
+  --background: #000000;
+  --card: #050805;
+  --border: rgba(255, 215, 0, 0.2);
+  --foreground: #FFD700;
+  --muted-foreground: #aaaaaa;
+  --primary: #00FFFF;
+  --primary-glow: #00e6e6;
+  --primary-foreground: #000000;
+  --secondary: #080808;
+  --secondary-foreground: #FFD700;
+  --shadow-glow: 0 0 15px rgba(0, 255, 255, 0.4);
+}
+
+[data-theme="viper"] body {
+  background-image: none !important;
+  background-color: #000000 !important;
+  color: #FFD700 !important;
+}
+
+[data-theme="viper"] .ghost-link.dashboard-cta,
+[data-theme="viper"] .button {
+  border: 2px solid #00FFFF !important;
+  background: #050505 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.4), inset 0 0 10px rgba(0, 255, 255, 0.15) !important;
+}
+
+[data-theme="viper"] .ghost-link.dashboard-cta:hover,
+[data-theme="viper"] .button:hover {
+  box-shadow: 0 0 25px rgba(0, 255, 255, 0.6), inset 0 0 15px rgba(0, 255, 255, 0.25) !important;
+  background: #0a0a0a !important;
+}
+
+[data-theme="viper"] .feature-card,
+[data-theme="viper"] .stats-grid article,
+[data-theme="viper"] .showcase-card {
+  background: #050805 !important;
+  border: 1px solid rgba(255, 215, 0, 0.2) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.8) !important;
+}
+
+[data-theme="viper"] .typing-line {
+  background: linear-gradient(135deg, #00FFFF 0%, #FF00FF 100%) !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+[data-theme="viper"] .site-header {
+  background: #080808 !important;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2) !important;
+}

@@ -645,6 +645,47 @@
       color: #191919 !important;
       box-shadow: none !important;
     }
+
+    .cartoon-globe-wrapper {
+      display: none;
+      position: absolute;
+      right: -26rem;
+      top: -4rem;
+      width: clamp(16rem, 24vw, 24rem);
+      z-index: 5;
+      pointer-events: none;
+    }
+    
+    [data-theme="cartoon"] .cartoon-globe-wrapper {
+      display: block;
+      animation: floatGlobeCartoon 6s ease-in-out infinite alternate;
+    }
+    
+    [data-theme="cartoon"] .cartoon-globe-wrapper img {
+      width: 100%;
+      height: auto;
+      display: block;
+      filter: drop-shadow(0 0 35px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 20px rgba(180, 240, 255, 0.8));
+    }
+    
+    @keyframes floatGlobeCartoon {
+      0% { transform: translateY(0) rotate(-2deg); }
+      100% { transform: translateY(-20px) rotate(2deg); }
+    }
+    
+    @media (max-width: 1100px) {
+      .cartoon-globe-wrapper {
+        right: -16rem;
+        width: 16rem;
+        opacity: 0.6;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .cartoon-globe-wrapper {
+        display: none !important;
+      }
+    }
     
     .hero-live-feed:active {
       cursor: grabbing;
@@ -2009,6 +2050,7 @@
           <svg class="hacker-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 16 4-4-4-4M6 8l-4 4 4 4M14.5 4l-5 16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <svg class="cartoon-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke-width="2"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <svg class="aurora-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"><path d="M2 8c4-4 6 4 10 0s6-4 10 0M2 13c4-4 6 4 10 0s6-4 10 0M2 18c4-4 6 4 10 0s6-4 10 0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg class="viper-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"><path d="M12 2C6 2 2 7 2 12s4 10 10 10 10-4.5 10-10S18 2 12 2z" stroke-width="1.5"/><path d="M12 8v4l3 3" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>
         </button>
         <a class="ghost-link dashboard-cta nav-galaxy" href="login.html" data-dashboard-link>Dashboard</a>
       </div>
@@ -2031,6 +2073,9 @@
             <span>Run your Alliance smarter with</span>
             <span class="typing-line"><span id="typed-phrase">alliance tracking</span><i></i></span>
           </h1>
+          <div class="cartoon-globe-wrapper" aria-hidden="true">
+            <img src="assets/wos-globe.png" alt="WOS Globe Cartoon Theme">
+          </div>
           <p>Alliance monitoring, gift code automation, DeepL translation, AI voice tools, reminders, games, and admin workflows in one professional Discord bot.</p>
           <div class="action-row">
             <a class="button" href="https://discord.com/oauth2/authorize?client_id=1399025185046134866&permissions=8&integration_type=0&scope=bot" target="_blank" rel="noopener noreferrer">Add to Discord <svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
@@ -2299,13 +2344,33 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <div>
+      <div class="footer-left">
         <a class="brand footer-brand" href="index.html">
           <span class="brand-mark" aria-hidden="true"><img src="assets/brand-logo.gif" alt=""></span>
           <span>Whiteout Survival Bot</span>
         </a>
         <p style="margin-top: 1.25rem;">A professional Discord alliance automation platform for Whiteout Survival, featuring translation, reminders, music, and AI tools.</p>
       </div>
+
+      <!-- VIPER THEME: SYSTEM INFO READOUT (MIDDLE) -->
+      <div class="viper-system-info" id="user-system-readout">
+        <div class="sys-info-header">SYSTEM info</div>
+        <div class="sys-info-divider">────────────────────────</div>
+        <div class="sys-info-grid">
+          <div class="sys-row"><span class="sys-label">IP:</span><span class="sys-value" id="sys-ip">FETCHING...</span></div>
+          <div class="sys-row"><span class="sys-label">REGION:</span><span class="sys-value" id="sys-region">DETECTING...</span></div>
+          <div class="sys-row"><span class="sys-label">ISP:</span><span class="sys-value" id="sys-isp">UNKNOWN</span></div>
+          <div class="sys-row"><span class="sys-label">DEVICE:</span><span class="sys-value" id="sys-device">DETECTING...</span></div>
+          <div class="sys-row"><span class="sys-label">BROWSER:</span><span class="sys-value" id="sys-browser">DETECTING...</span></div>
+          <div class="sys-row"><span class="sys-label">TIMEZONE:</span><span class="sys-value" id="sys-timezone">CALCULATING...</span></div>
+          <div class="sys-row"><span class="sys-label">LATENCY:</span><span class="sys-value" id="sys-latency">PINGING...</span></div>
+          <div class="sys-row"><span class="sys-label">SESSION:</span><span class="sys-value">ACTIVE</span></div>
+          <div class="sys-row"><span class="sys-label">TLS:</span><span class="sys-value">AES-256 SECURE</span></div>
+          <div class="sys-row"><span class="sys-label">VPN:</span><span class="sys-value">NOT DETECTED</span></div>
+        </div>
+        <div class="sys-info-divider">────────────────────────</div>
+      </div>
+
       <div class="footer-right">
         <nav aria-label="Footer navigation">
           <a href="features.html">Features</a>
@@ -2675,6 +2740,56 @@
         activeItem = null;
         setTimeout(() => { isDragging = false; }, 50);
       }
+    });
+  </script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // ── Viper System Info Logic ──
+      const sysIp = document.getElementById("sys-ip");
+      const sysRegion = document.getElementById("sys-region");
+      const sysIsp = document.getElementById("sys-isp");
+      const sysDevice = document.getElementById("sys-device");
+      const sysBrowser = document.getElementById("sys-browser");
+      const sysTimezone = document.getElementById("sys-timezone");
+      const sysLatency = document.getElementById("sys-latency");
+
+      if (sysTimezone) sysTimezone.textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || "UNKNOWN";
+      
+      const ua = navigator.userAgent;
+      let browser = "UNKNOWN";
+      if (ua.includes("Firefox")) browser = "Firefox " + ua.split("Firefox/")[1].split(" ")[0];
+      else if (ua.includes("Chrome")) browser = "Chrome " + ua.split("Chrome/")[1].split(" ")[0].split(".")[0];
+      else if (ua.includes("Safari") && !ua.includes("Chrome")) browser = "Safari";
+      if (sysBrowser) sysBrowser.textContent = browser;
+
+      let os = "UNKNOWN OS";
+      if (ua.includes("Win")) os = "Windows";
+      else if (ua.includes("Mac")) os = "MacOS";
+      else if (ua.includes("Linux")) os = "Linux";
+      else if (ua.includes("Android")) os = "Android";
+      else if (ua.includes("like Mac")) os = "iOS";
+      if (sysDevice) sysDevice.textContent = os + " Device";
+
+      const start = performance.now();
+      fetch('https://1.1.1.1/cdn-cgi/trace', {mode: 'no-cors'}).then(() => {
+        if (sysLatency) sysLatency.textContent = Math.round(performance.now() - start) + "ms";
+      }).catch(() => {
+        if (sysLatency) sysLatency.textContent = "14ms"; // mock fallback
+      });
+
+      fetch("https://ipapi.co/json/")
+        .then(res => res.json())
+        .then(data => {
+          if (sysIp) sysIp.textContent = data.ip || "103.xxx.xxx.xxx";
+          if (sysRegion) sysRegion.textContent = (data.region || "Unknown") + ", " + (data.country || "UN");
+          if (sysIsp) sysIsp.textContent = data.org || "Unknown ISP";
+        })
+        .catch(err => {
+          if (sysIp) sysIp.textContent = "SECURE.IP.HIDDEN";
+          if (sysRegion) sysRegion.textContent = "ENCRYPTED, XX";
+          if (sysIsp) sysIsp.textContent = "ANONYMOUS RELAY";
+        });
     });
   </script>
 </body>

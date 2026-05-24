@@ -3264,11 +3264,960 @@ body,
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   VIPER THEME – Ultra-premium BLACK × GOLD × NEON
+   Regal darkness with liquid gold buttons, neon cyan/magenta accents
+   Apply [data-theme="viper"] on <html> to activate.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@keyframes viperPulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5), 0 0 30px rgba(255, 215, 0, 0.2); }
+  50%      { box-shadow: 0 0 22px rgba(255, 215, 0, 0.8), 0 0 55px rgba(255, 215, 0, 0.35); }
+}
+
+@keyframes viperGoldShimmer {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes viperNeonBlink {
+  0%, 90%, 100% { opacity: 1; }
+  95%           { opacity: 0.6; }
+}
+
+@keyframes viperGlow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.6)); }
+  50%      { filter: drop-shadow(0 0 14px rgba(255, 215, 0, 1)); }
+}
+
+@keyframes viperScan {
+  0%   { transform: translateY(-4px); opacity: 0.6; }
+  50%  { opacity: 1; }
+  100% { transform: translateY(4px); opacity: 0.6; }
+}
+
+@keyframes viperConsoleFlicker {
+  0%, 97%, 100% { opacity: 1; }
+  98%           { opacity: 0.85; }
+}
+
+@keyframes viperLogScroll {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+@keyframes viperStatusPulse {
+  0%, 100% { box-shadow: 0 0 4px #FFD700, 0 0 8px rgba(255, 215, 0, 0.5); }
+  50%      { box-shadow: 0 0 8px #FFD700, 0 0 18px rgba(255, 215, 0, 0.7); }
+}
+
+@keyframes viperNeonPing {
+  0%, 100% { box-shadow: 0 0 4px #00FFFF, 0 0 8px rgba(0, 255, 255, 0.4); }
+  50%      { box-shadow: 0 0 10px #00FFFF, 0 0 20px rgba(0, 255, 255, 0.7); }
+}
+
+[data-theme="viper"] {
+  --radius: 4px;
+  --background: #020302;
+  --foreground: #d4f5d4;
+  --card: #050805;
+  --primary: #00ff50;
+  --primary-glow: rgba(0, 255, 80, 0.35);
+  --primary-foreground: #000000;
+  --secondary: #0a120a;
+  --secondary-foreground: #d4f5d4;
+  --muted-foreground: #5a8a5a;
+  --border: rgba(0, 255, 80, 0.14);
+  --input: rgba(0, 255, 80, 0.08);
+  --shadow-glow: 0 0 60px rgba(0, 255, 80, 0.2);
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-theme="viper"] body {
+  background: #000000;
+  color: #FFD700;
+  position: relative;
+}
+
+/* Subtle scanline texture overlay */
+[data-theme="viper"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 215, 0, 0.03) 2px,
+      rgba(255, 215, 0, 0.03) 4px
+    );
+  animation: viperScan 8s linear infinite;
+}
+
+/* Moving ambient glow orbs */
+[data-theme="viper"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255, 215, 0, 0.05) 0%, transparent 42%),
+    radial-gradient(circle at 85% 75%, rgba(0, 255, 255, 0.05) 0%, transparent 38%),
+    radial-gradient(circle at 50% 50%, rgba(255, 0, 255, 0.03) 0%, transparent 60%),
+    #000000;
+}
+
+[data-theme="viper"] .site-header {
+  border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+  background: #000000;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.15);
+}
+
+[data-theme="viper"] .primary-nav {
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  background: #0a0a0a;
+}
+
+[data-theme="viper"] .primary-nav a {
+  color: #aaaaaa;
+}
+
+[data-theme="viper"] .primary-nav a:hover,
+[data-theme="viper"] .primary-nav a.active {
+  color: #FFD700;
+  border-color: #FFD700;
+  background: rgba(255, 215, 0, 0.1);
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+[data-theme="viper"] .brand-mark {
+  border: 1px solid #FFD700;
+  background: #000000;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+}
+
+/* ── Viper: Animated Text ── */
+[data-theme="viper"] .typing-line,
+[data-theme="viper"] #typed-phrase {
+  color: #39FF14 !important; /* Terminal Green */
+  text-shadow: 0 0 15px rgba(57, 255, 20, 0.6) !important;
+}
+
+/* ── Viper: CLI Typography ── */
+[data-theme="viper"] .hero-title {
+  color: #FFFFFF !important;
+  font-family: var(--font-mono) !important;
+  text-transform: uppercase;
+}
+
+[data-theme="viper"] .hero-desc {
+  color: #5DADE2 !important; /* Bright CLI Blue */
+  font-family: var(--font-mono) !important;
+  font-size: 1.1rem !important;
+  letter-spacing: 0.5px;
+}
+
+/* ── Viper Buttons – Neon Edge & Black Base ── */
+[data-theme="viper"] .button,
+[data-theme="viper"] .ghost-link.dashboard-cta {
+  border: 2px solid #00FFFF !important;
+  background: #050505 !important;
+  color: #FFFFFF !important;
+  font-weight: 900 !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.4), inset 0 0 10px rgba(0, 255, 255, 0.15) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease !important;
+}
+
+[data-theme="viper"] .button:hover,
+[data-theme="viper"] .ghost-link.dashboard-cta:hover {
+  background: #00FFFF !important;
+  border-color: #00FFFF !important;
+  color: #000000 !important;
+  box-shadow: 0 0 25px rgba(0, 255, 255, 0.8) !important;
+  transform: translateY(-2px);
+}
+
+[data-theme="viper"] .button.secondary {
+  border: 2px solid #FF00FF !important;
+  background: #111111 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 0 10px rgba(255, 0, 255, 0.3) !important;
+}
+
+[data-theme="viper"] .button.secondary:hover {
+  border-color: #FF00FF !important;
+  background: #FF00FF !important;
+  color: #000000 !important;
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.7) !important;
+}
+
+/* ── Cards & Surfaces ── */
+[data-theme="viper"] .feature-card,
+[data-theme="viper"] .stats-grid article,
+[data-theme="viper"] .cta-card,
+[data-theme="viper"] .showcase-card,
+[data-theme="viper"] .live-metrics article,
+[data-theme="viper"] .spotlight-event,
+[data-theme="viper"] .dispatch-bubble,
+[data-theme="viper"] .live-command-center,
+[data-theme="viper"] .card,
+[data-theme="viper"] .overview-card,
+[data-theme="viper"] .overview-stat-box,
+[data-theme="viper"] .progress-card,
+[data-theme="viper"] .modal-content,
+[data-theme="viper"] .config-item,
+[data-theme="viper"] .manual-redeem-card,
+[data-theme="viper"] .giftcode-card,
+[data-theme="viper"] .preset-card,
+[data-theme="viper"] .reminder-card,
+[data-theme="viper"] .player-info-display,
+[data-theme="viper"] .auto-redeem-section,
+[data-theme="viper"] .ar-config-card,
+[data-theme="viper"] .ar-member-card {
+  border: 1px solid rgba(255, 215, 0, 0.2) !important;
+  background: #080808 !important;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.8);
+}
+
+[data-theme="viper"] .feature-card:hover,
+[data-theme="viper"] .showcase-card:hover,
+[data-theme="viper"] .stats-grid article:hover,
+[data-theme="viper"] .card:hover,
+[data-theme="viper"] .overview-card:hover,
+[data-theme="viper"] .preset-card:hover {
+  border-color: #FFD700 !important;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2), 0 8px 32px rgba(0, 0, 0, 0.8) !important;
+  transform: translateY(-3px);
+}
+
+/* ── Hero glow ── */
+[data-theme="viper"] .hero-glow {
+  background: radial-gradient(60% 50% at 50% 0%, rgba(255, 215, 0, 0.1), transparent 70%);
+}
+
+[data-theme="viper"] .grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(255, 215, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 215, 0, 0.05) 1px, transparent 1px);
+}
+
+[data-theme="viper"] .hero-art::before {
+  background:
+    linear-gradient(to right, #000 0%, rgba(0, 0, 0, 0.92) 18%, rgba(0, 0, 0, 0.5) 55%, rgba(0, 0, 0, 0.3) 75%, rgba(0, 0, 0, 0.6) 100%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 50%, #000 100%);
+}
+
+/* Hide normal hero art in Viper theme */
+[data-theme="viper"] .hero-art,
+[data-theme="viper"] .front-hero-scene {
+  display: none !important;
+}
+
+/* ── Viper Bot Console (Wallpaper Replacement) ── */
+.viper-bot-console {
+  display: none;
+  position: absolute;
+  right: -5%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 45%;
+  height: 60%;
+  max-height: 500px;
+  background: #050505;
+  border: 2px solid #FFD700;
+  border-radius: 12px;
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.2), inset 0 0 20px rgba(255, 215, 0, 0.1);
+  overflow: hidden;
+  z-index: 10;
+}
+
+[data-theme="viper"] .viper-bot-console {
+  display: flex;
+  flex-direction: column;
+}
+
+.viper-console-header {
+  background: #111;
+  border-bottom: 2px solid #FFD700;
+  padding: 10px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.viper-console-title {
+  color: #FFD700;
+  font-family: var(--font-mono);
+  font-weight: 900;
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.viper-console-title::before {
+  content: "";
+  display: block;
+  width: 10px;
+  height: 10px;
+  background: #FF00FF; /* Neon Magenta */
+  border-radius: 50%;
+  box-shadow: 0 0 10px #FF00FF;
+  animation: viperNeonBlink 2s infinite;
+}
+
+.viper-console-body {
+  flex: 1;
+  padding: 15px;
+  font-family: var(--font-mono);
+  color: #00FFFF; /* Neon Cyan */
+  font-size: 0.85rem;
+  line-height: 1.5;
+  overflow-y: hidden;
+  position: relative;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 255, 255, 0.02),
+    rgba(0, 255, 255, 0.02) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+
+.viper-console-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: absolute;
+  bottom: -150px;
+  width: calc(100% - 30px);
+  animation: viperLogScroll 12s linear infinite;
+}
+
+.viper-line {
+  display: flex;
+  gap: 10px;
+}
+
+.viper-line-time {
+  color: #FFD700;
+  opacity: 0.8;
+}
+
+.viper-line-msg {
+  color: #00FFFF;
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+}
+
+.viper-line-warn {
+  color: #FF00FF;
+  text-shadow: 0 0 5px rgba(255, 0, 255, 0.5);
+}
+
+/* ── Typing gradient ── */
+[data-theme="viper"] .typing-line {
+  background: linear-gradient(90deg, #FFD700 0%, #FFEA70 35%, #FFD700 65%, #FFA500 100%) !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.45)) !important;
+}
+
+[data-theme="viper"] .typing-line i {
+  background: #FFD700 !important;
+  -webkit-text-fill-color: initial !important;
+}
+
+/* ── Eyebrow tag ── */
+[data-theme="viper"] .eyebrow {
+  border-color: rgba(255, 215, 0, 0.3);
+  background: #111;
+  color: #FFD700;
+}
+
+[data-theme="viper"] .eyebrow span {
+  background: #FF00FF;
+  box-shadow: 0 0 8px #FF00FF;
+}
+
+/* ── Section kickers & headings ── */
+[data-theme="viper"] .section-heading p,
+[data-theme="viper"] .section-kicker,
+[data-theme="viper"] .page-hero p,
+[data-theme="viper"] .feature-section > div > p {
+  color: #FFD700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+/* ── Feature icon ── */
+[data-theme="viper"] .feature-icon {
+  border-color: #FFD700;
+  background: #111;
+  color: #00FFFF;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+/* ── CTA card border ── */
+[data-theme="viper"] .cta-card,
+[data-theme="viper"] .cta-row-card {
+  border-color: rgba(255, 215, 0, 0.3) !important;
+  background: #080808 !important;
+}
+
+/* ── Operation band ── */
+[data-theme="viper"] .operation-band,
+[data-theme="viper"] .feature-detail-band {
+  border-top-color: rgba(255, 215, 0, 0.2);
+  border-bottom-color: rgba(255, 215, 0, 0.2);
+  background: #0a0a0a;
+}
+
+/* ── Log panel ── */
+[data-theme="viper"] .log-panel {
+  border-color: rgba(255, 215, 0, 0.2);
+  background: #050505;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+}
+
+[data-theme="viper"] .log-rows div {
+  background: #111;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+[data-theme="viper"] .log-rows span {
+  color: #00FFFF;
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.4);
+}
+
+/* ── Check grid ── */
+[data-theme="viper"] .check-grid svg {
+  color: #FFD700;
+  filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.5));
+}
+
+/* ── Hero live feed ── */
+[data-theme="viper"] .hero-live-feed {
+  background: #080808 !important;
+  border: 1px solid #FFD700 !important;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2) !important;
+}
+
+[data-theme="viper"] .hero-feed-top b {
+  color: #FFD700 !important;
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.5) !important;
+}
+
+[data-theme="viper"] .hero-feed-top b::before {
+  background: #FF00FF !important;
+  box-shadow: 0 0 8px #FF00FF !important;
+}
+
+[data-theme="viper"] .hero-feed-copy strong {
+  color: #FFD700 !important;
+}
+
+[data-theme="viper"] .hero-feed-copy span {
+  color: #aaaaaa !important;
+}
+
+/* ── Chat FAB ── */
+[data-theme="viper"] .global-chat-fab {
+  border: 2px solid #FFD700;
+  background: #FFD700;
+  color: #000;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+}
+
+[data-theme="viper"] .global-chat-fab:hover,
+[data-theme="viper"] .global-chat-fab:focus-visible {
+  transform: translateY(-3px) scale(1.05);
+  background: #FFE55C;
+  border-color: #FFE55C;
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.7);
+}
+
+/* ── Chat panel ── */
+[data-theme="viper"] .global-chat-panel {
+  border: 1px solid #FFD700;
+  background: #050505;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 215, 0, 0.1);
+}
+
+[data-theme="viper"] .chat-send-button {
+  border-color: #FFD700;
+  background: #FFD700;
+  color: #000;
+}
+
+[data-theme="viper"] .chat-send-button:hover,
+[data-theme="viper"] .chat-send-button:focus-visible {
+  background: #FFE55C;
+  border-color: #FFE55C;
+}
+
+[data-theme="viper"] .chat-icon-button:hover,
+[data-theme="viper"] .chat-icon-button:focus-visible {
+  border-color: #FFD700;
+  background: rgba(255, 215, 0, 0.1);
+  color: #FFD700;
+}
+
+/* ── Chat room ── */
+[data-theme="viper"] .chat-room-side,
+[data-theme="viper"] .chat-room-main {
+  border: 1px solid rgba(255, 215, 0, 0.2) !important;
+  background: #050505 !important;
+}
+
+[data-theme="viper"] .chat-room-topbar {
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2) !important;
+}
+
+[data-theme="viper"] .chat-room-refresh {
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  background: rgba(255, 215, 0, 0.1);
+  color: #FFD700;
+}
+
+[data-theme="viper"] .chat-room-refresh:hover {
+  background: rgba(255, 215, 0, 0.2);
+  border-color: #FFD700;
+}
+
+[data-theme="viper"] .room-login button,
+[data-theme="viper"] .room-login a {
+  border: 2px solid #FFD700 !important;
+  background: #FFD700 !important;
+  color: #000 !important;
+  font-weight: bold !important;
+}
+
+[data-theme="viper"] .chat-bubble {
+  border: 1px solid rgba(255, 215, 0, 0.2) !important;
+  background: #111 !important;
+}
+
+[data-theme="viper"] .chat-room-brand b,
+[data-theme="viper"] .chat-room-user strong,
+[data-theme="viper"] .global-chat-header b {
+  color: #FFD700 !important;
+}
+
+/* ── Scrollbars ── */
+[data-theme="viper"] .global-chat-messages,
+[data-theme="viper"] .chat-room-messages {
+  scrollbar-color: rgba(255, 215, 0, 0.3) transparent;
+}
+
+/* ── Category panel (commands) ── */
+[data-theme="viper"] .category-panel {
+  border: 1px solid rgba(255, 215, 0, 0.2) !important;
+  background: #0a0a0a !important;
+}
+
+[data-theme="viper"] .category-panel button.active {
+  background: rgba(255, 215, 0, 0.15) !important;
+  color: #FFD700 !important;
+  border: 1px solid #FFD700 !important;
+}
+
+[data-theme="viper"] .category-panel button:hover {
+  background: rgba(255, 215, 0, 0.08) !important;
+  color: #FFD700 !important;
+}
+
+/* ── Command cards ── */
+[data-theme="viper"] .command-card {
+  border: 1px solid rgba(255, 215, 0, 0.15) !important;
+  background: #080808 !important;
+}
+
+[data-theme="viper"] .command-card:hover {
+  border-color: #FFD700 !important;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.15) !important;
+}
+
+[data-theme="viper"] .command-card h3 {
+  color: #FFD700 !important;
+}
+
+/* ── Search box ── */
+[data-theme="viper"] .search-box {
+  background: #050505 !important;
+  border-bottom-color: rgba(255, 215, 0, 0.2) !important;
+}
+
+[data-theme="viper"] .search-box input:focus {
+  border-color: #FFD700 !important;
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1) !important;
+}
+
+/* ── b & strong highlights ── */
+[data-theme="viper"] b,
+[data-theme="viper"] strong {
+  color: #FFD700;
+}
+
+/* ── Footer ── */
+[data-theme="viper"] .site-footer {
+  border-top-color: rgba(255, 215, 0, 0.2);
+  background: #000000;
+}
+
+[data-theme="viper"] .footer-logo-link {
+  opacity: 0.55;
+  filter: sepia(100%) hue-rotate(10deg) saturate(300%) brightness(1.2);
+}
+
+[data-theme="viper"] .footer-logo-link:hover {
+  opacity: 1;
+  filter: sepia(100%) hue-rotate(10deg) saturate(500%) brightness(1.5) drop-shadow(0 0 10px #FFD700);
+}
+
+/* ── Live pill status ── */
+[data-theme="viper"] .live-pill {
+  color: #FFD700;
+  background: rgba(255, 215, 0, 0.15);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+/* ── Theme Toggle ── */
+[data-theme="viper"] .theme-toggle {
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  background: #111;
+  color: #FFD700;
+}
+
+[data-theme="viper"] .theme-toggle:hover {
+  border-color: #FFD700;
+  background: rgba(255, 215, 0, 0.1);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+  color: #fff;
+}
+
+/* ── Feature sections ── */
+[data-theme="viper"] .feature-section {
+  border: 1px solid rgba(255, 215, 0, 0.2) !important;
+  background: #080808 !important;
+}
+
+[data-theme="viper"] .module-card {
+  background: #0a0a0a;
+  border-color: rgba(255, 215, 0, 0.2);
+}
+
+[data-theme="viper"] .module-top b {
+  background: rgba(255, 215, 0, 0.15);
+  color: #FFD700;
+  border: 1px solid rgba(255, 215, 0, 0.4);
+}
+
+[data-theme="viper"] .dispatch-bubble-message {
+  color: #ccc !important;
+}
+
+[data-theme="viper"] main {
+  position: relative; /* Ensure it is the offset parent */
+}
+
+/* ── VIPER: Move Live Dashboard to Hero ── */
+[data-theme="viper"] .hero-live-feed {
+  display: none !important;
+}
+
+[data-theme="viper"] .live-command-center {
+  position: absolute;
+  top: 15vh;
+  right: 2%;
+  width: 42%;
+  max-width: 550px;
+  max-height: 90vh;
+  z-index: 10;
+  padding: 0;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme="viper"] .live-process-header {
+  display: none !important;
+}
+
+[data-theme="viper"] .live-board {
+  display: flex;
+  flex-direction: column;
+  background: #080808 !important;
+  border: 1px solid #1a1a1a !important;
+  border-radius: 16px !important;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.9), 0 0 30px rgba(255, 42, 42, 0.15) !important;
+  padding: 0.75rem !important;
+  height: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  gap: 0.5rem;
+}
+
+[data-theme="viper"] .live-board::before {
+  content: "◉ SYSTEM ALERT";
+  display: flex;
+  align-items: center;
+  color: #ff2a2a;
+  font-family: var(--font-mono);
+  font-weight: 900;
+  font-size: 0.8rem;
+  letter-spacing: 3px;
+  margin-bottom: 0;
+  text-shadow: 0 0 10px rgba(255, 42, 42, 0.8);
+  animation: alarmPulse 2s infinite;
+}
+
+@keyframes alarmPulse {
+  0%, 100% { opacity: 1; text-shadow: 0 0 15px rgba(255,42,42,0.8); }
+  50% { opacity: 0.6; text-shadow: 0 0 5px rgba(255,42,42,0.4); }
+}
+
+[data-theme="viper"] .live-board > div {
+  width: 100% !important;
+  flex: 0 0 auto !important; 
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+[data-theme="viper"] .live-board > aside {
+  width: 100% !important;
+  flex: 1 1 0 !important; 
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  min-height: 120px; 
+}
+
+/* Inner containers mimicking the segmented LED boxes */
+[data-theme="viper"] .status-stage,
+[data-theme="viper"] .event-list-panel {
+  background: #0c0c0c !important;
+  border: 1px solid #1a1a1a !important;
+  border-radius: 8px !important;
+  padding: 0.5rem !important;
+  box-shadow: inset 0 4px 20px rgba(0,0,0,0.5) !important;
+  margin-bottom: 4px !important;
+}
+
+/* Hide event meta to save vertical space */
+[data-theme="viper"] .event-meta-row {
+  display: none !important;
+}
+
+[data-theme="viper"] [data-event-title] {
+  color: #ff2a2a !important;
+  font-family: 'Impact', 'Arial Black', sans-serif !important;
+  font-size: 1.2rem !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 0 15px rgba(255, 42, 42, 0.6) !important;
+  margin: 0.2rem 0 !important;
+  line-height: 1.1 !important;
+}
+
+[data-theme="viper"] [data-event-message] {
+  color: #ff7b7b !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.8rem !important;
+  letter-spacing: 1px;
+}
+
+[data-theme="viper"] .dispatch-feed {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-right: 5px;
+  min-height: 0;
+}
+
+[data-theme="viper"] .dispatch-feed::-webkit-scrollbar {
+  width: 4px;
+}
+[data-theme="viper"] .dispatch-feed::-webkit-scrollbar-thumb {
+  background: #ff2a2a;
+  border-radius: 4px;
+}
+
+[data-theme="viper"] .dispatch-bubble {
+  background: rgba(20, 0, 0, 0.4) !important;
+  border: 1px solid #2a0000 !important;
+  border-left: 3px solid #ff2a2a !important;
+  border-radius: 6px !important;
+  padding: 0.65rem !important;
+  margin-bottom: 8px !important;
+}
+
+[data-theme="viper"] .dispatch-bubble-title {
+  color: #ff2a2a !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.85rem !important;
+  text-transform: uppercase;
+}
+
+[data-theme="viper"] .dispatch-bubble-message {
+  color: #a0a0a0 !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.75rem !important;
+}
+
+[data-theme="viper"] .dispatch-bubble-time {
+  color: #ff7b7b !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.7rem !important;
+}
+
+[data-theme="viper"] .live-metrics {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 10px !important;
+  margin-top: 10px !important;
+}
+
+[data-theme="viper"] .live-metrics article {
+  background: #0c0c0c !important;
+  border: 1px solid #1a1a1a !important;
+  border-radius: 8px !important;
+  padding: 1rem !important;
+  min-height: 0 !important;
+  text-align: center;
+  box-shadow: inset 0 2px 10px rgba(0,0,0,0.5) !important;
+}
+
+[data-theme="viper"] .live-metrics strong {
+  color: #FFD700 !important;
+  font-family: 'Impact', sans-serif !important;
+  font-size: 1.8rem !important;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5) !important;
+}
+
+[data-theme="viper"] .live-metrics span {
+  color: #777 !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.7rem !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+[data-theme="viper"] .server-radar {
+  display: none !important;
+}
+
+[data-theme="viper"] .status-topline,
+[data-theme="viper"] .radar-topline {
+  color: #ff2a2a !important;
+  border-bottom: 1px solid #2a0000 !important;
+  padding-bottom: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+  font-family: var(--font-mono) !important;
+  text-transform: uppercase;
+  font-size: 0.75rem !important;
+  letter-spacing: 2px !important;
+}
+
+[data-theme="viper"] .avatar-snapshot img {
+  border: 2px solid #ff2a2a !important;
+  filter: grayscale(100%) sepia(100%) hue-rotate(300deg) saturate(500%) brightness(0.8) !important;
+}
+
+.footer-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+  width: 100%;
+}
+
+.footer-left {
+  flex: 1;
+}
+
+/* ── System Info Readout (Footer) ── */
+.viper-system-info {
+  display: none;
+}
+
+[data-theme="viper"] .viper-system-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-family: var(--font-mono);
+  color: #ff7b7b;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  letter-spacing: 1px;
+  flex: 1;
+  max-width: 300px;
+}
+
+[data-theme="viper"] .sys-info-header {
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #ff2a2a;
+  margin-bottom: 0.25rem;
+  text-shadow: 0 0 10px rgba(255, 42, 42, 0.8);
+}
+
+[data-theme="viper"] .sys-info-divider {
+  color: #ff2a2a;
+  margin: 0.25rem 0;
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 0.5;
+}
+
+[data-theme="viper"] .sys-info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+[data-theme="viper"] .sys-row {
+  display: flex;
+}
+
+[data-theme="viper"] .sys-label {
+  width: 120px;
+  color: #ff2a2a;
+  opacity: 0.8;
+}
+
+[data-theme="viper"] .sys-value {
+  color: #FFD700;
+  text-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
+}
+
 /* Theme toggle icon helper states */
 .theme-toggle .contrast-icon,
 .theme-toggle .hacker-icon,
 .theme-toggle .cartoon-icon,
-.theme-toggle .aurora-icon {
+.theme-toggle .aurora-icon,
+.theme-toggle .viper-icon {
   display: none;
 }
 
@@ -3283,6 +4232,9 @@ body,
 
 [data-theme="aurora"] .theme-toggle .sun-icon { display: none; }
 [data-theme="aurora"] .theme-toggle .aurora-icon { display: block !important; }
+
+[data-theme="viper"] .theme-toggle .sun-icon { display: none; }
+[data-theme="viper"] .theme-toggle .viper-icon { display: block !important; }
 
 /* ── Footer Brand Logos (Boxless / Professional) ─────────────────────────── */
 .footer-right {

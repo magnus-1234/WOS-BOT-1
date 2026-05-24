@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="viper">
 
 <head>
   <script>
-    const savedTheme = localStorage.getItem('theme') || 'cartoon';
+    const savedTheme = localStorage.getItem('theme') || 'viper';
     if (savedTheme && savedTheme !== 'dark') {
       document.documentElement.setAttribute('data-theme', savedTheme);
     }
@@ -109,6 +109,49 @@
       border-radius: 0 !important;
     }
 
+
+    
+    [data-theme="viper"] {
+      --radius: 4px;
+      --bg-dark: #000000;
+      --card-bg: #050805;
+      --glass-border: rgba(255, 215, 0, 0.2);
+      --text-main: #FFD700;
+      --text-muted: #aaaaaa;
+      --primary: #00FFFF;
+      --gradient-brand: linear-gradient(135deg, #00FFFF 0%, #FF00FF 100%);
+    }
+
+    [data-theme="viper"] body {
+      background-image: none !important;
+      background-color: #000000 !important;
+    }
+
+    [data-theme="viper"] .sidebar,
+    [data-theme="viper"] .main-content,
+    [data-theme="viper"] .stat-card,
+    [data-theme="viper"] .console-panel,
+    [data-theme="viper"] .header,
+    [data-theme="viper"] .server-selector,
+    [data-theme="viper"] .top-bar,
+    [data-theme="viper"] .dashboard-card {
+      border: 1px solid rgba(255, 215, 0, 0.2) !important;
+      background: #080808 !important;
+      border-radius: 8px !important;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.8) !important;
+    }
+
+    [data-theme="viper"] button,
+    [data-theme="viper"] .theme-toggle,
+    [data-theme="viper"] .server-select,
+    [data-theme="viper"] .btn,
+    [data-theme="viper"] .custom-select-trigger {
+      border: 2px solid #00FFFF !important;
+      background: #050505 !important;
+      color: #FFFFFF !important;
+      border-radius: 4px !important;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.4), inset 0 0 10px rgba(0, 255, 255, 0.15) !important;
+    }
 
     @keyframes cartoonBgShift {
       0%   { background-position: 0% 50%; }

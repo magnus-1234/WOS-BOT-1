@@ -527,6 +527,26 @@
         .stat-card, .dashboard-card, .overview-card, .progress-card, .auto-redeem-section, .manual-redeem-card, .reg-step-panel { resize: both; overflow: auto; }
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
+        .recurrence-highlight-box {
+            background: linear-gradient(145deg, rgba(139, 92, 246, 0.08), rgba(245, 158, 11, 0.05));
+            border: 1px solid rgba(139, 92, 246, 0.4);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.1);
+        }
+        .recurrence-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 12px;
+            text-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+        }
+        .color-accent { color: var(--accent); }
+        .color-primary { color: var(--primary); }
         select, input[type="text"] { width: 100%; background: #232831; border: 1px solid var(--glass-border); padding: 12px; border-radius: 10px; color: #fff; font-family: inherit; }
         .btn { padding: 10px 24px; border-radius: 10px; font-weight: 600; border: none; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
         .btn-primary { background: var(--primary); color: #fff; }
@@ -3825,23 +3845,28 @@
                         </select>
                     </div>
 
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
-                        <div class="form-group">
-                            <label>Repeat / Recurrence</label>
-                            <select id="reminder-recurrence" onchange="toggleCustomInterval(); toggleDowPicker();">
-                                <option value="none">One-time</option>
-                                <option value="daily">Daily</option>
-                                <option value="weekly">Weekly (every 7 days)</option>
-                                <option value="specific_days">Specific Days of Week</option>
-                                <option value="custom">Every X days...</option>
-                            </select>
+                    <div class="recurrence-highlight-box">
+                        <div class="recurrence-header">
+                            <i data-lucide="repeat"></i> Repeat / Recurrence
                         </div>
-                        <div class="form-group" id="custom-interval-group" style="display:none;">
-                            <label>Repeat every (days)</label>
-                            <input type="number" id="reminder-interval" min="1" value="1">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label style="display:none;">Repeat / Recurrence</label>
+                                <select id="reminder-recurrence" onchange="toggleCustomInterval(); toggleDowPicker();">
+                                    <option value="none">One-time</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly (every 7 days)</option>
+                                    <option value="specific_days">Specific Days of Week</option>
+                                    <option value="custom">Every X days...</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="custom-interval-group" style="display:none; margin-bottom:0;">
+                                <label>Repeat every (days)</label>
+                                <input type="number" id="reminder-interval" min="1" value="1">
+                            </div>
                         </div>
+                        <div class="form-hint" id="reminder-recurrence-hint" style="margin-top: 10px; margin-bottom: 0; color: var(--accent);">One-time reminders are removed after they send.</div>
                     </div>
-                    <div class="form-hint" id="reminder-recurrence-hint">One-time reminders are removed after they send.</div>
                     <!-- Day-of-week picker (shown for specific_days) -->
                     <div id="dow-picker-group" style="display:none;" class="form-group">
                         <label>Day of the week</label>
@@ -6763,6 +6788,30 @@
             }
         }
 
+        async function saveAsCommunityPreset(data) {
+            try {
+                await fetchData('/api/reminders/presets', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        title: data.preset_title || data.message || 'Untitled Preset',
+                        message: data.message,
+                        body: data.body,
+                        recurrence_type: data.recurrence_type,
+                        recurrence_interval: data.recurrence_interval,
+                        mention: data.mention,
+                        image_url: data.image_url,
+                        thumbnail_url: data.thumbnail_url,
+                        footer_text: data.footer_text,
+                        footer_icon_url: data.footer_icon_url,
+                        author_url: data.author_url
+                    })
+                });
+            } catch(e) {
+                console.error("Failed to save preset:", e);
+                throw e;
+            }
+        }
+
         async function updateReminder(id) {
             const data = getReminderFormData();
             if (!data) return;
@@ -6774,10 +6823,22 @@
                     method: 'PATCH', 
                     body: JSON.stringify(data) 
                 });
-                showNotification('Reminder updated!');
+                
+                if (data.save_as_preset) {
+                    try {
+                        await saveAsCommunityPreset(data);
+                        showNotification('Reminder updated and saved as preset!');
+                    } catch(e) {
+                        showNotification('Reminder updated, but failed to save preset: ' + e.message, true);
+                    }
+                } else {
+                    showNotification('Reminder updated!');
+                }
+                
                 closeReminderModal();
                 loadReminders();
                 loadGuildStats();
+                if (data.save_as_preset) loadCommunityPresets(); // Refresh presets
             } catch (e) {
                 showNotification(e.message || 'Failed to update reminder', true);
             } finally { showLoading(false); }
@@ -6882,7 +6943,12 @@
                 });
                 
                 if (data.save_as_preset) {
-                    showNotification('Reminder created and saved as preset!');
+                    try {
+                        await saveAsCommunityPreset(data);
+                        showNotification('Reminder created and saved as preset!');
+                    } catch(e) {
+                        showNotification('Reminder created, but failed to save preset: ' + e.message, true);
+                    }
                 } else {
                     showNotification('Reminder created!');
                 }

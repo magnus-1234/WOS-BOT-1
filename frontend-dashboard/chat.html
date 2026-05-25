@@ -3,7 +3,8 @@
 
 <head>
   <script>
-    let savedTheme = localStorage.getItem('theme') || 'cyberpunk-cool';
+    let savedTheme = 'cyberpunk-cool';
+    localStorage.setItem('theme', 'cyberpunk-cool');
     if (savedTheme === 'viper') {
       savedTheme = 'cyberpunk-cool';
       localStorage.setItem('theme', 'cyberpunk-cool');

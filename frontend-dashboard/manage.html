@@ -523,7 +523,8 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* General UI components */
-        .card { background: #16191f; border-radius: 16px; padding: 24px; border: 1px solid var(--glass-border); margin-bottom: 24px; }
+        .card { background: #16191f; border-radius: 16px; padding: 24px; border: 1px solid var(--glass-border); margin-bottom: 24px; resize: both; overflow: auto; }
+        .stat-card, .dashboard-card, .overview-card, .progress-card, .auto-redeem-section, .manual-redeem-card, .reg-step-panel { resize: both; overflow: auto; }
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
         select, input[type="text"] { width: 100%; background: #232831; border: 1px solid var(--glass-border); padding: 12px; border-radius: 10px; color: #fff; font-family: inherit; }
@@ -7672,5 +7673,62 @@
         </div>
     </div>
 
+    <script>
+        // Make modals draggable
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.modal-content').forEach(modal => {
+                let isDragging = false;
+                let currentX = 0;
+                let currentY = 0;
+                let initialX = 0;
+                let initialY = 0;
+                let xOffset = 0;
+                let yOffset = 0;
+                
+                modal.addEventListener('mousedown', (e) => {
+                    // Prevent drag if clicking on interactive elements
+                    if (e.target.closest('button, input, select, textarea, a, .selectable-code, .preset-card, .preset-thumb, .swatch, .color-hex')) return;
+                    
+                    initialX = e.clientX - xOffset;
+                    initialY = e.clientY - yOffset;
+                    isDragging = true;
+                    modal.style.cursor = 'grabbing';
+                });
+
+                document.addEventListener('mouseup', () => {
+                    initialX = currentX;
+                    initialY = currentY;
+                    isDragging = false;
+                    modal.style.cursor = '';
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (isDragging) {
+                        e.preventDefault();
+                        currentX = e.clientX - initialX;
+                        currentY = e.clientY - initialY;
+                        xOffset = currentX;
+                        yOffset = currentY;
+                        modal.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+                    }
+                });
+                
+                // Reset position when modal closes
+                const observer = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                            if (modal.parentElement && modal.parentElement.style.display === 'none') {
+                                currentX = 0; currentY = 0; xOffset = 0; yOffset = 0;
+                                modal.style.transform = 'none';
+                            }
+                        }
+                    });
+                });
+                if (modal.parentElement) {
+                    observer.observe(modal.parentElement, { attributes: true });
+                }
+            });
+        });
+    </script>
 </body>
 </html>

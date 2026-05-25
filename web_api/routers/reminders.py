@@ -31,6 +31,21 @@ class ReminderCreate(BaseModel):
     footer_icon_url: Optional[str] = None
     author_url: Optional[str] = None
 
+class CommunityPresetCreate(BaseModel):
+    title: str
+    badge: str = None
+    message: str = ""
+    body: str = None
+    recurrence_type: str = "none"
+    recurrence_interval: int = 1
+    recurrence_days: Optional[List[int]] = None
+    mention: str = "everyone"
+    image_url: str = None
+    thumbnail_url: str = None
+    footer_text: str = None
+    footer_icon_url: str = None
+    author_url: str = None
+
 def _build_reminder_embed(payload: ReminderCreate, user: dict, *, is_test: bool = False) -> discord.Embed:
     embed = discord.Embed(
         title=payload.message or "Reminder",
@@ -58,6 +73,155 @@ async def _get_discord_user(auth_header: str) -> dict:
         if r.status_code != 200:
             raise HTTPException(status_code=401, detail="Invalid token")
         return r.json()
+
+def _get_presets_collection():
+    """Return the MongoDB community_reminder_presets collection or None."""
+    import os
+    try:
+        mongo_uri = os.environ.get('MONGO_URI')
+        if not mongo_uri:
+            return None
+        from pymongo import MongoClient
+        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=3000)
+        return client['wosbot']['community_reminder_presets']
+    except Exception as e:
+        logger.warning(f"MongoDB presets collection unavailable: {e}")
+        return None
+
+# ─── Static API Routes ────────────────────────────────────────────────────────
+
+@router.post("/upload-url")
+async def upload_reminder_image_from_url(request: Request):
+    """Validates an external image URL and returns it as-is for use in reminders.
+    Discord can render HTTPS URLs directly — no need to re-host locally."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    body = await request.json()
+    url = body.get("url", "").strip()
+    if not url or not url.startswith("http"):
+        raise HTTPException(status_code=400, detail="A valid 'url' field is required.")
+
+    # Return the original URL unchanged — Discord embeds support HTTPS URLs natively.
+    # Re-hosting locally would give HTTP-only URLs that Discord silently drops.
+    return {"status": "success", "url": url}
+
+@router.post("/upload")
+async def upload_reminder_image(request: Request, file: UploadFile = File(...)):
+    """Uploads a local image for a reminder and returns its public URL."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if not file:
+        raise HTTPException(status_code=400, detail="No file uploaded")
+
+    content = await file.read()
+    if len(content) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image too large (max 8MB)")
+
+    ext = file.filename.split('.')[-1].lower() if '.' in file.filename else 'png'
+    if ext not in ['png', 'jpg', 'jpeg', 'gif', 'webp']:
+        ext = 'png'
+
+    filename = f"reminder_{uuid.uuid4().hex}.{ext}"
+    upload_dir = "data/uploads"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    filepath = os.path.join(upload_dir, filename)
+    with open(filepath, "wb") as f:
+        f.write(content)
+
+    # Use the request's base URL to construct the public URL
+    base_url = str(request.base_url).rstrip("/")
+    public_url = f"{base_url}/api/static/{filename}"
+    return {"status": "success", "url": public_url}
+
+@router.get("/presets")
+async def get_community_presets(request: Request, q: Optional[str] = None):
+    """Get all community presets, optionally filtered by search query."""
+    try:
+        col = _get_presets_collection()
+        if col is None:
+            return {"presets": []}
+        query = {}
+        if q and q.strip():
+            query = {"$or": [
+                {"title": {"$regex": q.strip(), "$options": "i"}},
+                {"body": {"$regex": q.strip(), "$options": "i"}},
+                {"message": {"$regex": q.strip(), "$options": "i"}}
+            ]}
+        presets = list(col.find(query, {"_id": 0}).sort("created_at", -1).limit(100))
+        return {"presets": presets}
+    except Exception as e:
+        logger.error(f"Failed to fetch community presets: {e}")
+        return {"presets": []}
+
+@router.get("/assets")
+async def get_builtin_presets(request: Request):
+    """Return builtin preset assets from data/assets/presets.json"""
+    try:
+        import os, json
+        assets_file = os.path.join("data", "assets", "presets.json")
+        if not os.path.exists(assets_file):
+            return {"presets": []}
+        with open(assets_file, "r", encoding="utf-8") as f:
+            presets = json.load(f)
+        return {"presets": presets}
+    except Exception as e:
+        logger.error(f"Failed to load builtin presets: {e}")
+        return {"presets": []}
+
+@router.post("/presets")
+async def create_community_preset(request: Request, payload: CommunityPresetCreate):
+    """Create a new community reminder preset visible to all users."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    user = await _get_discord_user(auth_header)
+
+    if not payload.title or not payload.title.strip():
+        raise HTTPException(status_code=400, detail="Preset title is required")
+
+    badge_map = {"daily": "Daily", "weekly": "Weekly", "custom": "Custom", "none": "One-time"}
+    badge = payload.badge or badge_map.get(payload.recurrence_type, "One-time")
+
+    preset = {
+        "id": str(uuid.uuid4()),
+        "title": payload.title.strip(),
+        "badge": badge,
+        "message": payload.message,
+        "body": payload.body,
+        "recurrence_type": payload.recurrence_type,
+        "recurrence_interval": payload.recurrence_interval,
+        "recurrence_days": payload.recurrence_days,
+        "mention": payload.mention,
+        "image_url": payload.image_url,
+        "thumbnail_url": payload.thumbnail_url,
+        "footer_text": payload.footer_text,
+        "footer_icon_url": payload.footer_icon_url,
+        "author_url": payload.author_url,
+        "created_by": user.get("global_name") or user.get("username") or "Unknown",
+        "created_by_id": user.get("id"),
+        "created_at": datetime.utcnow().isoformat()
+    }
+
+    try:
+        col = _get_presets_collection()
+        if col is None:
+            raise HTTPException(status_code=503, detail="Storage not available")
+        doc = {**preset}
+        col.insert_one(doc)
+        return {"status": "success", "preset": preset}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to save community preset: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save preset")
+
+# ─── Dynamic API Routes ───────────────────────────────────────────────────────
 
 @router.get("/{guild_id}")
 async def get_reminders(request: Request, guild_id: str):
@@ -112,109 +276,6 @@ async def get_reminders(request: Request, guild_id: str):
 
     return {"reminders": server_reminders}
 
-@router.post("/upload-url")
-async def upload_reminder_image_from_url(request: Request):
-    """Validates an external image URL and returns it as-is for use in reminders.
-    Discord can render HTTPS URLs directly — no need to re-host locally."""
-    auth_header = request.headers.get("Authorization")
-    if not auth_header:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-    body = await request.json()
-    url = body.get("url", "").strip()
-    if not url or not url.startswith("http"):
-        raise HTTPException(status_code=400, detail="A valid 'url' field is required.")
-
-    # Return the original URL unchanged — Discord embeds support HTTPS URLs natively.
-    # Re-hosting locally would give HTTP-only URLs that Discord silently drops.
-    return {"status": "success", "url": url}
-
-
-
-@router.get("/presets")
-async def get_community_presets(request: Request, q: Optional[str] = None):
-    """Get all community presets, optionally filtered by search query."""
-    try:
-        col = _get_presets_collection()
-        if col is None:
-            return {"presets": []}
-        query = {}
-        if q and q.strip():
-            query = {"$or": [
-                {"title": {"$regex": q.strip(), "$options": "i"}},
-                {"body": {"$regex": q.strip(), "$options": "i"}},
-                {"message": {"$regex": q.strip(), "$options": "i"}}
-            ]}
-        presets = list(col.find(query, {"_id": 0}).sort("created_at", -1).limit(100))
-        return {"presets": presets}
-    except Exception as e:
-        logger.error(f"Failed to fetch community presets: {e}")
-        return {"presets": []}
-
-
-@router.get("/assets")
-async def get_builtin_presets(request: Request):
-    """Return builtin preset assets from data/assets/presets.json"""
-    try:
-        import os, json
-        assets_file = os.path.join("data", "assets", "presets.json")
-        if not os.path.exists(assets_file):
-            return {"presets": []}
-        with open(assets_file, "r", encoding="utf-8") as f:
-            presets = json.load(f)
-        return {"presets": presets}
-    except Exception as e:
-        logger.error(f"Failed to load builtin presets: {e}")
-        return {"presets": []}
-
-
-@router.post("/presets")
-async def create_community_preset(request: Request, payload: CommunityPresetCreate):
-    """Create a new community reminder preset visible to all users."""
-    auth_header = request.headers.get("Authorization")
-    if not auth_header:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-    user = await _get_discord_user(auth_header)
-
-    if not payload.title or not payload.title.strip():
-        raise HTTPException(status_code=400, detail="Preset title is required")
-
-    badge_map = {"daily": "Daily", "weekly": "Weekly", "custom": "Custom", "none": "One-time"}
-    badge = payload.badge or badge_map.get(payload.recurrence_type, "One-time")
-
-    preset = {
-        "id": str(uuid.uuid4()),
-        "title": payload.title.strip(),
-        "badge": badge,
-        "message": payload.message,
-        "body": payload.body,
-        "recurrence_type": payload.recurrence_type,
-        "recurrence_interval": payload.recurrence_interval,
-        "recurrence_days": payload.recurrence_days,
-        "mention": payload.mention,
-        "image_url": payload.image_url,
-        "thumbnail_url": payload.thumbnail_url,
-        "footer_text": payload.footer_text,
-        "footer_icon_url": payload.footer_icon_url,
-        "author_url": payload.author_url,
-        "created_by": user.get("global_name") or user.get("username") or "Unknown",
-        "created_by_id": user.get("id"),
-        "created_at": datetime.utcnow().isoformat()
-    }
-
-    try:
-        col = _get_presets_collection()
-        if col is None:
-            raise HTTPException(status_code=503, detail="Storage not available")
-        doc = {**preset}
-        col.insert_one(doc)
-        return {"status": "success", "preset": preset}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to save community preset: {e}")
-        raise HTTPException(status_code=500, detail="Failed to save preset")
 @router.post("/{guild_id}")
 async def create_reminder(request: Request, guild_id: str, payload: ReminderCreate):
     logger.info(f"Creating reminder for guild {guild_id}: {payload.json()}")
@@ -463,76 +524,3 @@ async def update_reminder(request: Request, guild_id: str, reminder_id: str, pay
         return {"status": "success"}
     else:
         raise HTTPException(status_code=400, detail="Failed to update reminder.")
-
-# ─── Community Presets ────────────────────────────────────────────────────────
-
-class CommunityPresetCreate(BaseModel):
-    title: str
-    badge: str = None
-    message: str = ""
-    body: str = None
-    recurrence_type: str = "none"
-    recurrence_interval: int = 1
-    recurrence_days: Optional[List[int]] = None
-    mention: str = "everyone"
-    image_url: str = None
-    thumbnail_url: str = None
-    footer_text: str = None
-    footer_icon_url: str = None
-    author_url: str = None
-
-
-def _get_presets_collection():
-    """Return the MongoDB community_reminder_presets collection or None."""
-    import os
-    try:
-        mongo_uri = os.environ.get('MONGO_URI')
-        if not mongo_uri:
-            return None
-        from pymongo import MongoClient
-        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=3000)
-        return client['wosbot']['community_reminder_presets']
-    except Exception as e:
-        logger.warning(f"MongoDB presets collection unavailable: {e}")
-        return None
-
-
-
-# ─── Upload Image ─────────────────────────────────────────────────────────────
-
-@router.post("/upload")
-async def upload_reminder_image(request: Request, file: UploadFile = File(...)):
-    """Uploads a local image for a reminder and returns its public URL."""
-    auth_header = request.headers.get("Authorization")
-    if not auth_header:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-    if not file:
-        raise HTTPException(status_code=400, detail="No file uploaded")
-
-    content = await file.read()
-    if len(content) > 8 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="Image too large (max 8MB)")
-
-    ext = file.filename.split('.')[-1].lower() if '.' in file.filename else 'png'
-    if ext not in ['png', 'jpg', 'jpeg', 'gif', 'webp']:
-        ext = 'png'
-
-    filename = f"reminder_{uuid.uuid4().hex}.{ext}"
-    upload_dir = "data/uploads"
-    os.makedirs(upload_dir, exist_ok=True)
-    
-    filepath = os.path.join(upload_dir, filename)
-    with open(filepath, "wb") as f:
-        f.write(content)
-
-    # Use the request's base URL to construct the public URL
-    base_url = str(request.base_url).rstrip("/")
-    if "vercel.app" in base_url or "localhost" in base_url:
-        # Fallback to the production API URL if the base_url is from the frontend proxy
-        # But wait, request.base_url from FastAPI is usually the bot API url.
-        pass
-        
-    public_url = f"{base_url}/api/static/{filename}"
-    return {"status": "success", "url": public_url}
-

@@ -222,6 +222,23 @@
             flex-direction: column;
             flex-shrink: 0;
             z-index: 1000;
+            position: relative;
+        }
+
+        .sidebar-resizer {
+            position: absolute;
+            top: 0;
+            right: -4px;
+            width: 8px;
+            height: 100%;
+            cursor: col-resize;
+            z-index: 1001;
+            background: transparent;
+            transition: background 0.2s;
+        }
+
+        .sidebar-resizer:hover, .sidebar.is-resizing .sidebar-resizer {
+            background: rgba(139, 92, 246, 0.5);
         }
 
         .mobile-menu-btn {
@@ -732,8 +749,8 @@
         .preset-header h3 { font-size:1rem; margin:0; display:flex; align-items:center; gap:8px; }
         .preset-header p { color:var(--text-muted); font-size:0.82rem; margin:4px 0 0; }
         .preset-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:12px; }
-        .preset-card { background:#16191f; border:1px solid var(--glass-border); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; min-width:0; transition:transform 0.2s,border-color 0.2s,box-shadow 0.2s; animation:cardPop 0.3s ease; }
-        .preset-card:hover { transform:translateY(-3px); border-color:rgba(139,92,246,0.35); box-shadow:0 8px 24px rgba(139,92,246,0.12); }
+        .preset-card { background:linear-gradient(135deg, rgba(25, 28, 36, 0.9) 0%, rgba(22, 25, 31, 0.95) 100%); backdrop-filter: blur(10px); border:1px solid var(--glass-border); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; min-width:0; transition:all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); animation:cardPop 0.3s ease; }
+        .preset-card:hover { transform:translateY(-5px) scale(1.02); border-color:rgba(139,92,246,0.6); box-shadow:0 12px 32px rgba(139,92,246,0.25), inset 0 0 0 1px rgba(139,92,246,0.1); }
         .preset-thumb { height:120px; background:#232831; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
         .preset-thumb img { width:100%; height:100%; object-fit:cover; transition:transform 0.3s; }
         .preset-card:hover .preset-thumb img { transform:scale(1.05); }
@@ -1933,7 +1950,8 @@
 <body>
     <div class="mobile-overlay" onclick="toggleMobileMenu()"></div>
     <!-- Sidebar -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-resizer" id="sidebar-resizer"></div>
         <div class="sidebar-brand">
             <img src="/logo.gif" alt="Logo">
             <h1>Whiteout Survival Bot</h1>
@@ -6599,6 +6617,20 @@
             toggleCustomInterval();
             toggleDowPicker();
             updateReminderPreview();
+            
+            // Highlight the channel selection to prompt user
+            const channelSelect = document.getElementById('reminder-channel');
+            if (channelSelect) {
+                channelSelect.style.transition = 'box-shadow 0.3s, border-color 0.3s';
+                channelSelect.style.borderColor = 'var(--primary)';
+                channelSelect.style.boxShadow = '0 0 15px rgba(139,92,246,0.6)';
+                setTimeout(() => {
+                    channelSelect.style.boxShadow = 'none';
+                    channelSelect.style.borderColor = 'var(--glass-border)';
+                }, 2000);
+            }
+            
+            showNotification('Preset applied! Please select a channel and time.', false);
         }
 
         function setReminderDateOffset(days) {
@@ -7814,6 +7846,52 @@
                     observer.observe(modal.parentElement, { attributes: true });
                 }
             });
+            
+            // Sidebar Resizer Logic
+            const sidebar = document.getElementById('sidebar');
+            const resizer = document.getElementById('sidebar-resizer');
+            if (sidebar && resizer) {
+                // Load saved width
+                const savedWidth = localStorage.getItem('sidebarWidth');
+                if (savedWidth) {
+                    document.documentElement.style.setProperty('--sidebar-width', savedWidth + 'px');
+                }
+
+                let isResizing = false;
+
+                resizer.addEventListener('mousedown', (e) => {
+                    isResizing = true;
+                    sidebar.classList.add('is-resizing');
+                    document.body.style.cursor = 'col-resize';
+                    document.body.style.userSelect = 'none'; // prevent text selection while dragging
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!isResizing) return;
+                    
+                    // Calculate new width
+                    let newWidth = e.clientX;
+                    
+                    // Constrain width
+                    if (newWidth < 200) newWidth = 200;
+                    if (newWidth > 500) newWidth = 500;
+                    
+                    document.documentElement.style.setProperty('--sidebar-width', newWidth + 'px');
+                });
+
+                document.addEventListener('mouseup', () => {
+                    if (isResizing) {
+                        isResizing = false;
+                        sidebar.classList.remove('is-resizing');
+                        document.body.style.cursor = '';
+                        document.body.style.userSelect = '';
+                        
+                        // Save width to localStorage
+                        const currentWidth = getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width').trim().replace('px', '');
+                        localStorage.setItem('sidebarWidth', currentWidth);
+                    }
+                });
+            }
         });
     </script>
 </body>

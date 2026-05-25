@@ -4834,7 +4834,12 @@
                     let message = `HTTP error! status: ${response.status}`;
                     try {
                         const err = await response.json();
-                        message = err.detail || err.message || message;
+                        if (Array.isArray(err.detail)) {
+                            // FastAPI 422 returns detail as array of {loc, msg, type}
+                            message = err.detail.map(e => e.msg || JSON.stringify(e)).join('; ');
+                        } else {
+                            message = err.detail || err.message || message;
+                        }
                     } catch(e) {}
                     throw new Error(message);
                 }
@@ -6828,9 +6833,10 @@
                 if (data.save_as_preset) {
                     try {
                         await saveAsCommunityPreset(data);
-                        showNotification('Reminder updated and saved as preset!');
+                        showNotification('Reminder updated and saved as community preset! ✅');
                     } catch(e) {
-                        showNotification('Reminder updated, but failed to save preset: ' + e.message, true);
+                        // fetchData already showed error notification; just log
+                        console.error('Failed to save community preset:', e);
                     }
                 } else {
                     showNotification('Reminder updated!');
@@ -6946,9 +6952,10 @@
                 if (data.save_as_preset) {
                     try {
                         await saveAsCommunityPreset(data);
-                        showNotification('Reminder created and saved as preset!');
+                        showNotification('Reminder created and saved as community preset! ✅');
                     } catch(e) {
-                        showNotification('Reminder created, but failed to save preset: ' + e.message, true);
+                        // fetchData already showed error notification; just log
+                        console.error('Failed to save community preset:', e);
                     }
                 } else {
                     showNotification('Reminder created!');

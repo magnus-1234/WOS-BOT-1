@@ -33,18 +33,18 @@ class ReminderCreate(BaseModel):
 
 class CommunityPresetCreate(BaseModel):
     title: str
-    badge: str = None
+    badge: Optional[str] = None
     message: str = ""
-    body: str = None
+    body: Optional[str] = None
     recurrence_type: str = "none"
     recurrence_interval: int = 1
     recurrence_days: Optional[List[int]] = None
     mention: str = "everyone"
-    image_url: str = None
-    thumbnail_url: str = None
-    footer_text: str = None
-    footer_icon_url: str = None
-    author_url: str = None
+    image_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    footer_text: Optional[str] = None
+    footer_icon_url: Optional[str] = None
+    author_url: Optional[str] = None
 
 def _build_reminder_embed(payload: ReminderCreate, user: dict, *, is_test: bool = False) -> discord.Embed:
     embed = discord.Embed(

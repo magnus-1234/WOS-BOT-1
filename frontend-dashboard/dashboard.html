@@ -1321,5 +1321,23 @@
       }
     });
   </script>
+
+  <!-- Reminder Presets Modal + UI -->
+  <div id="reminder-preset-modal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; align-items:center; justify-content:center;">
+    <div style="background:var(--card-bg); border:1px solid var(--glass-border); padding:20px; width:min(920px, 96%); max-height:80vh; overflow:auto; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.6);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 style="margin:0;">Select an image preset</h3>
+        <button onclick="document.getElementById('reminder-preset-modal').style.display='none'" class="btn">Close</button>
+      </div>
+      <div id="preset-list" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:12px;"></div>
+      <div style="margin-top:16px; display:flex; justify-content:flex-end; gap:12px;">
+        <button onclick="document.getElementById('reminder-preset-modal').style.display='none'" class="btn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <button id="open-reminder-presets" title="Open preset images" style="position:fixed; right:18px; bottom:18px; z-index:9998; background:var(--primary); color:#fff; border-radius:999px; padding:14px 16px; border:none; box-shadow:0 8px 24px var(--primary-glow);">New Reminder</button>
+
+  <script src="/assets/reminder-presets.js"></script>
 </body>
 </html>

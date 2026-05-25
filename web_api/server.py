@@ -203,7 +203,9 @@ except Exception as e:
     logger.error(f"❌ Failed to load admin router: {e}")
 
 os.makedirs("data/uploads", exist_ok=True)
+os.makedirs("data/assets", exist_ok=True)
 app.mount("/api/static", StaticFiles(directory="data/uploads"), name="static")
+app.mount("/api/assets", StaticFiles(directory="data/assets"), name="assets")
 
 async def start_web_server(bot=None, port: int = None):
     # Use provided port or environment variable or default to 8080

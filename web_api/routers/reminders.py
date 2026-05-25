@@ -451,6 +451,22 @@ async def get_community_presets(request: Request, q: Optional[str] = None):
         return {"presets": []}
 
 
+@router.get("/assets")
+async def get_builtin_presets(request: Request):
+    """Return builtin preset assets from data/assets/presets.json"""
+    try:
+        import os, json
+        assets_file = os.path.join("data", "assets", "presets.json")
+        if not os.path.exists(assets_file):
+            return {"presets": []}
+        with open(assets_file, "r", encoding="utf-8") as f:
+            presets = json.load(f)
+        return {"presets": presets}
+    except Exception as e:
+        logger.error(f"Failed to load builtin presets: {e}")
+        return {"presets": []}
+
+
 @router.post("/presets")
 async def create_community_preset(request: Request, payload: CommunityPresetCreate):
     """Create a new community reminder preset visible to all users."""

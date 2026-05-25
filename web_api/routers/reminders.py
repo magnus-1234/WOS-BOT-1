@@ -185,6 +185,7 @@ async def create_reminder(request: Request, guild_id: str, payload: ReminderCrea
         is_recurring=recurring_info.get("is_recurring", False),
         recurrence_type=recurring_info.get("type"),
         recurrence_interval=recurring_info.get("interval"),
+        recurrence_days=recurring_info.get("days"),
         original_pattern=recurring_info.get("pattern"),
         mention=payload.mention,
         image_url=payload.image_url,

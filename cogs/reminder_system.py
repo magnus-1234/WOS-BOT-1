@@ -206,6 +206,7 @@ class ReminderStorage:
                         is_recurring INTEGER DEFAULT 0,
                         recurrence_type TEXT DEFAULT NULL,
                         recurrence_interval INTEGER DEFAULT NULL,
+                        recurrence_days TEXT DEFAULT NULL,
                         original_time_pattern TEXT DEFAULT NULL,
                         mention TEXT DEFAULT 'everyone',
                         image_url TEXT DEFAULT NULL,
@@ -228,6 +229,11 @@ class ReminderStorage:
 
                 try:
                     cursor.execute('ALTER TABLE reminders ADD COLUMN recurrence_interval INTEGER DEFAULT NULL')
+                except sqlite3.OperationalError:
+                    pass  # Column already exists
+
+                try:
+                    cursor.execute('ALTER TABLE reminders ADD COLUMN recurrence_days TEXT DEFAULT NULL')
                 except sqlite3.OperationalError:
                     pass  # Column already exists
 
@@ -291,7 +297,7 @@ class ReminderStorage:
     
     def add_reminder(self, user_id: str, channel_id: str, guild_id: str, message: str, reminder_time: datetime,
                     body: str = None, is_recurring: bool = False, recurrence_type: str = None, recurrence_interval: int = None,
-                    original_pattern: str = None, mention: str = 'everyone', image_url: str = None,
+                    recurrence_days: list = None, original_pattern: str = None, mention: str = 'everyone', image_url: str = None,
                     thumbnail_url: str = None, footer_text: str = None, footer_icon_url: str = None, author_url: str = None) -> int:
         """Add a new reminder to the database with optional recurring support"""
         
@@ -308,6 +314,7 @@ class ReminderStorage:
                     'is_recurring': 1 if is_recurring else 0,
                     'recurrence_type': recurrence_type,
                     'recurrence_interval': recurrence_interval,
+                    'recurrence_days': recurrence_days,
                     'original_time_pattern': original_pattern,
                     'mention': mention,
                     'image_url': image_url,
@@ -370,9 +377,9 @@ class ReminderStorage:
                 # No duplicate found — insert normally
                 cursor.execute('''
                     INSERT INTO reminders (user_id, channel_id, guild_id, message, body, reminder_time, created_at,
-                                         is_recurring, recurrence_type, recurrence_interval, original_time_pattern, mention, image_url,
+                                         is_recurring, recurrence_type, recurrence_interval, recurrence_days, original_time_pattern, mention, image_url,
                                          thumbnail_url, footer_text, footer_icon_url, author_url)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     user_id,
                     channel_id,
@@ -384,6 +391,7 @@ class ReminderStorage:
                     1 if is_recurring else 0,
                     recurrence_type,
                     recurrence_interval,
+                    json.dumps(recurrence_days) if recurrence_days else None,
                     original_pattern,
                     mention,
                     image_url,
@@ -436,6 +444,11 @@ class ReminderStorage:
                     reminder = dict(zip(columns, row))
                     reminder['reminder_time'] = datetime.fromisoformat(reminder['reminder_time'])
                     reminder['created_at'] = datetime.fromisoformat(reminder['created_at'])
+                    if 'recurrence_days' in reminder and reminder['recurrence_days']:
+                        try:
+                            reminder['recurrence_days'] = json.loads(reminder['recurrence_days'])
+                        except:
+                            reminder['recurrence_days'] = []
                     results.append(reminder)
                 
                 return results
@@ -548,6 +561,12 @@ class ReminderStorage:
                     reminder = dict(zip(columns, row))
                     reminder['reminder_time'] = datetime.fromisoformat(reminder['reminder_time'])
                     reminder['created_at'] = datetime.fromisoformat(reminder['created_at'])
+                    if 'recurrence_days' in reminder and reminder['recurrence_days']:
+                        try:
+                            import json
+                            reminder['recurrence_days'] = json.loads(reminder['recurrence_days'])
+                        except:
+                            reminder['recurrence_days'] = []
                     results.append(reminder)
                 
                 return results
@@ -617,6 +636,12 @@ class ReminderStorage:
                     reminder = dict(zip(columns, row))
                     reminder['reminder_time'] = datetime.fromisoformat(reminder['reminder_time'])
                     reminder['created_at'] = datetime.fromisoformat(reminder['created_at'])
+                    if 'recurrence_days' in reminder and reminder['recurrence_days']:
+                        try:
+                            import json
+                            reminder['recurrence_days'] = json.loads(reminder['recurrence_days'])
+                        except:
+                            reminder['recurrence_days'] = []
                     results.append(reminder)
                 
                 return results
@@ -1295,10 +1320,19 @@ class ReminderSystem(commands.Cog):
                 limit += 1
                 if recurrence_type == 'daily':
                     next_time = next_time + timedelta(days=interval)
-                elif recurrence_type == 'days':
-                    next_time = next_time + timedelta(days=interval)
                 elif recurrence_type == 'weekly':
                     next_time = next_time + timedelta(days=7)
+                elif recurrence_type == 'custom':
+                    next_time = next_time + timedelta(days=interval)
+                elif recurrence_type == 'specific_days':
+                    recurrence_days = reminder.get('recurrence_days') or []
+                    if recurrence_days:
+                        # Advance at least 1 day, then find the next matching weekday (0=Mon, 6=Sun)
+                        next_time = next_time + timedelta(days=1)
+                        while next_time.weekday() not in recurrence_days:
+                            next_time = next_time + timedelta(days=1)
+                    else:
+                        next_time = next_time + timedelta(days=1)
                 else:
                     # Default to daily if type is unknown
                     next_time = next_time + timedelta(days=1)

@@ -5595,7 +5595,7 @@ body,
 }
 
 [data-theme="cyberpunk-cool"] .live-board::before {
-  content: "SYSTEM LOG" !important;
+  content: "CYBERPUNK NEURAL LINK" !important;
   color: #00FFFF !important;
   text-shadow: 0 0 10px rgba(0, 255, 255, 0.8) !important;
   font-family: 'Outfit', sans-serif !important;
@@ -5900,6 +5900,3 @@ body,
     overflow: hidden !important;
   }
 }
-
-/* Enforce consistent theme by hiding the toggle */
-.theme-toggle { display: none !important; }

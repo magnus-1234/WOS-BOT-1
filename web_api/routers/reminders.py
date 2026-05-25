@@ -131,6 +131,90 @@ async def upload_reminder_image_from_url(request: Request):
 
 
 
+@router.get("/presets")
+async def get_community_presets(request: Request, q: Optional[str] = None):
+    """Get all community presets, optionally filtered by search query."""
+    try:
+        col = _get_presets_collection()
+        if col is None:
+            return {"presets": []}
+        query = {}
+        if q and q.strip():
+            query = {"$or": [
+                {"title": {"$regex": q.strip(), "$options": "i"}},
+                {"body": {"$regex": q.strip(), "$options": "i"}},
+                {"message": {"$regex": q.strip(), "$options": "i"}}
+            ]}
+        presets = list(col.find(query, {"_id": 0}).sort("created_at", -1).limit(100))
+        return {"presets": presets}
+    except Exception as e:
+        logger.error(f"Failed to fetch community presets: {e}")
+        return {"presets": []}
+
+
+@router.get("/assets")
+async def get_builtin_presets(request: Request):
+    """Return builtin preset assets from data/assets/presets.json"""
+    try:
+        import os, json
+        assets_file = os.path.join("data", "assets", "presets.json")
+        if not os.path.exists(assets_file):
+            return {"presets": []}
+        with open(assets_file, "r", encoding="utf-8") as f:
+            presets = json.load(f)
+        return {"presets": presets}
+    except Exception as e:
+        logger.error(f"Failed to load builtin presets: {e}")
+        return {"presets": []}
+
+
+@router.post("/presets")
+async def create_community_preset(request: Request, payload: CommunityPresetCreate):
+    """Create a new community reminder preset visible to all users."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    user = await _get_discord_user(auth_header)
+
+    if not payload.title or not payload.title.strip():
+        raise HTTPException(status_code=400, detail="Preset title is required")
+
+    badge_map = {"daily": "Daily", "weekly": "Weekly", "custom": "Custom", "none": "One-time"}
+    badge = payload.badge or badge_map.get(payload.recurrence_type, "One-time")
+
+    preset = {
+        "id": str(uuid.uuid4()),
+        "title": payload.title.strip(),
+        "badge": badge,
+        "message": payload.message,
+        "body": payload.body,
+        "recurrence_type": payload.recurrence_type,
+        "recurrence_interval": payload.recurrence_interval,
+        "recurrence_days": payload.recurrence_days,
+        "mention": payload.mention,
+        "image_url": payload.image_url,
+        "thumbnail_url": payload.thumbnail_url,
+        "footer_text": payload.footer_text,
+        "footer_icon_url": payload.footer_icon_url,
+        "author_url": payload.author_url,
+        "created_by": user.get("global_name") or user.get("username") or "Unknown",
+        "created_by_id": user.get("id"),
+        "created_at": datetime.utcnow().isoformat()
+    }
+
+    try:
+        col = _get_presets_collection()
+        if col is None:
+            raise HTTPException(status_code=503, detail="Storage not available")
+        doc = {**preset}
+        col.insert_one(doc)
+        return {"status": "success", "preset": preset}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to save community preset: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save preset")
 @router.post("/{guild_id}")
 async def create_reminder(request: Request, guild_id: str, payload: ReminderCreate):
     logger.info(f"Creating reminder for guild {guild_id}: {payload.json()}")
@@ -389,6 +473,7 @@ class CommunityPresetCreate(BaseModel):
     body: str = None
     recurrence_type: str = "none"
     recurrence_interval: int = 1
+    recurrence_days: Optional[List[int]] = None
     mention: str = "everyone"
     image_url: str = None
     thumbnail_url: str = None
@@ -451,86 +536,3 @@ async def upload_reminder_image(request: Request, file: UploadFile = File(...)):
     public_url = f"{base_url}/api/static/{filename}"
     return {"status": "success", "url": public_url}
 
-@router.get("/presets")
-async def get_community_presets(request: Request, q: Optional[str] = None):
-    """Get all community presets, optionally filtered by search query."""
-    try:
-        col = _get_presets_collection()
-        if col is None:
-            return {"presets": []}
-        query = {}
-        if q and q.strip():
-            query = {"$or": [
-                {"title": {"$regex": q.strip(), "$options": "i"}},
-                {"body": {"$regex": q.strip(), "$options": "i"}},
-                {"message": {"$regex": q.strip(), "$options": "i"}}
-            ]}
-        presets = list(col.find(query, {"_id": 0}).sort("created_at", -1).limit(100))
-        return {"presets": presets}
-    except Exception as e:
-        logger.error(f"Failed to fetch community presets: {e}")
-        return {"presets": []}
-
-
-@router.get("/assets")
-async def get_builtin_presets(request: Request):
-    """Return builtin preset assets from data/assets/presets.json"""
-    try:
-        import os, json
-        assets_file = os.path.join("data", "assets", "presets.json")
-        if not os.path.exists(assets_file):
-            return {"presets": []}
-        with open(assets_file, "r", encoding="utf-8") as f:
-            presets = json.load(f)
-        return {"presets": presets}
-    except Exception as e:
-        logger.error(f"Failed to load builtin presets: {e}")
-        return {"presets": []}
-
-
-@router.post("/presets")
-async def create_community_preset(request: Request, payload: CommunityPresetCreate):
-    """Create a new community reminder preset visible to all users."""
-    auth_header = request.headers.get("Authorization")
-    if not auth_header:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-    user = await _get_discord_user(auth_header)
-
-    if not payload.title or not payload.title.strip():
-        raise HTTPException(status_code=400, detail="Preset title is required")
-
-    badge_map = {"daily": "Daily", "weekly": "Weekly", "custom": "Custom", "none": "One-time"}
-    badge = payload.badge or badge_map.get(payload.recurrence_type, "One-time")
-
-    preset = {
-        "id": str(uuid.uuid4()),
-        "title": payload.title.strip(),
-        "badge": badge,
-        "message": payload.message,
-        "body": payload.body,
-        "recurrence_type": payload.recurrence_type,
-        "recurrence_interval": payload.recurrence_interval,
-        "mention": payload.mention,
-        "image_url": payload.image_url,
-        "thumbnail_url": payload.thumbnail_url,
-        "footer_text": payload.footer_text,
-        "footer_icon_url": payload.footer_icon_url,
-        "author_url": payload.author_url,
-        "created_by": user.get("global_name") or user.get("username") or "Unknown",
-        "created_by_id": user.get("id"),
-        "created_at": datetime.utcnow().isoformat()
-    }
-
-    try:
-        col = _get_presets_collection()
-        if col is None:
-            raise HTTPException(status_code=503, detail="Storage not available")
-        doc = {**preset}
-        col.insert_one(doc)
-        return {"status": "success", "preset": preset}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to save community preset: {e}")
-        raise HTTPException(status_code=500, detail="Failed to save preset")

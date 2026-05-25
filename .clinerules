@@ -1,0 +1,17 @@
+# AI Agent Cline Rules
+
+You must read and strictly adhere to the instructions and guidelines defined in:
+[agent_rules.md](file:///f:/Whiteout%20Survival%20Bot/agent_rules.md)
+
+## CRITICAL DIRECTIVES
+
+1. **Design & Styling (Cyberpunk Theme)**
+   - Only apply visual design, style enhancements, hover effects, colors, and layout polish to the **Cyberpunk Theme** (`data-theme="cyberpunk-cool"`).
+   - Do NOT change standard styling, colors, or aesthetics for other themes (`light`, `hacker`, `high-contrast`, `cartoon`) unless the user explicitly requests it.
+
+2. **Dashboard & Admin Logic (Global Propagation)**
+   - Any functional changes, forms, Javascript logic, API integration, dashboard metrics, or administration tools (`admin.html`, `manage.html`, etc.) must support and be pushed for **ALL** themes.
+   - Use CSS Custom Properties (variables) for any visual components in functional updates so they remain compatible across all themes.
+
+3. **Deployment Workflow**
+   - Follow the `push-and-deploy` instructions in [.agents/workflows/push-and-deploy.md](file:///f:/Whiteout%20Survival%20Bot/.agents/workflows/push-and-deploy.md) automatically at the end of code changes.

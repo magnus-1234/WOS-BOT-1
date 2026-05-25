@@ -1,9 +1,13 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="viper">
+<html lang="en" data-theme="cyberpunk-cool">
 
 <head>
   <script>
-    const savedTheme = localStorage.getItem('theme') || 'viper';
+    let savedTheme = localStorage.getItem('theme') || 'cyberpunk-cool';
+    if (savedTheme === 'viper') {
+      savedTheme = 'cyberpunk-cool';
+      localStorage.setItem('theme', 'cyberpunk-cool');
+    }
     if (savedTheme && savedTheme !== 'dark') {
       document.documentElement.setAttribute('data-theme', savedTheme);
     }
@@ -387,8 +391,8 @@
       text-decoration: underline !important;
     }
 
-    /* ── Viper Theme Style Overrides ── */
-    [data-theme="viper"] {
+    /* ── Cyberpunk Cool Theme Style Overrides ── */
+    [data-theme="cyberpunk-cool"] {
       --radius: 4px;
       --bg-dark: #000000;
       --glass-bg: rgba(5, 8, 5, 0.85);
@@ -397,56 +401,56 @@
       --primary-hover: #00e6e6;
     }
 
-    [data-theme="viper"] body {
+    [data-theme="cyberpunk-cool"] body {
       background-color: #000000 !important;
       background-image: none !important;
       color: #FFD700 !important;
     }
 
-    [data-theme="viper"] h1 {
+    [data-theme="cyberpunk-cool"] h1 {
       background: linear-gradient(135deg, #00FFFF 0%, #FF00FF 100%) !important;
       -webkit-background-clip: text !important;
       -webkit-text-fill-color: transparent !important;
     }
 
-    [data-theme="viper"] .subtitle {
+    [data-theme="cyberpunk-cool"] .subtitle {
       color: #aaaaaa !important;
     }
 
-    [data-theme="viper"] .login-container {
+    [data-theme="cyberpunk-cool"] .login-container {
       background: #050805 !important;
       border: 1px solid rgba(255, 215, 0, 0.2) !important;
       box-shadow: 0 4px 24px rgba(0, 0, 0, 0.8) !important;
     }
 
-    [data-theme="viper"] .bot-avatar {
+    [data-theme="cyberpunk-cool"] .bot-avatar {
       border: 2px solid #00FFFF !important;
       box-shadow: 0 0 15px rgba(0, 255, 255, 0.4) !important;
     }
 
-    [data-theme="viper"] .discord-btn {
+    [data-theme="cyberpunk-cool"] .discord-btn {
       color: #FFFFFF !important;
       background: #050505 !important;
       border: 2px solid #00FFFF !important;
       box-shadow: 0 0 15px rgba(0, 255, 255, 0.4), inset 0 0 10px rgba(0, 255, 255, 0.15) !important;
     }
 
-    [data-theme="viper"] .discord-btn:hover {
+    [data-theme="cyberpunk-cool"] .discord-btn:hover {
       box-shadow: 0 0 25px rgba(0, 255, 255, 0.6), inset 0 0 15px rgba(0, 255, 255, 0.25) !important;
       background: #0a0a0a !important;
     }
 
-    [data-theme="viper"] .back-link {
+    [data-theme="cyberpunk-cool"] .back-link {
       color: #00FFFF !important;
       background: none !important;
       -webkit-text-fill-color: initial !important;
     }
 
-    [data-theme="viper"] .back-link:hover {
+    [data-theme="cyberpunk-cool"] .back-link:hover {
       color: #FFD700 !important;
     }
 
-    [data-theme="viper"] .bg-animation {
+    [data-theme="cyberpunk-cool"] .bg-animation {
       display: none !important;
     }
 

@@ -1,9 +1,13 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="viper">
+<html lang="en" data-theme="cyberpunk-cool">
 
 <head>
     <script>
-        const savedTheme = localStorage.getItem('theme') || 'viper';
+        let savedTheme = localStorage.getItem('theme') || 'cyberpunk-cool';
+    if (savedTheme === 'viper') {
+      savedTheme = 'cyberpunk-cool';
+      localStorage.setItem('theme', 'cyberpunk-cool');
+    }
         if (savedTheme && savedTheme !== 'dark') {
             document.documentElement.setAttribute('data-theme', savedTheme);
         }
@@ -114,7 +118,7 @@
 
     
     
-    [data-theme="viper"] {
+    [data-theme="cyberpunk-cool"] {
       --radius: 4px;
       --bg-dark: #000000;
       --card-bg: #050805;
@@ -125,30 +129,30 @@
       --gradient-brand: linear-gradient(135deg, #00FFFF 0%, #FF00FF 100%);
     }
 
-    [data-theme="viper"] body {
+    [data-theme="cyberpunk-cool"] body {
       background-image: none !important;
       background-color: #000000 !important;
     }
 
-    [data-theme="viper"] .sidebar,
-    [data-theme="viper"] .main-content,
-    [data-theme="viper"] .stat-card,
-    [data-theme="viper"] .console-panel,
-    [data-theme="viper"] .header,
-    [data-theme="viper"] .server-selector,
-    [data-theme="viper"] .top-bar,
-    [data-theme="viper"] .dashboard-card {
+    [data-theme="cyberpunk-cool"] .sidebar,
+    [data-theme="cyberpunk-cool"] .main-content,
+    [data-theme="cyberpunk-cool"] .stat-card,
+    [data-theme="cyberpunk-cool"] .console-panel,
+    [data-theme="cyberpunk-cool"] .header,
+    [data-theme="cyberpunk-cool"] .server-selector,
+    [data-theme="cyberpunk-cool"] .top-bar,
+    [data-theme="cyberpunk-cool"] .dashboard-card {
       border: 1px solid rgba(255, 215, 0, 0.2) !important;
       background: #080808 !important;
       border-radius: 8px !important;
       box-shadow: 0 4px 24px rgba(0, 0, 0, 0.8) !important;
     }
 
-    [data-theme="viper"] button,
-    [data-theme="viper"] .theme-toggle,
-    [data-theme="viper"] .server-select,
-    [data-theme="viper"] .btn,
-    [data-theme="viper"] .custom-select-trigger {
+    [data-theme="cyberpunk-cool"] button,
+    [data-theme="cyberpunk-cool"] .theme-toggle,
+    [data-theme="cyberpunk-cool"] .server-select,
+    [data-theme="cyberpunk-cool"] .btn,
+    [data-theme="cyberpunk-cool"] .custom-select-trigger {
       border: 2px solid #00FFFF !important;
       background: #050505 !important;
       color: #FFFFFF !important;
@@ -7464,7 +7468,7 @@
             // Theme toggle logic
             const themeToggle = document.getElementById("theme-toggle");
             if (themeToggle) {
-                const themes = ['cartoon', 'dark', 'light', 'high-contrast', 'hacker', 'aurora', 'viper'];
+                const themes = ['cartoon', 'dark', 'light', 'high-contrast', 'hacker', 'aurora', 'cyberpunk-cool'];
                 themeToggle.addEventListener("click", () => {
                     const currentTheme = localStorage.getItem("theme") || "cartoon";
                     const currentIndex = themes.indexOf(currentTheme);

@@ -1,22 +1,30 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="viper">
+<html lang="en" data-theme="cyberpunk-cool">
 
 <head>
   <meta charset="UTF-8">
   <script>
-    const savedTheme = localStorage.getItem('theme') || 'viper';
+    let savedTheme = localStorage.getItem('theme') || 'cyberpunk-cool';
+    if (savedTheme === 'viper') {
+      savedTheme = 'cyberpunk-cool';
+      localStorage.setItem('theme', 'cyberpunk-cool');
+    }
     if (savedTheme !== 'dark') {
       document.documentElement.setAttribute('data-theme', savedTheme);
     }
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Whiteout Survival - Discord Alliance Automation</title>
-  <meta name="description" content="A professional dark theme dashboard for Whiteout Survival Discord alliance monitoring, automation, and tools.">
+  <meta name="description"
+    content="A professional dark theme dashboard for Whiteout Survival Discord alliance monitoring, automation, and tools.">
   <meta property="og:title" content="Whiteout Survival - Discord Alliance Automation">
-  <meta property="og:description" content="Alliance monitoring, auto gift codes, DeepL translation, AI chat, reminders, games, and admin tools for Discord.">
+  <meta property="og:description"
+    content="Alliance monitoring, auto gift codes, DeepL translation, AI chat, reminders, games, and admin tools for Discord.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="assets/site.css">
   <link rel="stylesheet" href="assets/hacker-video.css">
   <style>
@@ -24,10 +32,11 @@
     .front-hero-scene {
       display: none;
     }
+
     [data-theme="aurora"] .front-hero-scene {
       display: block;
     }
-    
+
     .hacker-video-wrapper {
       display: none;
       position: fixed;
@@ -36,17 +45,17 @@
       pointer-events: none;
       overflow: hidden;
     }
+
     [data-theme="hacker"] .hacker-video-wrapper {
       display: block;
     }
-    
-    /* Hide conflicting backgrounds in hacker/aurora/viper themes */
+
+    /* Hide conflicting backgrounds in hacker/aurora/cyberpunk-cool themes */
     [data-theme="hacker"] .glow-background,
     [data-theme="hacker"] .hero-art,
     [data-theme="aurora"] .glow-background,
     [data-theme="aurora"] .hero-art,
-    [data-theme="viper"] .glow-background,
-    [data-theme="viper"] .hero-art {
+    [data-theme="cyberpunk-cool"] .hero-art {
       display: none !important;
     }
 
@@ -145,14 +154,14 @@
       pointer-events: none;
       overflow: hidden;
     }
-    
+
     .volumetric-rays {
       position: absolute;
       width: 140%;
       height: 140%;
       left: -20%;
       top: -20%;
-      background-image: 
+      background-image:
         repeating-linear-gradient(65deg, rgba(141, 232, 255, 0.06) 0%, rgba(141, 232, 255, 0.06) 4%, transparent 8%, transparent 12%),
         radial-gradient(circle at 60% 40%, rgba(141, 232, 255, 0.22) 0%, transparent 60%);
       filter: blur(12px);
@@ -162,14 +171,21 @@
     }
 
     @keyframes rayPulse {
-      0% { transform: rotate(0deg) scale(1); opacity: 0.7; }
-      100% { transform: rotate(6deg) scale(1.1); opacity: 1; }
+      0% {
+        transform: rotate(0deg) scale(1);
+        opacity: 0.7;
+      }
+
+      100% {
+        transform: rotate(6deg) scale(1.1);
+        opacity: 1;
+      }
     }
 
     .icy-fog-layer {
       position: absolute;
       inset: 0;
-      background: 
+      background:
         radial-gradient(circle at 30% 80%, rgba(141, 232, 255, 0.12), transparent 45%),
         radial-gradient(circle at 80% 90%, rgba(154, 99, 240, 0.1), transparent 40%);
       filter: blur(30px);
@@ -177,8 +193,13 @@
     }
 
     @keyframes fogDrift {
-      0% { transform: translateX(-5%) translateY(5%) scale(1); }
-      100% { transform: translateX(5%) translateY(-5%) scale(1.1); }
+      0% {
+        transform: translateX(-5%) translateY(5%) scale(1);
+      }
+
+      100% {
+        transform: translateX(5%) translateY(-5%) scale(1.1);
+      }
     }
 
     .ambient-blue-glow {
@@ -192,7 +213,7 @@
       position: absolute;
       inset: 0;
       background: radial-gradient(circle at center, transparent 30%, rgba(141, 232, 255, 0.15) 100%),
-                  repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.02) 0px, rgba(255, 255, 255, 0.02) 1px, transparent 1px, transparent 4px);
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.02) 0px, rgba(255, 255, 255, 0.02) 1px, transparent 1px, transparent 4px);
       pointer-events: none;
       z-index: 2;
     }
@@ -220,11 +241,36 @@
     }
 
     @keyframes flameRise {
-      0%   { opacity: 0;   height: 0;   transform: scaleX(1) translateY(0);     background: linear-gradient(to top, #ff3a00, #ff8c00 40%, #ffcc00 70%, transparent); }
-      15%  { opacity: 1;   height: calc(var(--h) * 0.3); }
-      40%  { opacity: 0.85; height: calc(var(--h) * 0.7); transform: scaleX(1.3) translateY(0) rotate(var(--tilt, 2deg)); }
-      70%  { opacity: 0.5; height: var(--h); transform: scaleX(0.9) translateY(-5%) rotate(calc(var(--tilt, 2deg) * -0.5)); }
-      100% { opacity: 0;   height: var(--h); transform: scaleX(0.4) translateY(-10%); background: linear-gradient(to top, transparent, rgba(255,120,0,0.2), transparent); }
+      0% {
+        opacity: 0;
+        height: 0;
+        transform: scaleX(1) translateY(0);
+        background: linear-gradient(to top, #ff3a00, #ff8c00 40%, #ffcc00 70%, transparent);
+      }
+
+      15% {
+        opacity: 1;
+        height: calc(var(--h) * 0.3);
+      }
+
+      40% {
+        opacity: 0.85;
+        height: calc(var(--h) * 0.7);
+        transform: scaleX(1.3) translateY(0) rotate(var(--tilt, 2deg));
+      }
+
+      70% {
+        opacity: 0.5;
+        height: var(--h);
+        transform: scaleX(0.9) translateY(-5%) rotate(calc(var(--tilt, 2deg) * -0.5));
+      }
+
+      100% {
+        opacity: 0;
+        height: var(--h);
+        transform: scaleX(0.4) translateY(-10%);
+        background: linear-gradient(to top, transparent, rgba(255, 120, 0, 0.2), transparent);
+      }
     }
 
     .hero-sun {
@@ -237,16 +283,21 @@
       animation: floatSun 6s ease-in-out infinite alternate;
       filter: drop-shadow(0 0 45px rgba(255, 248, 200, 0.55)) brightness(1.15);
     }
-    
+
     .hero-sun img {
       width: 100%;
       height: auto;
       display: block;
     }
-    
+
     @keyframes floatSun {
-      0% { transform: translateX(-50%) translateY(0) rotate(-1.5deg); }
-      100% { transform: translateX(-50%) translateY(-15px) rotate(1.5deg); }
+      0% {
+        transform: translateX(-50%) translateY(0) rotate(-1.5deg);
+      }
+
+      100% {
+        transform: translateX(-50%) translateY(-15px) rotate(1.5deg);
+      }
     }
 
     /* Floating Holographic Cards */
@@ -259,7 +310,7 @@
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(141, 232, 255, 0.35);
       color: #ffffff;
-      box-shadow: 
+      box-shadow:
         0 15px 35px rgba(0, 0, 0, 0.4),
         0 0 20px rgba(141, 232, 255, 0.15),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -275,7 +326,7 @@
     .holo-card:hover {
       transform: translateY(-5px) scale(1.05) !important;
       border-color: rgba(141, 232, 255, 0.8);
-      box-shadow: 
+      box-shadow:
         0 20px 40px rgba(0, 0, 0, 0.5),
         0 0 30px rgba(141, 232, 255, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.4);
@@ -316,16 +367,33 @@
     }
 
     @keyframes holoFloat1 {
-      0% { transform: translateY(0) rotate(0deg); }
-      100% { transform: translateY(-15px) rotate(1deg); }
+      0% {
+        transform: translateY(0) rotate(0deg);
+      }
+
+      100% {
+        transform: translateY(-15px) rotate(1deg);
+      }
     }
+
     @keyframes holoFloat2 {
-      0% { transform: translateY(0) rotate(0deg); }
-      100% { transform: translateY(-12px) rotate(-1deg); }
+      0% {
+        transform: translateY(0) rotate(0deg);
+      }
+
+      100% {
+        transform: translateY(-12px) rotate(-1deg);
+      }
     }
+
     @keyframes holoFloat3 {
-      0% { transform: translateY(0) rotate(0deg); }
-      100% { transform: translateY(-18px) rotate(1.5deg); }
+      0% {
+        transform: translateY(0) rotate(0deg);
+      }
+
+      100% {
+        transform: translateY(-18px) rotate(1.5deg);
+      }
     }
 
     .hero-item {
@@ -336,9 +404,7 @@
       transition: filter 0.4s ease, transform 0.1s ease-out;
       cursor: grab;
       filter:
-        drop-shadow(0 20px 40px rgba(0, 0, 0, 0.64))
-        drop-shadow(0 0 18px rgba(141, 232, 255, 0.28))
-        brightness(0.92);
+        drop-shadow(0 20px 40px rgba(0, 0, 0, 0.64)) drop-shadow(0 0 18px rgba(141, 232, 255, 0.28)) brightness(0.92);
     }
 
     .hero-item--lead {
@@ -362,13 +428,10 @@
       transition: filter 0.4s ease;
     }
 
-    .hero-item:hover, .hero-item.active {
+    .hero-item:hover,
+    .hero-item.active {
       filter:
-        drop-shadow(0 0 28px rgba(141, 232, 255, 0.95))
-        drop-shadow(0 0 68px rgba(154, 99, 240, 0.62))
-        drop-shadow(0 18px 38px rgba(0, 0, 0, 0.74))
-        brightness(1.24)
-        saturate(1.14) !important;
+        drop-shadow(0 0 28px rgba(141, 232, 255, 0.95)) drop-shadow(0 0 68px rgba(154, 99, 240, 0.62)) drop-shadow(0 18px 38px rgba(0, 0, 0, 0.74)) brightness(1.24) saturate(1.14) !important;
       z-index: 50 !important;
     }
 
@@ -391,10 +454,7 @@
       width: clamp(8rem, 10vw, 13rem);
       transform: translateX(-50%);
       filter:
-        drop-shadow(0 10px 20px rgba(0, 0, 0, 0.9))
-        blur(1.5px)
-        brightness(0.6)
-        saturate(0.6);
+        drop-shadow(0 10px 20px rgba(0, 0, 0, 0.9)) blur(1.5px) brightness(0.6) saturate(0.6);
       animation: floatBg 9s ease-in-out infinite alternate;
     }
 
@@ -403,55 +463,84 @@
       width: clamp(12rem, 15vw, 20rem);
       transform: translateX(-50%);
       filter:
-        drop-shadow(0 18px 35px rgba(0, 0, 0, 0.72))
-        blur(0.3px)
-        brightness(0.82)
-        saturate(0.88);
+        drop-shadow(0 18px 35px rgba(0, 0, 0, 0.72)) blur(0.3px) brightness(0.82) saturate(0.88);
       animation: floatMid 5.5s ease-in-out infinite alternate;
     }
 
     /* Front row (non-lead): glowing cyan rim light */
     .hero-item--fg {
       filter:
-        drop-shadow(0 0 30px rgba(141, 232, 255, 0.55))
-        drop-shadow(0 0 12px rgba(100, 200, 255, 0.4))
-        drop-shadow(0 28px 52px rgba(0, 0, 0, 0.74))
-        brightness(1.18)
-        saturate(1.12);
+        drop-shadow(0 0 30px rgba(141, 232, 255, 0.55)) drop-shadow(0 0 12px rgba(100, 200, 255, 0.4)) drop-shadow(0 28px 52px rgba(0, 0, 0, 0.74)) brightness(1.18) saturate(1.12);
       animation: floatFg 4.5s ease-in-out infinite alternate;
     }
 
     /* Lead hero: largest glow, strongest cyan rim */
     .hero-item--lead {
       filter:
-        drop-shadow(0 0 50px rgba(141, 232, 255, 0.7))
-        drop-shadow(0 0 20px rgba(80, 180, 255, 0.55))
-        drop-shadow(0 32px 56px rgba(0, 0, 0, 0.84))
-        brightness(1.25)
-        saturate(1.18);
+        drop-shadow(0 0 50px rgba(141, 232, 255, 0.7)) drop-shadow(0 0 20px rgba(80, 180, 255, 0.55)) drop-shadow(0 32px 56px rgba(0, 0, 0, 0.84)) brightness(1.25) saturate(1.18);
     }
 
     /* Delays for natural asynchronous floating */
-    .delay-1 { animation-delay: -0.5s; }
-    .delay-2 { animation-delay: -1.2s; }
-    .delay-3 { animation-delay: -1.8s; }
-    .delay-4 { animation-delay: -2.5s; }
-    .delay-5 { animation-delay: -3.1s; }
-    .delay-6 { animation-delay: -3.8s; }
-    .delay-7 { animation-delay: -4.2s; }
-    .delay-8 { animation-delay: -4.9s; }
+    .delay-1 {
+      animation-delay: -0.5s;
+    }
+
+    .delay-2 {
+      animation-delay: -1.2s;
+    }
+
+    .delay-3 {
+      animation-delay: -1.8s;
+    }
+
+    .delay-4 {
+      animation-delay: -2.5s;
+    }
+
+    .delay-5 {
+      animation-delay: -3.1s;
+    }
+
+    .delay-6 {
+      animation-delay: -3.8s;
+    }
+
+    .delay-7 {
+      animation-delay: -4.2s;
+    }
+
+    .delay-8 {
+      animation-delay: -4.9s;
+    }
 
     @keyframes floatBg {
-      from { transform: translateY(0); }
-      to { transform: translateY(-6px); }
+      from {
+        transform: translateY(0);
+      }
+
+      to {
+        transform: translateY(-6px);
+      }
     }
+
     @keyframes floatMid {
-      from { transform: translateY(0); }
-      to { transform: translateY(-10px); }
+      from {
+        transform: translateY(0);
+      }
+
+      to {
+        transform: translateY(-10px);
+      }
     }
+
     @keyframes floatFg {
-      from { transform: translateY(0); }
-      to { transform: translateY(-15px); }
+      from {
+        transform: translateY(0);
+      }
+
+      to {
+        transform: translateY(-15px);
+      }
     }
 
     .hero-node {
@@ -474,7 +563,7 @@
       font-size: 1.5rem;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      box-shadow: 
+      box-shadow:
         0 20px 40px rgba(0, 0, 0, 0.6),
         0 0 32px rgba(141, 232, 255, 0.38),
         inset 0 0 20px rgba(141, 232, 255, 0.25);
@@ -516,13 +605,17 @@
     }
 
     @media (max-width: 768px) {
+
       /* Hide back and mid rows on mobile */
-      .hero-item--bg, .hero-item--mid {
+      .hero-item--bg,
+      .hero-item--mid {
         display: none !important;
       }
+
       .holo-card {
         display: none !important;
       }
+
       /* All 4 front heroes visible on mobile, spaced across scene */
       .hero-item[data-name="Sergey"] {
         display: block !important;
@@ -530,16 +623,18 @@
         bottom: 2% !important;
         z-index: 34 !important;
         width: clamp(8rem, 23vw, 12rem) !important;
-        filter: drop-shadow(0 0 12px rgba(141,232,255,0.18)) brightness(0.92) !important;
+        filter: drop-shadow(0 0 12px rgba(141, 232, 255, 0.18)) brightness(0.92) !important;
       }
+
       .hero-item[data-name="Jeronimo"] {
         display: block !important;
         left: 13% !important;
         bottom: 4% !important;
         z-index: 37 !important;
         width: clamp(9rem, 26vw, 13rem) !important;
-        filter: drop-shadow(0 0 15px rgba(141,232,255,0.25)) brightness(0.96) !important;
+        filter: drop-shadow(0 0 15px rgba(141, 232, 255, 0.25)) brightness(0.96) !important;
       }
+
       /* Lead hero — Molly */
       .hero-item--lead {
         left: 32% !important;
@@ -549,13 +644,14 @@
         z-index: 40 !important;
         filter: drop-shadow(0 0 28px rgba(141, 232, 255, 0.5)) brightness(1.1) !important;
       }
+
       .hero-item[data-name="Natalia"] {
         display: block !important;
         left: 60% !important;
         bottom: 0% !important;
         z-index: 37 !important;
         width: clamp(9rem, 26vw, 13rem) !important;
-        filter: drop-shadow(0 0 15px rgba(141,232,255,0.25)) brightness(0.96) !important;
+        filter: drop-shadow(0 0 15px rgba(141, 232, 255, 0.25)) brightness(0.96) !important;
       }
     }
 
@@ -657,24 +753,29 @@
       z-index: 5;
       pointer-events: none;
     }
-    
+
     [data-theme="cartoon"] .cartoon-globe-wrapper {
       display: block;
       animation: floatGlobeCartoon 6s ease-in-out infinite alternate;
     }
-    
+
     [data-theme="cartoon"] .cartoon-globe-wrapper img {
       width: 100%;
       height: auto;
       display: block;
       filter: drop-shadow(0 0 35px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 20px rgba(180, 240, 255, 0.8));
     }
-    
+
     @keyframes floatGlobeCartoon {
-      0% { transform: translateY(0) rotate(-2deg); }
-      100% { transform: translateY(-20px) rotate(2deg); }
+      0% {
+        transform: translateY(0) rotate(-2deg);
+      }
+
+      100% {
+        transform: translateY(-20px) rotate(2deg);
+      }
     }
-    
+
     @media (max-width: 1100px) {
       .cartoon-globe-wrapper {
         right: -16rem;
@@ -682,23 +783,25 @@
         opacity: 0.6;
       }
     }
-    
+
     @media (max-width: 768px) {
       .cartoon-globe-wrapper {
         display: none !important;
       }
     }
-    
+
     .hero-live-feed:active {
       cursor: grabbing;
     }
-    
+
     .hero-live-feed.dragging {
       box-shadow: 0 12px 40px rgba(141, 232, 255, 0.4);
     }
 
     @keyframes slideDownFeed {
-      to { transform: translateY(0); }
+      to {
+        transform: translateY(0);
+      }
     }
 
     .hero-feed-top {
@@ -1082,9 +1185,11 @@
     .dispatch-feed::-webkit-scrollbar {
       width: 4px;
     }
+
     .dispatch-feed::-webkit-scrollbar-track {
       background: rgba(255, 255, 255, 0.02);
     }
+
     .dispatch-feed::-webkit-scrollbar-thumb {
       background: rgba(141, 232, 255, 0.2);
       border-radius: 4px;
@@ -1142,11 +1247,25 @@
       line-height: 1;
     }
 
-    .dispatch-bubble.status-success { border-left: 2px solid #48e0a7; }
-    .dispatch-bubble.status-failed { border-left: 2px solid #ff5d5d; }
-    .dispatch-bubble.status-retrying { border-left: 2px solid #ffb84d; }
-    .dispatch-bubble.status-info { border-left: 2px solid #4da6ff; }
-    .dispatch-bubble.status-changed { border-left: 2px solid #b366ff; }
+    .dispatch-bubble.status-success {
+      border-left: 2px solid #48e0a7;
+    }
+
+    .dispatch-bubble.status-failed {
+      border-left: 2px solid #ff5d5d;
+    }
+
+    .dispatch-bubble.status-retrying {
+      border-left: 2px solid #ffb84d;
+    }
+
+    .dispatch-bubble.status-info {
+      border-left: 2px solid #4da6ff;
+    }
+
+    .dispatch-bubble.status-changed {
+      border-left: 2px solid #b366ff;
+    }
 
     .dispatch-bubble-top {
       display: flex;
@@ -1182,8 +1301,15 @@
     }
 
     @keyframes bubbleSlideIn {
-      from { opacity: 0; transform: translateX(10px); }
-      to { opacity: 1; transform: translateX(0); }
+      from {
+        opacity: 0;
+        transform: translateX(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
     }
 
     .server-radar {
@@ -1201,8 +1327,17 @@
     }
 
     @keyframes statusPulse {
-      0%, 100% { opacity: 0.45; transform: scale(0.88); }
-      50% { opacity: 1; transform: scale(1); }
+
+      0%,
+      100% {
+        opacity: 0.45;
+        transform: scale(0.88);
+      }
+
+      50% {
+        opacity: 1;
+        transform: scale(1);
+      }
     }
 
     @keyframes heroFadeIn {
@@ -1210,6 +1345,7 @@
         opacity: 0;
         transform: translateY(8px);
       }
+
       to {
         opacity: 1;
         transform: translateY(0);
@@ -1290,13 +1426,14 @@
       .live-process-header {
         flex-direction: column;
       }
-      
+
       .live-process-controls {
         align-items: flex-start;
         width: 100%;
         flex-direction: row;
         justify-content: space-between;
       }
+
       .header-inner {
         justify-content: space-between;
       }
@@ -1318,7 +1455,9 @@
         gap: 0.65rem;
       }
 
-      .showcase-grid { column-count: 2; }
+      .showcase-grid {
+        column-count: 2;
+      }
 
       .live-board {
         grid-template-columns: 1fr;
@@ -1344,6 +1483,7 @@
         opacity: 1;
         transform: scale(0.8);
       }
+
       .hero-node {
         font-size: 1.1rem;
         padding: 0.5rem 1.2rem;
@@ -1353,7 +1493,9 @@
         font-size: 1.55rem;
       }
 
-      .showcase-grid { column-count: 1; }
+      .showcase-grid {
+        column-count: 1;
+      }
 
       .hero-feed-body {
         grid-template-columns: 1fr;
@@ -1411,8 +1553,15 @@
     }
 
     @keyframes fabAppear {
-      from { transform: scale(0) rotate(-180deg); opacity: 0; }
-      to   { transform: scale(1) rotate(0deg);    opacity: 1; }
+      from {
+        transform: scale(0) rotate(-180deg);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+      }
     }
 
     #floating-chat-fab::before {
@@ -1435,7 +1584,9 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.5);
     }
 
-    #floating-chat-fab:hover::before { opacity: 0.6; }
+    #floating-chat-fab:hover::before {
+      opacity: 0.6;
+    }
 
     #floating-chat-fab svg {
       width: 1.6rem;
@@ -1444,8 +1595,13 @@
       transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
-    #floating-chat-fab.is-open svg.icon-chat { display: none; }
-    #floating-chat-fab:not(.is-open) svg.icon-close { display: none; }
+    #floating-chat-fab.is-open svg.icon-chat {
+      display: none;
+    }
+
+    #floating-chat-fab:not(.is-open) svg.icon-close {
+      display: none;
+    }
 
     /* Unread badge */
     #chat-fab-badge {
@@ -1485,9 +1641,20 @@
     }
 
     @keyframes fabPulseRing {
-      0%   { transform: scale(1);   opacity: 0.7; }
-      70%  { transform: scale(1.5); opacity: 0; }
-      100% { transform: scale(1.5); opacity: 0; }
+      0% {
+        transform: scale(1);
+        opacity: 0.7;
+      }
+
+      70% {
+        transform: scale(1.5);
+        opacity: 0;
+      }
+
+      100% {
+        transform: scale(1.5);
+        opacity: 0;
+      }
     }
 
     /* Popup container */
@@ -1596,7 +1763,9 @@
       color: #fff;
     }
 
-    [data-theme="cartoon"] .fchat-header-info h4 { color: #191919; }
+    [data-theme="cartoon"] .fchat-header-info h4 {
+      color: #191919;
+    }
 
     .fchat-header-info span {
       display: flex;
@@ -1638,7 +1807,10 @@
       text-decoration: none;
     }
 
-    .fchat-action-btn svg { width: 1rem; height: 1rem; }
+    .fchat-action-btn svg {
+      width: 1rem;
+      height: 1rem;
+    }
 
     .fchat-action-btn:hover {
       background: rgba(255, 255, 255, 0.12);
@@ -1674,7 +1846,8 @@
 
     /* Login panel inside popup */
     .fchat-login-panel {
-      display: flex !important; /* override .room-login grid from site.css */
+      display: flex !important;
+      /* override .room-login grid from site.css */
       padding: 0.8rem 1.1rem;
       border-bottom: 1px solid rgba(255, 255, 255, 0.07);
       gap: 0.5rem;
@@ -1683,7 +1856,9 @@
       flex-wrap: wrap;
     }
 
-    .fchat-login-panel.is-hidden { display: none; }
+    .fchat-login-panel.is-hidden {
+      display: none;
+    }
 
     [data-theme="cartoon"] .fchat-login-panel {
       border-bottom: 1.5px solid #191919;
@@ -1703,8 +1878,13 @@
       transition: border-color 0.2s;
     }
 
-    .fchat-login-panel input:focus { border-color: rgba(141, 232, 255, 0.5); }
-    .fchat-login-panel input::placeholder { color: rgba(255,255,255,0.32); }
+    .fchat-login-panel input:focus {
+      border-color: rgba(141, 232, 255, 0.5);
+    }
+
+    .fchat-login-panel input::placeholder {
+      color: rgba(255, 255, 255, 0.32);
+    }
 
     [data-theme="cartoon"] .fchat-login-panel input {
       border: 1.5px solid #191919;
@@ -1745,7 +1925,10 @@
       scrollbar-color: rgba(154, 99, 240, 0.3) transparent;
     }
 
-    .fchat-messages::-webkit-scrollbar { width: 4px; }
+    .fchat-messages::-webkit-scrollbar {
+      width: 4px;
+    }
+
     .fchat-messages::-webkit-scrollbar-thumb {
       background: rgba(154, 99, 240, 0.35);
       border-radius: 99px;
@@ -1768,12 +1951,27 @@
       animation: fchatDot 1.2s ease-in-out infinite;
     }
 
-    .fchat-loading span:nth-child(2) { animation-delay: 0.2s; }
-    .fchat-loading span:nth-child(3) { animation-delay: 0.4s; }
+    .fchat-loading span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .fchat-loading span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
 
     @keyframes fchatDot {
-      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-      40% { transform: scale(1); opacity: 1; }
+
+      0%,
+      80%,
+      100% {
+        transform: scale(0.6);
+        opacity: 0.4;
+      }
+
+      40% {
+        transform: scale(1);
+        opacity: 1;
+      }
     }
 
     /* Identity bar */
@@ -1781,9 +1979,9 @@
       padding: 0.35rem 1rem;
       font-family: var(--font-mono);
       font-size: 0.68rem;
-      color: rgba(255,255,255,0.38);
+      color: rgba(255, 255, 255, 0.38);
       flex-shrink: 0;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     [data-theme="cartoon"] .fchat-identity-bar {
@@ -1797,7 +1995,9 @@
       flex-shrink: 0;
     }
 
-    .fchat-attach-row.is-hidden { display: none; }
+    .fchat-attach-row.is-hidden {
+      display: none;
+    }
 
     /* Reply bar */
     .fchat-reply-bar {
@@ -1808,34 +2008,49 @@
       border-top: 1px solid rgba(255, 255, 255, 0.07);
       background: rgba(141, 232, 255, 0.04);
       font-size: 0.78rem;
-      color: rgba(255,255,255,0.6);
+      color: rgba(255, 255, 255, 0.6);
       flex-shrink: 0;
     }
 
-    .fchat-reply-bar.is-hidden { display: none; }
+    .fchat-reply-bar.is-hidden {
+      display: none;
+    }
 
-    .fchat-reply-bar strong { color: #8de8ff; margin: 0 0.3rem; }
-    .fchat-reply-bar p { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+    .fchat-reply-bar strong {
+      color: #8de8ff;
+      margin: 0 0.3rem;
+    }
+
+    .fchat-reply-bar p {
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
 
     .fchat-reply-clear {
       border: none;
       background: none;
-      color: rgba(255,255,255,0.4);
+      color: rgba(255, 255, 255, 0.4);
       cursor: pointer;
       padding: 0.2rem;
       display: flex;
       align-items: center;
     }
 
-    .fchat-reply-clear:hover { color: #f87171; }
+    .fchat-reply-clear:hover {
+      color: #f87171;
+    }
 
     /* Compose form */
     .fchat-compose {
-      display: block !important; /* override .global-chat-form's grid */
+      display: block !important;
+      /* override .global-chat-form's grid */
       border-top: 1px solid rgba(255, 255, 255, 0.08);
       padding: 0.7rem 0.8rem;
       flex-shrink: 0;
-      background: rgba(255,255,255,0.02);
+      background: rgba(255, 255, 255, 0.02);
     }
 
     [data-theme="cartoon"] .fchat-compose {
@@ -1874,7 +2089,9 @@
       background: rgba(255, 255, 255, 0.08);
     }
 
-    .fchat-input-wrap textarea::placeholder { color: rgba(255,255,255,0.3); }
+    .fchat-input-wrap textarea::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
 
     [data-theme="cartoon"] .fchat-input-wrap textarea {
       border: 1.5px solid #191919;
@@ -1882,7 +2099,9 @@
       color: #191919;
     }
 
-    .fchat-input-wrap textarea:focus { box-shadow: 0 0 0 3px rgba(141, 232, 255, 0.15); }
+    .fchat-input-wrap textarea:focus {
+      box-shadow: 0 0 0 3px rgba(141, 232, 255, 0.15);
+    }
 
     /* Emoji + GIF panel */
     .fchat-emoji-panel,
@@ -1891,7 +2110,7 @@
       bottom: calc(100% + 6px);
       left: 0;
       right: 0;
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 0.75rem;
       background: rgba(10, 13, 22, 0.96);
       backdrop-filter: blur(20px);
@@ -1899,28 +2118,65 @@
       overflow: hidden;
     }
 
-    .fchat-emoji-panel { display: flex; flex-wrap: wrap; gap: 2px; padding: 0.5rem; }
+    .fchat-emoji-panel {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      padding: 0.5rem;
+    }
+
     .fchat-emoji-panel button {
-      border: none; background: none; cursor: pointer;
-      font-size: 1.3rem; width: 2.2rem; height: 2.2rem;
-      border-radius: 0.4rem; display: grid; place-items: center;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 1.3rem;
+      width: 2.2rem;
+      height: 2.2rem;
+      border-radius: 0.4rem;
+      display: grid;
+      place-items: center;
       transition: background 0.15s;
     }
-    .fchat-emoji-panel button:hover { background: rgba(255,255,255,0.1); }
 
-    .fchat-tenor-panel { padding: 0.6rem; }
-    .fchat-tenor-search { display: flex; gap: 0.4rem; margin-bottom: 0.5rem; }
+    .fchat-emoji-panel button:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .fchat-tenor-panel {
+      padding: 0.6rem;
+    }
+
+    .fchat-tenor-search {
+      display: flex;
+      gap: 0.4rem;
+      margin-bottom: 0.5rem;
+    }
+
     .fchat-tenor-search input {
-      flex: 1; border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem;
-      background: rgba(255,255,255,0.06); color: #fff; font: 0.82rem var(--font-body);
-      padding: 0.4rem 0.6rem; outline: none;
+      flex: 1;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 0.5rem;
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+      font: 0.82rem var(--font-body);
+      padding: 0.4rem 0.6rem;
+      outline: none;
     }
-    .fchat-tenor-search input::placeholder { color: rgba(255,255,255,0.3); }
+
+    .fchat-tenor-search input::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
     .fchat-tenor-search button {
-      border: 1px solid rgba(154,99,240,0.4); border-radius: 0.5rem;
-      background: rgba(154,99,240,0.2); color: #e8d9ff;
-      font: 700 0.78rem var(--font-body); padding: 0.4rem 0.7rem; cursor: pointer;
+      border: 1px solid rgba(154, 99, 240, 0.4);
+      border-radius: 0.5rem;
+      background: rgba(154, 99, 240, 0.2);
+      color: #e8d9ff;
+      font: 700 0.78rem var(--font-body);
+      padding: 0.4rem 0.7rem;
+      cursor: pointer;
     }
+
     .fchat-tenor-results {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -1928,8 +2184,22 @@
       max-height: 160px;
       overflow-y: auto;
     }
-    .fchat-tenor-results button { border: none; background: none; cursor: pointer; padding: 0; border-radius: 0.4rem; overflow: hidden; }
-    .fchat-tenor-results img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+
+    .fchat-tenor-results button {
+      border: none;
+      background: none;
+      cursor: pointer;
+      padding: 0;
+      border-radius: 0.4rem;
+      overflow: hidden;
+    }
+
+    .fchat-tenor-results img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      display: block;
+    }
 
     /* Icon buttons row */
     .fchat-icon-row {
@@ -1941,10 +2211,10 @@
     .fchat-icon-btn {
       width: 2rem;
       height: 2rem;
-      border: 1px solid rgba(255,255,255,0.08);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 0.55rem;
-      background: rgba(255,255,255,0.04);
-      color: rgba(255,255,255,0.55);
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.55);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -1952,15 +2222,22 @@
       transition: all 0.18s;
     }
 
-    .fchat-icon-btn svg { width: 0.95rem; height: 0.95rem; }
+    .fchat-icon-btn svg {
+      width: 0.95rem;
+      height: 0.95rem;
+    }
 
     .fchat-icon-btn:hover {
-      background: rgba(141,232,255,0.12);
-      border-color: rgba(141,232,255,0.35);
+      background: rgba(141, 232, 255, 0.12);
+      border-color: rgba(141, 232, 255, 0.35);
       color: #8de8ff;
     }
 
-    .fchat-icon-btn.is-recording { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.4); color: #f87171; }
+    .fchat-icon-btn.is-recording {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #f87171;
+    }
 
     [data-theme="cartoon"] .fchat-icon-btn {
       border: 1.5px solid #191919;
@@ -1981,14 +2258,17 @@
       justify-content: center;
       transition: transform 0.2s, box-shadow 0.2s;
       flex-shrink: 0;
-      box-shadow: 0 4px 16px -4px rgba(154,99,240,0.7);
+      box-shadow: 0 4px 16px -4px rgba(154, 99, 240, 0.7);
     }
 
-    .fchat-send-btn svg { width: 1rem; height: 1rem; }
+    .fchat-send-btn svg {
+      width: 1rem;
+      height: 1rem;
+    }
 
     .fchat-send-btn:hover {
       transform: scale(1.1) translateY(-1px);
-      box-shadow: 0 8px 24px -4px rgba(154,99,240,0.9);
+      box-shadow: 0 8px 24px -4px rgba(154, 99, 240, 0.9);
     }
 
     /* Full-page link at bottom of popup */
@@ -1998,8 +2278,8 @@
       justify-content: center;
       gap: 0.4rem;
       padding: 0.5rem;
-      border-top: 1px solid rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.38);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.38);
       font-size: 0.72rem;
       font-family: var(--font-mono);
       text-decoration: none;
@@ -2007,13 +2287,25 @@
       flex-shrink: 0;
     }
 
-    .fchat-fullpage-link:hover { color: #8de8ff; }
+    .fchat-fullpage-link:hover {
+      color: #8de8ff;
+    }
 
-    [data-theme="cartoon"] .fchat-fullpage-link { border-top: 1px solid #e5e5e5; color: #888; }
-    [data-theme="cartoon"] .fchat-fullpage-link:hover { color: #097969; }
+    [data-theme="cartoon"] .fchat-fullpage-link {
+      border-top: 1px solid #e5e5e5;
+      color: #888;
+    }
+
+    [data-theme="cartoon"] .fchat-fullpage-link:hover {
+      color: #097969;
+    }
 
     @media (max-width: 480px) {
-      #floating-chat-fab { bottom: 1.2rem; left: 1.2rem; }
+      #floating-chat-fab {
+        bottom: 1.2rem;
+        left: 1.2rem;
+      }
+
       #floating-chat-popup {
         bottom: 5.8rem;
         left: 1rem;
@@ -2046,13 +2338,33 @@
 
       <div class="header-actions">
         <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
-          <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <svg class="contrast-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke-width="2"/></svg>
-          <svg class="hacker-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 16 4-4-4-4M6 8l-4 4 4 4M14.5 4l-5 16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <svg class="cartoon-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke-width="2"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <svg class="aurora-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"><path d="M2 8c4-4 6 4 10 0s6-4 10 0M2 13c4-4 6 4 10 0s6-4 10 0M2 18c4-4 6 4 10 0s6-4 10 0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <svg class="viper-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"><path d="M12 2C6 2 2 7 2 12s4 10 10 10 10-4.5 10-10S18 2 12 2z" stroke-width="1.5"/><path d="M12 8v4l3 3" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>
+          <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+          <svg class="contrast-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-width="2" />
+            <circle cx="12" cy="12" r="3" stroke-width="2" />
+          </svg>
+          <svg class="hacker-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m18 16 4-4-4-4M6 8l-4 4 4 4M14.5 4l-5 16" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+          <svg class="cartoon-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" stroke-width="2" />
+            <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+          <svg class="aurora-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor">
+            <path d="M2 8c4-4 6 4 10 0s6-4 10 0M2 13c4-4 6 4 10 0s6-4 10 0M2 18c4-4 6 4 10 0s6-4 10 0" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <svg class="cyberpunk-cool-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         <a class="ghost-link dashboard-cta nav-galaxy" href="login.html" data-dashboard-link>Dashboard</a>
       </div>
@@ -2078,10 +2390,19 @@
           <div class="cartoon-globe-wrapper" aria-hidden="true">
             <img src="assets/wos-globe.png" alt="WOS Globe Cartoon Theme">
           </div>
-          <p>Alliance monitoring, gift code automation, DeepL translation, AI voice tools, reminders, games, and admin workflows in one professional Discord bot.</p>
+          <p>Alliance monitoring, gift code automation, DeepL translation, AI voice tools, reminders, games, and admin
+            workflows in one Discord bot.</p>
           <div class="action-row">
-            <a class="button" href="https://discord.com/oauth2/authorize?client_id=1399025185046134866&permissions=8&integration_type=0&scope=bot" target="_blank" rel="noopener noreferrer">Add to Discord <svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
-            <a class="button secondary" href="commands.html">View commands <svg viewBox="0 0 24 24"><path d="m4 17 5-5-5-5"/><path d="M12 19h8"/></svg></a>
+            <a class="button"
+              href="https://discord.com/oauth2/authorize?client_id=1399025185046134866&permissions=8&integration_type=0&scope=bot"
+              target="_blank" rel="noopener noreferrer">Add to Discord <svg viewBox="0 0 24 24">
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg></a>
+            <a class="button secondary" href="commands.html">View commands <svg viewBox="0 0 24 24">
+                <path d="m4 17 5-5-5-5" />
+                <path d="M12 19h8" />
+              </svg></a>
           </div>
           <div class="hero-live-feed" aria-label="Current bot process status" id="hero-live-feed">
             <div class="hero-feed-top">
@@ -2089,14 +2410,20 @@
                 <b data-hero-feed-state>live process</b>
                 <span data-hero-feed-time>syncing feed</span>
               </div>
-              <button type="button" class="hero-feed-close" aria-label="Close live feed" onclick="document.getElementById('hero-live-feed').style.display = 'none';">
-                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              <button type="button" class="hero-feed-close" aria-label="Close live feed"
+                onclick="document.getElementById('hero-live-feed').style.display = 'none';">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
               </button>
             </div>
             <div class="hero-feed-body">
               <div class="hero-feed-copy">
                 <strong data-hero-feed-title>Waiting for live bot activity</strong>
-                <span data-hero-feed-message>Waiting for live alliance monitor, gift-code, and redemption activity from the bot API.</span>
+                <span data-hero-feed-message>Waiting for live alliance monitor, gift-code, and redemption activity from
+                  the bot API.</span>
                 <div class="hero-feed-meta" data-hero-feed-meta>
                   <span>real bot data only</span><span>no sample players</span>
                 </div>
@@ -2106,7 +2433,8 @@
                 <img data-hero-new-avatar src="https://cdn.discordapp.com/embed/avatars/4.png" alt="New avatar">
               </div>
               <div class="hero-feed-single-image" data-hero-feed-single style="display: none;">
-                <img data-hero-image src="" alt="Event image" style="width: 3.25rem; aspect-ratio: 1; object-fit: cover; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 0.65rem; background: rgba(255, 255, 255, 0.05);">
+                <img data-hero-image src="" alt="Event image"
+                  style="width: 3.25rem; aspect-ratio: 1; object-fit: cover; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 0.65rem; background: rgba(255, 255, 255, 0.05);">
               </div>
             </div>
           </div>
@@ -2163,7 +2491,8 @@
             <img src="assets/whiteout-official/hero_full_pic.Cdw5RPKo.png" alt="Eugene">
             <div class="hero-node"><span>Eugene</span></div>
           </div>
-          <div class="hero-item hero-item--bg delay-1" data-name="Ling Shuang" style="left: 80%; bottom: 48%; z-index: 15;">
+          <div class="hero-item hero-item--bg delay-1" data-name="Ling Shuang"
+            style="left: 80%; bottom: 48%; z-index: 15;">
             <img src="assets/whiteout-official/hero_full_pic.BffOqjkM.png" alt="Ling Shuang">
             <div class="hero-node"><span>Ling Shuang</span></div>
           </div>
@@ -2177,7 +2506,8 @@
             <img src="assets/whiteout-official/hero_full_pic.CYHyexL2.png" alt="Jessie">
             <div class="hero-node"><span>Jessie</span></div>
           </div>
-          <div class="hero-item hero-item--mid delay-3" data-name="Patrick" style="left: 50%; bottom: 34%; z-index: 38;">
+          <div class="hero-item hero-item--mid delay-3" data-name="Patrick"
+            style="left: 50%; bottom: 34%; z-index: 38;">
             <img src="assets/whiteout-official/hero_full_pic.Bt7jAvmg.png" alt="Patrick">
             <div class="hero-node"><span>Patrick</span></div>
           </div>
@@ -2191,11 +2521,13 @@
           </div>
 
           <!-- ═══ FRONT ROW (4): Tight vanguard, perfectly aligned ═══ -->
-          <div class="hero-item hero-item--large hero-item--fg delay-5" data-name="Sergey" style="left: 28%; bottom: 5%; z-index: 42;">
+          <div class="hero-item hero-item--large hero-item--fg delay-5" data-name="Sergey"
+            style="left: 28%; bottom: 5%; z-index: 42;">
             <img src="assets/whiteout-official/hero_full_pic.CCAtLVc1.png" alt="Sergey">
             <div class="hero-node"><span>Sergey</span></div>
           </div>
-          <div class="hero-item hero-item--large hero-item--fg delay-2" data-name="Jeronimo" style="left: 42%; bottom: 5%; z-index: 45;">
+          <div class="hero-item hero-item--large hero-item--fg delay-2" data-name="Jeronimo"
+            style="left: 42%; bottom: 5%; z-index: 45;">
             <img src="assets/whiteout-official/hero_full_pic.BSa3ljeO.png" alt="Jeronimo">
             <div class="hero-node"><span>Jeronimo</span></div>
           </div>
@@ -2203,7 +2535,8 @@
             <img src="assets/whiteout-official/hero_full_pic.iEiT7Zbo.png" alt="Molly">
             <div class="hero-node"><span>Molly</span></div>
           </div>
-          <div class="hero-item hero-item--large hero-item--fg delay-1" data-name="Natalia" style="left: 72%; bottom: 5%; z-index: 48;">
+          <div class="hero-item hero-item--large hero-item--fg delay-1" data-name="Natalia"
+            style="left: 72%; bottom: 5%; z-index: 48;">
             <img src="assets/whiteout-official/hero_full_pic.vgPvkTh1.png" alt="Natalia">
             <div class="hero-node"><span>Natalia</span></div>
           </div>
@@ -2228,16 +2561,25 @@
           <div class="live-process-intro">
             <p class="section-kicker">Live Bot Process</p>
             <h2>Automate the busywork between events.</h2>
-            <p class="section-copy">Keep leadership focused on timing, growth, and coordination while the bot handles recurring reminders, translation bridges, cache refreshes, and gift code workflows.</p>
-            
+            <p class="section-copy">Keep leadership focused on timing, growth, and coordination while the bot handles
+              recurring reminders, translation bridges, cache refreshes, and gift code workflows.</p>
+
             <div class="live-process-checks">
-              <span><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Gift code scan completed</span>
-              <span><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>3 active codes detected</span>
-              <span><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Alliance reminder queued</span>
-              <span><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Cache synced from remote</span>
+              <span><svg viewBox="0 0 24 24">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>Gift code scan completed</span>
+              <span><svg viewBox="0 0 24 24">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>3 active codes detected</span>
+              <span><svg viewBox="0 0 24 24">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>Alliance reminder queued</span>
+              <span><svg viewBox="0 0 24 24">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>Cache synced from remote</span>
             </div>
           </div>
-          
+
           <div class="live-actions live-process-controls">
             <button class="live-refresh" type="button" data-feed-refresh>Refresh Feed</button>
             <span class="live-pill" data-feed-state>syncing</span>
@@ -2255,14 +2597,17 @@
                 <div>
                   <span class="event-kind" data-event-kind>Idle</span>
                   <h3 data-event-title>Waiting for live bot activity</h3>
-                  <p data-event-message>Waiting for live alliance monitor, gift-code, and redemption activity from the bot API.</p>
+                  <p data-event-message>Waiting for live alliance monitor, gift-code, and redemption activity from the
+                    bot API.</p>
                   <div class="event-meta-row" data-event-meta>
                     <span>real bot data only</span><span>no sample players</span>
                   </div>
                 </div>
                 <div class="avatar-compare" data-avatar-compare>
-                  <div class="avatar-snapshot"><img data-old-avatar src="https://cdn.discordapp.com/embed/avatars/1.png" alt="Previous avatar"></div>
-                  <div class="avatar-snapshot"><img data-new-avatar src="https://cdn.discordapp.com/embed/avatars/4.png" alt="New avatar"></div>
+                  <div class="avatar-snapshot"><img data-old-avatar src="https://cdn.discordapp.com/embed/avatars/1.png"
+                      alt="Previous avatar"></div>
+                  <div class="avatar-snapshot"><img data-new-avatar src="https://cdn.discordapp.com/embed/avatars/4.png"
+                      alt="New avatar"></div>
                 </div>
                 <div class="single-image" data-single-image style="display: none;">
                   <div class="avatar-snapshot"><img data-event-image src="" alt="Event image"></div>
@@ -2351,24 +2696,25 @@
           <span class="brand-mark" aria-hidden="true"><img src="assets/brand-logo.gif" alt=""></span>
           <span>Whiteout Survival Bot</span>
         </a>
-        <p style="margin-top: 1.25rem;">A professional Discord alliance automation platform for Whiteout Survival, featuring translation, reminders, music, and AI tools.</p>
+        <p style="margin-top: 1.25rem;">Most advanced feature rich Discord Bot for Whiteout Survival, featuring
+          translation, reminders, music, and AI tools,etc.</p>
       </div>
 
-      <!-- VIPER THEME: SYSTEM INFO READOUT (MIDDLE) -->
-      <div class="viper-system-info" id="user-system-readout">
+      <!-- CYBERPUNK COOL THEME: SYSTEM INFO READOUT (MIDDLE) -->
+      <div class="cyberpunk-cool-system-info" id="user-system-readout">
         <div class="sys-info-header">SYSTEM info</div>
         <div class="sys-info-divider">────────────────────────</div>
         <div class="sys-info-grid">
-          <div class="sys-row"><span class="sys-label">IP:</span><span class="sys-value" id="sys-ip">FETCHING...</span></div>
-          <div class="sys-row"><span class="sys-label">REGION:</span><span class="sys-value" id="sys-region">DETECTING...</span></div>
-          <div class="sys-row"><span class="sys-label">ISP:</span><span class="sys-value" id="sys-isp">UNKNOWN</span></div>
-          <div class="sys-row"><span class="sys-label">DEVICE:</span><span class="sys-value" id="sys-device">DETECTING...</span></div>
-          <div class="sys-row"><span class="sys-label">BROWSER:</span><span class="sys-value" id="sys-browser">DETECTING...</span></div>
-          <div class="sys-row"><span class="sys-label">TIMEZONE:</span><span class="sys-value" id="sys-timezone">CALCULATING...</span></div>
-          <div class="sys-row"><span class="sys-label">LATENCY:</span><span class="sys-value" id="sys-latency">PINGING...</span></div>
-          <div class="sys-row"><span class="sys-label">SESSION:</span><span class="sys-value">ACTIVE</span></div>
-          <div class="sys-row"><span class="sys-label">TLS:</span><span class="sys-value">AES-256 SECURE</span></div>
-          <div class="sys-row"><span class="sys-label">VPN:</span><span class="sys-value">NOT DETECTED</span></div>
+          <div class="sys-row"><span class="sys-label">IP:</span><span class="sys-value sys-blue" id="sys-ip">FETCHING...</span></div>
+          <div class="sys-row"><span class="sys-label">REGION:</span><span class="sys-value sys-pink" id="sys-region">DETECTING...</span></div>
+          <div class="sys-row"><span class="sys-label">ISP:</span><span class="sys-value sys-blue" id="sys-isp">UNKNOWN</span></div>
+          <div class="sys-row"><span class="sys-label">DEVICE:</span><span class="sys-value sys-pink" id="sys-device">DETECTING...</span></div>
+          <div class="sys-row"><span class="sys-label">BROWSER:</span><span class="sys-value sys-pink" id="sys-browser">DETECTING...</span></div>
+          <div class="sys-row"><span class="sys-label">TIMEZONE:</span><span class="sys-value sys-blue" id="sys-timezone">CALCULATING...</span></div>
+          <div class="sys-row"><span class="sys-label">LATENCY:</span><span class="sys-value sys-blue" id="sys-latency">PINGING...</span></div>
+          <div class="sys-row"><span class="sys-label">SESSION:</span><span class="sys-value sys-neon">ACTIVE</span></div>
+          <div class="sys-row"><span class="sys-label">TLS:</span><span class="sys-value sys-blue">AES-256 SECURE</span></div>
+          <div class="sys-row"><span class="sys-label">VPN:</span><span class="sys-value sys-neon" id="sys-vpn">NOT DETECTED</span></div>
         </div>
         <div class="sys-info-divider">────────────────────────</div>
       </div>
@@ -2381,17 +2727,23 @@
           <a href="login.html" data-dashboard-link>Dashboard</a>
         </nav>
         <div class="footer-social-logos">
-          <a href="https://whiteoutsurvival.centurygames.com/" target="_blank" class="footer-logo-link" aria-label="Whiteout Survival Website" title="Visit Whiteout Survival Official Website">
+          <a href="https://whiteoutsurvival.centurygames.com/" target="_blank" class="footer-logo-link"
+            aria-label="Whiteout Survival Website" title="Visit Whiteout Survival Official Website">
             <img src="assets/wos-logo.png" alt="Whiteout Survival Logo">
           </a>
-          <a href="https://discord.gg/bP5JQFH2M5" target="_blank" class="footer-logo-link" aria-label="Discord Support Server" title="Join Discord Support Server">
+          <a href="https://discord.gg/bP5JQFH2M5" target="_blank" class="footer-logo-link"
+            aria-label="Discord Support Server" title="Join Discord Support Server">
             <img src="assets/discord-logo.png" alt="Discord Support Server Logo">
           </a>
-          <a href="https://top.gg/bot/1399025185046134866?s=06deee90fae3f" target="_blank" class="footer-logo-link" aria-label="Vote on Top.gg" title="Vote for Whiteout Survival Bot on Top.gg">
+          <a href="https://top.gg/bot/1399025185046134866?s=06deee90fae3f" target="_blank" class="footer-logo-link"
+            aria-label="Vote on Top.gg" title="Vote for Whiteout Survival Bot on Top.gg">
             <img src="assets/topgg-logo.png" alt="Top.gg Logo">
           </a>
         </div>
       </div>
+    </div>
+    <div class="container footer-bottom">
+      <p>&copy; 2026 WhiteOut Survival Bot&reg;. All rights reserved</p>
     </div>
   </footer>
 
@@ -2403,12 +2755,15 @@
   <button id="floating-chat-fab" aria-label="Open global chat" title="Community Chat">
     <span id="chat-fab-badge" aria-live="polite"></span>
     <!-- Chat icon -->
-    <svg class="icon-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    <svg class="icon-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+      stroke-linejoin="round" aria-hidden="true">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
     </svg>
     <!-- Close icon -->
-    <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+    <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
     </svg>
   </button>
 
@@ -2418,11 +2773,12 @@
     <div class="fchat-header">
       <div class="fchat-header-left">
         <div class="fchat-avatar-ring">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
         </div>
         <div class="fchat-header-info">
@@ -2435,10 +2791,19 @@
       </div>
       <div class="fchat-header-actions">
         <a href="chat.html" class="fchat-action-btn" title="Open full chat page" aria-label="Full chat page">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 3h6v6" />
+            <path d="M10 14 21 3" />
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+          </svg>
         </a>
         <button type="button" class="fchat-action-btn fchat-close-btn" id="fchat-close" aria-label="Close chat">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
         </button>
       </div>
     </div>
@@ -2474,7 +2839,11 @@
       <strong data-room-reply-name></strong>
       <p data-room-reply-content></p>
       <button type="button" class="fchat-reply-clear" data-room-reply-clear aria-label="Cancel reply">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
       </button>
     </div>
 
@@ -2493,30 +2862,50 @@
           </div>
         </div>
         <div class="fchat-icon-row">
-          <button class="fchat-icon-btn chat-icon-button" type="button" aria-label="Emoji" title="Emoji" data-room-emoji>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01"/><path d="M15 9h.01"/>
+          <button class="fchat-icon-btn chat-icon-button" type="button" aria-label="Emoji" title="Emoji"
+            data-room-emoji>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+              <path d="M9 9h.01" />
+              <path d="M15 9h.01" />
             </svg>
           </button>
           <button class="fchat-icon-btn chat-icon-button" type="button" aria-label="GIF" title="GIF" data-room-tenor>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 9h3"/><path d="M8 15V9"/><path d="M16 9h3"/><path d="M16 12h2"/><path d="M16 15h3"/><path d="M13 9v6"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path d="M8 9h3" />
+              <path d="M8 15V9" />
+              <path d="M16 9h3" />
+              <path d="M16 12h2" />
+              <path d="M16 15h3" />
+              <path d="M13 9v6" />
             </svg>
           </button>
-          <button class="fchat-icon-btn chat-icon-button" type="button" aria-label="Voice" title="Voice message" data-room-voice>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/>
+          <button class="fchat-icon-btn chat-icon-button" type="button" aria-label="Voice" title="Voice message"
+            data-room-voice>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <path d="M12 19v3" />
             </svg>
           </button>
           <label class="fchat-icon-btn chat-icon-button" aria-label="Attach file" title="Attach file">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 1 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <path
+                d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 1 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
             </svg>
             <input type="file" multiple data-room-file style="display:none;">
           </label>
           <button class="fchat-send-btn chat-send-button" type="submit" aria-label="Send message">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <path d="m22 2-7 20-4-9-9-4Z" />
+              <path d="M22 2 11 13" />
             </svg>
           </button>
         </div>
@@ -2524,7 +2913,11 @@
     </form>
 
     <a class="fchat-fullpage-link" href="chat.html">
-      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M15 3h6v6" />
+        <path d="M10 14 21 3" />
+      </svg>
       Open full chat page
     </a>
   </div>
@@ -2583,10 +2976,10 @@
     document.addEventListener("DOMContentLoaded", () => {
       const liveFeed = document.getElementById('hero-live-feed');
       if (!liveFeed) return;
-      
+
       let isDragging = false;
       let dragOffset = { x: 0, y: 0 };
-      
+
       liveFeed.addEventListener('mousedown', (e) => {
         if (e.target.closest('.hero-feed-close')) return;
         isDragging = true;
@@ -2597,23 +2990,23 @@
         liveFeed.style.animation = 'none';
         liveFeed.style.transform = 'none';
       });
-      
+
       document.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
-        
+
         let x = e.clientX - dragOffset.x;
         let y = e.clientY - dragOffset.y;
-        
+
         // Constrain to viewport
         x = Math.max(0, Math.min(x, window.innerWidth - liveFeed.offsetWidth));
         y = Math.max(0, Math.min(y, window.innerHeight - liveFeed.offsetHeight));
-        
+
         liveFeed.style.left = x + 'px';
         liveFeed.style.top = y + 'px';
         liveFeed.style.bottom = 'auto';
         liveFeed.style.right = 'auto';
       });
-      
+
       document.addEventListener('mouseup', () => {
         if (!isDragging) return;
         isDragging = false;
@@ -2642,17 +3035,17 @@
           const rect = heroSection.getBoundingClientRect();
           const x = e.clientX - rect.left - rect.width / 2;
           const y = e.clientY - rect.top - rect.height / 2;
-          
+
           const normX = x / (rect.width / 2);
           const normY = y / (rect.height / 2);
-          
+
           const rotX = -normY * 4;
           const rotY = normX * 4;
-          
+
           scene.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
           scene.style.transition = 'transform 0.1s ease-out';
         });
-        
+
         heroSection.addEventListener('mouseleave', () => {
           scene.style.transform = 'rotateX(0deg) rotateY(0deg)';
           scene.style.transition = 'transform 0.5s ease-out';
@@ -2662,13 +3055,13 @@
       items.forEach(item => {
         item.addEventListener('mousedown', dragStart);
         item.addEventListener('touchstart', dragStart, { passive: false });
-        
+
         item.addEventListener('click', (e) => {
           if (isDragging) return;
           items.forEach(i => i.classList.remove('show-node', 'active'));
           item.classList.add('show-node', 'active');
           item.style.zIndex = ++highestZIndex;
-          
+
           setTimeout(() => {
             item.classList.remove('show-node');
           }, 3000);
@@ -2678,24 +3071,24 @@
       function dragStart(e) {
         if (e.target.closest('.hero-node') || e.target.closest('.holo-card')) return;
         if (e.type === 'touchstart') e.preventDefault();
-        
+
         activeItem = this;
         isDragging = false;
-        
+
         const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
         const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
-        
+
         startX = clientX;
         startY = clientY;
-        
+
         activeItem.style.animation = 'none';
-        
+
         initialLeft = activeItem.offsetLeft;
         initialBottom = scene.clientHeight - (activeItem.offsetTop + activeItem.offsetHeight);
-        
+
         activeItem.style.zIndex = ++highestZIndex;
         activeItem.classList.add('active');
-        
+
         document.addEventListener('mousemove', dragMove);
         document.addEventListener('touchmove', dragMove, { passive: false });
         document.addEventListener('mouseup', dragEnd);
@@ -2704,18 +3097,18 @@
 
       function dragMove(e) {
         if (!activeItem) return;
-        
+
         const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
         const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
-        
+
         const dx = clientX - startX;
         const dy = clientY - startY;
-        
+
         if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
           isDragging = true;
           activeItem.classList.add('show-node');
         }
-        
+
         if (isDragging) {
           e.preventDefault();
           activeItem.style.left = `${initialLeft + dx}px`;
@@ -2725,14 +3118,14 @@
 
       function dragEnd() {
         if (!activeItem) return;
-        
+
         activeItem.style.animation = ''; // Fallback to stylesheet animation
-        
+
         document.removeEventListener('mousemove', dragMove);
         document.removeEventListener('touchmove', dragMove);
         document.removeEventListener('mouseup', dragEnd);
         document.removeEventListener('touchend', dragEnd);
-        
+
         if (isDragging) {
           const currentItem = activeItem;
           setTimeout(() => {
@@ -2747,7 +3140,7 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      // ── Viper System Info Logic ──
+      // ── Cyberpunk Cool System Info Logic ──
       const sysIp = document.getElementById("sys-ip");
       const sysRegion = document.getElementById("sys-region");
       const sysIsp = document.getElementById("sys-isp");
@@ -2756,8 +3149,10 @@
       const sysTimezone = document.getElementById("sys-timezone");
       const sysLatency = document.getElementById("sys-latency");
 
+      const sysVpn = document.getElementById("sys-vpn");
+
       if (sysTimezone) sysTimezone.textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || "UNKNOWN";
-      
+
       const ua = navigator.userAgent;
       let browser = "UNKNOWN";
       if (ua.includes("Firefox")) browser = "Firefox " + ua.split("Firefox/")[1].split(" ")[0];
@@ -2774,7 +3169,7 @@
       if (sysDevice) sysDevice.textContent = os + " Device";
 
       const start = performance.now();
-      fetch('https://1.1.1.1/cdn-cgi/trace', {mode: 'no-cors'}).then(() => {
+      fetch('https://1.1.1.1/cdn-cgi/trace', { mode: 'no-cors' }).then(() => {
         if (sysLatency) sysLatency.textContent = Math.round(performance.now() - start) + "ms";
       }).catch(() => {
         if (sysLatency) sysLatency.textContent = "14ms"; // mock fallback
@@ -2786,11 +3181,39 @@
           if (sysIp) sysIp.textContent = data.ip || "103.xxx.xxx.xxx";
           if (sysRegion) sysRegion.textContent = (data.region || "Unknown") + ", " + (data.country || "UN");
           if (sysIsp) sysIsp.textContent = data.org || "Unknown ISP";
+
+          // VPN Detection Logic
+          const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          const ipTz = data.timezone;
+          const org = (data.org || "").toLowerCase();
+          const vpnKeywords = ["vpn", "proxy", "hosting", "server", "mullvad", "nordvpn", "expressvpn", "surfshark", "proton", "tunnelbear", "m247", "leaseweb", "digitalocean", "linode", "ovh", "vultr", "aws", "amazon", "google cloud", "cloudflare", "fastly", "akamai", "asn", "datacenter", "tor exit", "private internet", "ipvanish", "vyprvpn", "strongvpn"];
+
+          let isVpn = false;
+          if (ipTz && localTz && ipTz.toLowerCase() !== localTz.toLowerCase()) {
+            isVpn = true;
+          }
+          if (vpnKeywords.some(kw => org.includes(kw))) {
+            isVpn = true;
+          }
+
+          if (sysVpn) {
+            if (isVpn) {
+              sysVpn.textContent = "DETECTED";
+              sysVpn.className = "sys-value sys-pink";
+            } else {
+              sysVpn.textContent = "NOT DETECTED";
+              sysVpn.className = "sys-value sys-neon";
+            }
+          }
         })
         .catch(err => {
           if (sysIp) sysIp.textContent = "SECURE.IP.HIDDEN";
           if (sysRegion) sysRegion.textContent = "ENCRYPTED, XX";
           if (sysIsp) sysIsp.textContent = "ANONYMOUS RELAY";
+          if (sysVpn) {
+            sysVpn.textContent = "DETECTED (SECURE)";
+            sysVpn.className = "sys-value sys-pink";
+          }
         });
     });
   </script>

@@ -1,9 +1,13 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="viper">
+<html lang="en" data-theme="cyberpunk-cool">
 
 <head>
   <script>
-    const savedTheme = localStorage.getItem('theme') || 'viper';
+    let savedTheme = localStorage.getItem('theme') || 'cyberpunk-cool';
+    if (savedTheme === 'viper') {
+      savedTheme = 'cyberpunk-cool';
+      localStorage.setItem('theme', 'cyberpunk-cool');
+    }
     if (savedTheme !== 'dark') {
       document.documentElement.setAttribute('data-theme', savedTheme);
     }
@@ -36,7 +40,7 @@
           <svg class="hacker-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 16 4-4-4-4M6 8l-4 4 4 4M14.5 4l-5 16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <svg class="cartoon-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke-width="2"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <svg class="aurora-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"><path d="M2 8c4-4 6 4 10 0s6-4 10 0M2 13c4-4 6 4 10 0s6-4 10 0M2 18c4-4 6 4 10 0s6-4 10 0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <svg class="viper-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"><path d="M12 2C6 2 2 7 2 12s4 10 10 10 10-4.5 10-10S18 2 12 2z" stroke-width="1.5"/><path d="M12 8v4l3 3" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>
+          <svg class="cyberpunk-cool-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         <a class="ghost-link dashboard-cta nav-galaxy" href="login.html" data-dashboard-link>Dashboard</a>
       </div>
@@ -93,6 +97,9 @@
           </a>
         </div>
       </div>
+    </div>
+    <div class="container footer-bottom">
+      <p>&copy; 2026 WhiteOut Survival Bot&reg;. All rights reserved</p>
     </div>
   </footer>
 

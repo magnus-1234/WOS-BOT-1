@@ -3420,24 +3420,24 @@ body,
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   VIPER THEME – Ultra-premium BLACK × GOLD × NEON
+   CYBERPUNK COOL THEME – Ultra-premium BLACK × NEON CYAN × HOT PINK
    Regal darkness with liquid gold buttons, neon cyan/magenta accents
-   Apply [data-theme="viper"] on <html> to activate.
+   Apply [data-theme="cyberpunk-cool"] on <html> to activate.
    ───────────────────────────────────────────────────────────────────────────── */
 
-@keyframes viperPulse {
+@keyframes cyberpunk-coolPulse {
 
   0%,
   100% {
-    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5), 0 0 30px rgba(255, 215, 0, 0.2);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5), 0 0 30px rgba(255, 0, 255, 0.2);
   }
 
   50% {
-    box-shadow: 0 0 22px rgba(255, 215, 0, 0.8), 0 0 55px rgba(255, 215, 0, 0.35);
+    box-shadow: 0 0 22px rgba(0, 255, 255, 0.8), 0 0 55px rgba(255, 0, 255, 0.35);
   }
 }
 
-@keyframes viperGoldShimmer {
+@keyframes cyberpunk-coolGoldShimmer {
   0% {
     background-position: 0% 50%;
   }
@@ -3451,7 +3451,7 @@ body,
   }
 }
 
-@keyframes viperNeonBlink {
+@keyframes cyberpunk-coolNeonBlink {
 
   0%,
   90%,
@@ -3464,19 +3464,19 @@ body,
   }
 }
 
-@keyframes viperGlow {
+@keyframes cyberpunk-coolGlow {
 
   0%,
   100% {
-    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.6));
+    filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.6));
   }
 
   50% {
-    filter: drop-shadow(0 0 14px rgba(255, 215, 0, 1));
+    filter: drop-shadow(0 0 14px rgba(0, 255, 255, 1));
   }
 }
 
-@keyframes viperScan {
+@keyframes cyberpunk-coolScan {
   0% {
     transform: translateY(-4px);
     opacity: 0.6;
@@ -3492,7 +3492,7 @@ body,
   }
 }
 
-@keyframes viperConsoleFlicker {
+@keyframes cyberpunk-coolConsoleFlicker {
 
   0%,
   97%,
@@ -3505,7 +3505,7 @@ body,
   }
 }
 
-@keyframes viperLogScroll {
+@keyframes cyberpunk-coolLogScroll {
   0% {
     transform: translateY(0);
   }
@@ -3515,19 +3515,19 @@ body,
   }
 }
 
-@keyframes viperStatusPulse {
+@keyframes cyberpunk-coolStatusPulse {
 
   0%,
   100% {
-    box-shadow: 0 0 4px #FFD700, 0 0 8px rgba(255, 215, 0, 0.5);
+    box-shadow: 0 0 4px #00FFFF, 0 0 8px rgba(0, 255, 255, 0.5);
   }
 
   50% {
-    box-shadow: 0 0 8px #FFD700, 0 0 18px rgba(255, 215, 0, 0.7);
+    box-shadow: 0 0 8px #00FFFF, 0 0 18px rgba(255, 215, 0, 0.7);
   }
 }
 
-@keyframes viperNeonPing {
+@keyframes cyberpunk-coolNeonPing {
 
   0%,
   100% {
@@ -3539,7 +3539,7 @@ body,
   }
 }
 
-[data-theme="viper"] {
+[data-theme="cyberpunk-cool"] {
   --radius: 4px;
   --background: #020302;
   --foreground: #d4f5d4;
@@ -3557,14 +3557,14 @@ body,
   --font-body: "DM Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
-[data-theme="viper"] body {
+[data-theme="cyberpunk-cool"] body {
   background: #000000;
-  color: #FFD700;
+  color: #00FFFF;
   position: relative;
 }
 
 /* Subtle scanline texture overlay */
-[data-theme="viper"] body::before {
+[data-theme="cyberpunk-cool"] body::before {
   content: "";
   position: fixed;
   inset: 0;
@@ -3574,71 +3574,71 @@ body,
     repeating-linear-gradient(0deg,
       transparent,
       transparent 2px,
-      rgba(255, 215, 0, 0.03) 2px,
-      rgba(255, 215, 0, 0.03) 4px);
-  animation: viperScan 8s linear infinite;
+      rgba(0, 255, 255, 0.03) 2px,
+      rgba(0, 255, 255, 0.03) 4px);
+  animation: cyberpunk-coolScan 8s linear infinite;
 }
 
 /* Moving ambient glow orbs */
-[data-theme="viper"] body::after {
+[data-theme="cyberpunk-cool"] body::after {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(circle at 15% 20%, rgba(255, 215, 0, 0.05) 0%, transparent 42%),
+    radial-gradient(circle at 15% 20%, rgba(255, 0, 255, 0.05) 0%, transparent 42%),
     radial-gradient(circle at 85% 75%, rgba(0, 255, 255, 0.05) 0%, transparent 38%),
     radial-gradient(circle at 50% 50%, rgba(255, 0, 255, 0.03) 0%, transparent 60%),
     #000000;
 }
 
-[data-theme="viper"] .site-header {
-  border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+[data-theme="cyberpunk-cool"] .site-header {
+  border-bottom: 1px solid rgba(0, 255, 255, 0.3);
   background: #000000;
   backdrop-filter: blur(20px);
-  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.15);
+  box-shadow: 0 4px 20px rgba(255, 0, 255, 0.15);
 }
 
-[data-theme="viper"] .primary-nav {
-  border: 1px solid rgba(255, 215, 0, 0.3);
+[data-theme="cyberpunk-cool"] .primary-nav {
+  border: 1px solid rgba(0, 255, 255, 0.3);
   background: #0a0a0a;
 }
 
-[data-theme="viper"] .primary-nav a {
+[data-theme="cyberpunk-cool"] .primary-nav a {
   color: #aaaaaa;
 }
 
-[data-theme="viper"] .primary-nav a:hover,
-[data-theme="viper"] .primary-nav a.active {
-  color: #FFD700;
-  border-color: #FFD700;
-  background: rgba(255, 215, 0, 0.1);
-  text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+[data-theme="cyberpunk-cool"] .primary-nav a:hover,
+[data-theme="cyberpunk-cool"] .primary-nav a.active {
+  color: #00FFFF;
+  border-color: #00FFFF;
+  background: rgba(0, 255, 255, 0.1);
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
 }
 
-[data-theme="viper"] .brand-mark {
-  border: 1px solid #FFD700;
+[data-theme="cyberpunk-cool"] .brand-mark {
+  border: 1px solid #00FFFF;
   background: #000000;
-  box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+  box-shadow: 0 0 12px rgba(255, 0, 255, 0.4);
 }
 
-/* ── Viper: Animated Text ── */
-[data-theme="viper"] .typing-line,
-[data-theme="viper"] #typed-phrase {
+/* ── Cyberpunk Cool: Animated Text ── */
+[data-theme="cyberpunk-cool"] .typing-line,
+[data-theme="cyberpunk-cool"] #typed-phrase {
   color: #39FF14 !important;
   /* Terminal Green */
   text-shadow: 0 0 15px rgba(57, 255, 20, 0.6) !important;
 }
 
-/* ── Viper: CLI Typography ── */
-[data-theme="viper"] .hero-title {
+/* ── Cyberpunk Cool: CLI Typography ── */
+[data-theme="cyberpunk-cool"] .hero-title {
   color: #FFFFFF !important;
   font-family: var(--font-mono) !important;
   text-transform: uppercase;
 }
 
-[data-theme="viper"] .hero-desc {
+[data-theme="cyberpunk-cool"] .hero-desc {
   color: #5DADE2 !important;
   /* Bright CLI Blue */
   font-family: var(--font-mono) !important;
@@ -3646,9 +3646,9 @@ body,
   letter-spacing: 0.5px;
 }
 
-/* ── Viper Buttons – Neon Edge & Black Base ── */
-[data-theme="viper"] .button,
-[data-theme="viper"] .ghost-link.dashboard-cta {
+/* ── Cyberpunk Cool Buttons – Neon Edge & Black Base ── */
+[data-theme="cyberpunk-cool"] .button,
+[data-theme="cyberpunk-cool"] .ghost-link.dashboard-cta {
   border: 2px solid #00FFFF !important;
   background: #050505 !important;
   color: #FFFFFF !important;
@@ -3659,8 +3659,8 @@ body,
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease !important;
 }
 
-[data-theme="viper"] .button:hover,
-[data-theme="viper"] .ghost-link.dashboard-cta:hover {
+[data-theme="cyberpunk-cool"] .button:hover,
+[data-theme="cyberpunk-cool"] .ghost-link.dashboard-cta:hover {
   background: #00FFFF !important;
   border-color: #00FFFF !important;
   color: #000000 !important;
@@ -3668,14 +3668,14 @@ body,
   transform: translateY(-2px);
 }
 
-[data-theme="viper"] .button.secondary {
+[data-theme="cyberpunk-cool"] .button.secondary {
   border: 2px solid #FF00FF !important;
   background: #111111 !important;
   color: #FFFFFF !important;
   box-shadow: 0 0 10px rgba(255, 0, 255, 0.3) !important;
 }
 
-[data-theme="viper"] .button.secondary:hover {
+[data-theme="cyberpunk-cool"] .button.secondary:hover {
   border-color: #FF00FF !important;
   background: #FF00FF !important;
   color: #000000 !important;
@@ -3683,70 +3683,70 @@ body,
 }
 
 /* ── Cards & Surfaces ── */
-[data-theme="viper"] .feature-card,
-[data-theme="viper"] .stats-grid article,
-[data-theme="viper"] .cta-card,
-[data-theme="viper"] .showcase-card,
-[data-theme="viper"] .live-metrics article,
-[data-theme="viper"] .spotlight-event,
-[data-theme="viper"] .dispatch-bubble,
-[data-theme="viper"] .live-command-center,
-[data-theme="viper"] .card,
-[data-theme="viper"] .overview-card,
-[data-theme="viper"] .overview-stat-box,
-[data-theme="viper"] .progress-card,
-[data-theme="viper"] .modal-content,
-[data-theme="viper"] .config-item,
-[data-theme="viper"] .manual-redeem-card,
-[data-theme="viper"] .giftcode-card,
-[data-theme="viper"] .preset-card,
-[data-theme="viper"] .reminder-card,
-[data-theme="viper"] .player-info-display,
-[data-theme="viper"] .auto-redeem-section,
-[data-theme="viper"] .ar-config-card,
-[data-theme="viper"] .ar-member-card {
-  border: 1px solid rgba(255, 215, 0, 0.2) !important;
-  background: #080808 !important;
-  backdrop-filter: blur(12px);
+[data-theme="cyberpunk-cool"] .feature-card,
+[data-theme="cyberpunk-cool"] .stats-grid article,
+[data-theme="cyberpunk-cool"] .cta-card,
+[data-theme="cyberpunk-cool"] .showcase-card,
+[data-theme="cyberpunk-cool"] .live-metrics article,
+[data-theme="cyberpunk-cool"] .spotlight-event,
+[data-theme="cyberpunk-cool"] .dispatch-bubble,
+[data-theme="cyberpunk-cool"] .live-command-center,
+[data-theme="cyberpunk-cool"] .card,
+[data-theme="cyberpunk-cool"] .overview-card,
+[data-theme="cyberpunk-cool"] .overview-stat-box,
+[data-theme="cyberpunk-cool"] .progress-card,
+[data-theme="cyberpunk-cool"] .modal-content,
+[data-theme="cyberpunk-cool"] .config-item,
+[data-theme="cyberpunk-cool"] .manual-redeem-card,
+[data-theme="cyberpunk-cool"] .giftcode-card,
+[data-theme="cyberpunk-cool"] .preset-card,
+[data-theme="cyberpunk-cool"] .reminder-card,
+[data-theme="cyberpunk-cool"] .player-info-display,
+[data-theme="cyberpunk-cool"] .auto-redeem-section,
+[data-theme="cyberpunk-cool"] .ar-config-card,
+[data-theme="cyberpunk-cool"] .ar-member-card {
+  border: 1px solid rgba(0, 255, 255, 0.2) !important;
+  background: rgba(8, 8, 12, 0.7) !important;
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.8);
 }
 
-[data-theme="viper"] .feature-card:hover,
-[data-theme="viper"] .showcase-card:hover,
-[data-theme="viper"] .stats-grid article:hover,
-[data-theme="viper"] .card:hover,
-[data-theme="viper"] .overview-card:hover,
-[data-theme="viper"] .preset-card:hover {
-  border-color: #FFD700 !important;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2), 0 8px 32px rgba(0, 0, 0, 0.8) !important;
+[data-theme="cyberpunk-cool"] .feature-card:hover,
+[data-theme="cyberpunk-cool"] .showcase-card:hover,
+[data-theme="cyberpunk-cool"] .stats-grid article:hover,
+[data-theme="cyberpunk-cool"] .card:hover,
+[data-theme="cyberpunk-cool"] .overview-card:hover,
+[data-theme="cyberpunk-cool"] .preset-card:hover {
+  border-color: #FF00FF !important;
+  box-shadow: 0 0 25px rgba(255, 0, 255, 0.6), 0 8px 32px rgba(0, 0, 0, 0.9) !important;
   transform: translateY(-3px);
 }
 
 /* ── Hero glow ── */
-[data-theme="viper"] .hero-glow {
-  background: radial-gradient(60% 50% at 50% 0%, rgba(255, 215, 0, 0.1), transparent 70%);
+[data-theme="cyberpunk-cool"] .hero-glow {
+  background: radial-gradient(60% 50% at 50% 0%, rgba(0, 255, 255, 0.1), transparent 70%);
 }
 
-[data-theme="viper"] .grid-bg {
+[data-theme="cyberpunk-cool"] .grid-bg {
   background-image:
-    linear-gradient(to right, rgba(255, 215, 0, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 215, 0, 0.05) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255, 0, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 0, 255, 0.05) 1px, transparent 1px);
 }
 
-[data-theme="viper"] .hero-art::before {
+[data-theme="cyberpunk-cool"] .hero-art::before {
   background:
     linear-gradient(to right, #000 0%, rgba(0, 0, 0, 0.92) 18%, rgba(0, 0, 0, 0.5) 55%, rgba(0, 0, 0, 0.3) 75%, rgba(0, 0, 0, 0.6) 100%),
     linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 50%, #000 100%);
 }
 
-/* Hide normal hero art in Viper theme */
-[data-theme="viper"] .hero-art,
-[data-theme="viper"] .front-hero-scene {
+/* Hide normal hero art in Cyberpunk Cool theme */
+[data-theme="cyberpunk-cool"] .hero-art,
+[data-theme="cyberpunk-cool"] .front-hero-scene {
   display: none !important;
 }
 
-/* ── Viper Bot Console (Wallpaper Replacement) ── */
-.viper-bot-console {
+/* ── Cyberpunk Cool Bot Console (Wallpaper Replacement) ── */
+.cyberpunk-cool-bot-console {
   display: none;
   position: absolute;
   right: -5%;
@@ -3756,28 +3756,28 @@ body,
   height: 60%;
   max-height: 500px;
   background: #050505;
-  border: 2px solid #FFD700;
+  border: 2px solid #FF00FF;
   border-radius: 12px;
-  box-shadow: 0 0 30px rgba(255, 215, 0, 0.2), inset 0 0 20px rgba(255, 215, 0, 0.1);
+  box-shadow: 0 0 30px rgba(255, 0, 255, 0.2), inset 0 0 20px rgba(0, 255, 255, 0.1);
   overflow: hidden;
   z-index: 10;
 }
 
-[data-theme="viper"] .viper-bot-console {
+[data-theme="cyberpunk-cool"] .cyberpunk-cool-bot-console {
   display: flex;
   flex-direction: column;
 }
 
-.viper-console-header {
+.cyberpunk-cool-console-header {
   background: #111;
-  border-bottom: 2px solid #FFD700;
+  border-bottom: 2px solid #00FFFF;
   padding: 10px 15px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.viper-console-title {
+.cyberpunk-cool-console-title {
   color: #FFD700;
   font-family: var(--font-mono);
   font-weight: 900;
@@ -3789,7 +3789,7 @@ body,
   gap: 10px;
 }
 
-.viper-console-title::before {
+.cyberpunk-cool-console-title::before {
   content: "";
   display: block;
   width: 10px;
@@ -3798,10 +3798,10 @@ body,
   /* Neon Magenta */
   border-radius: 50%;
   box-shadow: 0 0 10px #FF00FF;
-  animation: viperNeonBlink 2s infinite;
+  animation: cyberpunk-coolNeonBlink 2s infinite;
 }
 
-.viper-console-body {
+.cyberpunk-cool-console-body {
   flex: 1;
   padding: 15px;
   font-family: var(--font-mono);
@@ -3818,350 +3818,352 @@ body,
       transparent 4px);
 }
 
-.viper-console-lines {
+.cyberpunk-cool-console-lines {
   display: flex;
   flex-direction: column;
   gap: 8px;
   position: absolute;
   bottom: -150px;
   width: calc(100% - 30px);
-  animation: viperLogScroll 12s linear infinite;
+  animation: cyberpunk-coolLogScroll 12s linear infinite;
 }
 
-.viper-line {
+.cyberpunk-cool-line {
   display: flex;
   gap: 10px;
 }
 
-.viper-line-time {
-  color: #FFD700;
+.cyberpunk-cool-line-time {
+  color: #00FFFF;
   opacity: 0.8;
 }
 
-.viper-line-msg {
+.cyberpunk-cool-line-msg {
   color: #00FFFF;
   text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
 }
 
-.viper-line-warn {
+.cyberpunk-cool-line-warn {
   color: #FF00FF;
   text-shadow: 0 0 5px rgba(255, 0, 255, 0.5);
 }
 
 /* ── Typing gradient ── */
-[data-theme="viper"] .typing-line {
-  background: linear-gradient(90deg, #FFD700 0%, #FFEA70 35%, #FFD700 65%, #FFA500 100%) !important;
+[data-theme="cyberpunk-cool"] .typing-line {
+  background: linear-gradient(90deg, #00FFFF 0%, #FFEA70 35%, #00FFFF 65%, #FFA500 100%) !important;
   background-clip: text !important;
   -webkit-background-clip: text !important;
   color: transparent !important;
   -webkit-text-fill-color: transparent !important;
-  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.45)) !important;
+  filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.45)) !important;
 }
 
-[data-theme="viper"] .typing-line i {
-  background: #FFD700 !important;
+[data-theme="cyberpunk-cool"] .typing-line i {
+  background: #00FFFF !important;
   -webkit-text-fill-color: initial !important;
 }
 
 /* ── Eyebrow tag ── */
-[data-theme="viper"] .eyebrow {
-  border-color: rgba(255, 215, 0, 0.3);
+[data-theme="cyberpunk-cool"] .eyebrow {
+  border-color: rgba(0, 255, 255, 0.3);
   background: #111;
-  color: #FFD700;
+  color: #00FFFF;
 }
 
-[data-theme="viper"] .eyebrow span {
+[data-theme="cyberpunk-cool"] .eyebrow span {
   background: #FF00FF;
   box-shadow: 0 0 8px #FF00FF;
 }
 
 /* ── Section kickers & headings ── */
-[data-theme="viper"] .section-heading p,
-[data-theme="viper"] .section-kicker,
-[data-theme="viper"] .page-hero p,
-[data-theme="viper"] .feature-section>div>p {
+[data-theme="cyberpunk-cool"] .section-heading p,
+[data-theme="cyberpunk-cool"] .section-kicker,
+[data-theme="cyberpunk-cool"] .page-hero p,
+[data-theme="cyberpunk-cool"] .feature-section>div>p {
   color: #FFD700;
   text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
 }
 
 /* ── Feature icon ── */
-[data-theme="viper"] .feature-icon {
-  border-color: #FFD700;
+[data-theme="cyberpunk-cool"] .feature-icon {
+  border-color: #00FFFF;
   background: #111;
   color: #00FFFF;
   box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
 }
 
 /* ── CTA card border ── */
-[data-theme="viper"] .cta-card,
-[data-theme="viper"] .cta-row-card {
-  border-color: rgba(255, 215, 0, 0.3) !important;
-  background: #080808 !important;
+[data-theme="cyberpunk-cool"] .cta-card,
+[data-theme="cyberpunk-cool"] .cta-row-card {
+  border-color: rgba(0, 255, 255, 0.3) !important;
+  background: rgba(8, 8, 12, 0.7) !important;
 }
 
 /* ── Operation band ── */
-[data-theme="viper"] .operation-band,
-[data-theme="viper"] .feature-detail-band {
-  border-top-color: rgba(255, 215, 0, 0.2);
-  border-bottom-color: rgba(255, 215, 0, 0.2);
+[data-theme="cyberpunk-cool"] .operation-band,
+[data-theme="cyberpunk-cool"] .feature-detail-band {
+  border-top-color: rgba(255, 0, 255, 0.2);
+  border-bottom-color: rgba(255, 0, 255, 0.2);
   background: #0a0a0a;
 }
 
 /* ── Log panel ── */
-[data-theme="viper"] .log-panel {
-  border-color: rgba(255, 215, 0, 0.2);
+[data-theme="cyberpunk-cool"] .log-panel {
+  border-color: rgba(255, 0, 255, 0.2);
   background: #050505;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
 }
 
-[data-theme="viper"] .log-rows div {
+[data-theme="cyberpunk-cool"] .log-rows div {
   background: #111;
-  border: 1px solid rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(0, 255, 255, 0.1);
 }
 
-[data-theme="viper"] .log-rows span {
+[data-theme="cyberpunk-cool"] .log-rows span {
   color: #00FFFF;
   text-shadow: 0 0 5px rgba(0, 255, 255, 0.4);
 }
 
 /* ── Check grid ── */
-[data-theme="viper"] .check-grid svg {
-  color: #FFD700;
-  filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.5));
+[data-theme="cyberpunk-cool"] .check-grid svg {
+  color: #00FFFF;
+  filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.5));
 }
 
 /* ── Hero live feed ── */
-[data-theme="viper"] .hero-live-feed {
-  background: #080808 !important;
-  border: 1px solid #FFD700 !important;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2) !important;
+[data-theme="cyberpunk-cool"] .hero-live-feed {
+  background: rgba(8, 8, 12, 0.7) !important;
+  border: 1px solid #00FFFF !important;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.2) !important;
 }
 
-[data-theme="viper"] .hero-feed-top b {
-  color: #FFD700 !important;
-  text-shadow: 0 0 6px rgba(255, 215, 0, 0.5) !important;
+[data-theme="cyberpunk-cool"] .hero-feed-top b {
+  color: #00FFFF !important;
+  text-shadow: 0 0 6px rgba(0, 255, 255, 0.5) !important;
 }
 
-[data-theme="viper"] .hero-feed-top b::before {
+[data-theme="cyberpunk-cool"] .hero-feed-top b::before {
   background: #FF00FF !important;
   box-shadow: 0 0 8px #FF00FF !important;
 }
 
-[data-theme="viper"] .hero-feed-copy strong {
-  color: #FFD700 !important;
+[data-theme="cyberpunk-cool"] .hero-feed-copy strong {
+  color: #FF00FF !important;
 }
 
-[data-theme="viper"] .hero-feed-copy span {
+[data-theme="cyberpunk-cool"] .hero-feed-copy span {
   color: #aaaaaa !important;
 }
 
 /* ── Chat FAB ── */
-[data-theme="viper"] .global-chat-fab {
-  border: 2px solid #FFD700;
-  background: #FFD700;
+[data-theme="cyberpunk-cool"] .global-chat-fab {
+  border: 2px solid #00FFFF;
+  background: #00FFFF;
   color: #000;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
 }
 
-[data-theme="viper"] .global-chat-fab:hover,
-[data-theme="viper"] .global-chat-fab:focus-visible {
+[data-theme="cyberpunk-cool"] .global-chat-fab:hover,
+[data-theme="cyberpunk-cool"] .global-chat-fab:focus-visible {
   transform: translateY(-3px) scale(1.05);
-  background: #FFE55C;
-  border-color: #FFE55C;
-  box-shadow: 0 0 30px rgba(255, 215, 0, 0.7);
+  background: #80FFFF;
+  border-color: #80FFFF;
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.7);
 }
 
 /* ── Chat panel ── */
-[data-theme="viper"] .global-chat-panel {
-  border: 1px solid #FFD700;
+[data-theme="cyberpunk-cool"] .global-chat-panel {
+  border: 1px solid #00FFFF;
   background: #050505;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 215, 0, 0.1);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 20px rgba(0, 255, 255, 0.1);
 }
 
-[data-theme="viper"] .chat-send-button {
-  border-color: #FFD700;
-  background: #FFD700;
+[data-theme="cyberpunk-cool"] .chat-send-button {
+  border-color: #00FFFF;
+  background: #00FFFF;
   color: #000;
 }
 
-[data-theme="viper"] .chat-send-button:hover,
-[data-theme="viper"] .chat-send-button:focus-visible {
-  background: #FFE55C;
-  border-color: #FFE55C;
+[data-theme="cyberpunk-cool"] .chat-send-button:hover,
+[data-theme="cyberpunk-cool"] .chat-send-button:focus-visible {
+  background: #80FFFF;
+  border-color: #80FFFF;
 }
 
-[data-theme="viper"] .chat-icon-button:hover,
-[data-theme="viper"] .chat-icon-button:focus-visible {
-  border-color: #FFD700;
-  background: rgba(255, 215, 0, 0.1);
-  color: #FFD700;
+[data-theme="cyberpunk-cool"] .chat-icon-button:hover,
+[data-theme="cyberpunk-cool"] .chat-icon-button:focus-visible {
+  border-color: #00FFFF;
+  background: rgba(0, 255, 255, 0.1);
+  color: #00FFFF;
 }
 
 /* ── Chat room ── */
-[data-theme="viper"] .chat-room-side,
-[data-theme="viper"] .chat-room-main {
-  border: 1px solid rgba(255, 215, 0, 0.2) !important;
+[data-theme="cyberpunk-cool"] .chat-room-side,
+[data-theme="cyberpunk-cool"] .chat-room-main {
+  border: 1px solid rgba(255, 0, 255, 0.2) !important;
   background: #050505 !important;
 }
 
-[data-theme="viper"] .chat-room-topbar {
-  border-bottom: 1px solid rgba(255, 215, 0, 0.2) !important;
+[data-theme="cyberpunk-cool"] .chat-room-topbar {
+  border-bottom: 1px solid rgba(255, 0, 255, 0.2) !important;
 }
 
-[data-theme="viper"] .chat-room-refresh {
-  border: 1px solid rgba(255, 215, 0, 0.4);
-  background: rgba(255, 215, 0, 0.1);
-  color: #FFD700;
+[data-theme="cyberpunk-cool"] .chat-room-refresh {
+  border: 1px solid rgba(255, 0, 255, 0.4);
+  background: rgba(0, 255, 255, 0.1);
+  color: #00FFFF;
 }
 
-[data-theme="viper"] .chat-room-refresh:hover {
-  background: rgba(255, 215, 0, 0.2);
-  border-color: #FFD700;
+[data-theme="cyberpunk-cool"] .chat-room-refresh:hover {
+  background: rgba(255, 0, 255, 0.2);
+  border-color: #00FFFF;
 }
 
-[data-theme="viper"] .room-login button,
-[data-theme="viper"] .room-login a {
-  border: 2px solid #FFD700 !important;
-  background: #FFD700 !important;
+[data-theme="cyberpunk-cool"] .room-login button,
+[data-theme="cyberpunk-cool"] .room-login a {
+  border: 2px solid #FF00FF !important;
+  background: #00FFFF !important;
   color: #000 !important;
   font-weight: bold !important;
 }
 
-[data-theme="viper"] .chat-bubble {
-  border: 1px solid rgba(255, 215, 0, 0.2) !important;
+[data-theme="cyberpunk-cool"] .chat-bubble {
+  border: 1px solid rgba(255, 0, 255, 0.2) !important;
   background: #111 !important;
 }
 
-[data-theme="viper"] .chat-room-brand b,
-[data-theme="viper"] .chat-room-user strong,
-[data-theme="viper"] .global-chat-header b {
-  color: #FFD700 !important;
+[data-theme="cyberpunk-cool"] .chat-room-brand b,
+[data-theme="cyberpunk-cool"] .chat-room-user strong,
+[data-theme="cyberpunk-cool"] .global-chat-header b {
+  color: #00FFFF !important;
 }
 
 /* ── Scrollbars ── */
-[data-theme="viper"] .global-chat-messages,
-[data-theme="viper"] .chat-room-messages {
-  scrollbar-color: rgba(255, 215, 0, 0.3) transparent;
+[data-theme="cyberpunk-cool"] .global-chat-messages,
+[data-theme="cyberpunk-cool"] .chat-room-messages {
+  scrollbar-color: rgba(0, 255, 255, 0.3) transparent;
 }
 
 /* ── Category panel (commands) ── */
-[data-theme="viper"] .category-panel {
-  border: 1px solid rgba(255, 215, 0, 0.2) !important;
+[data-theme="cyberpunk-cool"] .category-panel {
+  border: 1px solid rgba(0, 255, 255, 0.2) !important;
   background: #0a0a0a !important;
 }
 
-[data-theme="viper"] .category-panel button.active {
-  background: rgba(255, 215, 0, 0.15) !important;
-  color: #FFD700 !important;
-  border: 1px solid #FFD700 !important;
+[data-theme="cyberpunk-cool"] .category-panel button.active {
+  background: rgba(0, 255, 255, 0.15) !important;
+  color: #00FFFF !important;
+  border: 1px solid #00FFFF !important;
 }
 
-[data-theme="viper"] .category-panel button:hover {
-  background: rgba(255, 215, 0, 0.08) !important;
-  color: #FFD700 !important;
+[data-theme="cyberpunk-cool"] .category-panel button:hover {
+  background: rgba(0, 255, 255, 0.08) !important;
+  color: #00FFFF !important;
 }
 
 /* ── Command cards ── */
-[data-theme="viper"] .command-card {
-  border: 1px solid rgba(255, 215, 0, 0.15) !important;
-  background: #080808 !important;
+[data-theme="cyberpunk-cool"] .command-card {
+  border: 1px solid rgba(0, 255, 255, 0.15) !important;
+  background: rgba(8, 8, 12, 0.7) !important;
 }
 
-[data-theme="viper"] .command-card:hover {
-  border-color: #FFD700 !important;
-  box-shadow: 0 0 15px rgba(255, 215, 0, 0.15) !important;
+[data-theme="cyberpunk-cool"] .command-card:hover {
+  border-color: #FF00FF !important;
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0.15) !important;
 }
 
-[data-theme="viper"] .command-card h3 {
-  color: #FFD700 !important;
+[data-theme="cyberpunk-cool"] .command-card h3 {
+  color: #00FFFF !important;
 }
 
 /* ── Search box ── */
-[data-theme="viper"] .search-box {
+[data-theme="cyberpunk-cool"] .search-box {
   background: #050505 !important;
-  border-bottom-color: rgba(255, 215, 0, 0.2) !important;
+  border-bottom-color: rgba(0, 255, 255, 0.2) !important;
 }
 
-[data-theme="viper"] .search-box input:focus {
-  border-color: #FFD700 !important;
-  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1) !important;
+[data-theme="cyberpunk-cool"] .search-box input:focus {
+  border-color: #00FFFF !important;
+  box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.1) !important;
 }
 
 /* ── b & strong highlights ── */
-[data-theme="viper"] b,
-[data-theme="viper"] strong {
-  color: #FFD700;
+[data-theme="cyberpunk-cool"] b {
+  color: #00FFFF !important;
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.4) !important;
+}
+
+[data-theme="cyberpunk-cool"] strong {
+  color: #FF00FF !important;
+  text-shadow: 0 0 8px rgba(255, 0, 255, 0.4) !important;
 }
 
 /* ── Footer ── */
-[data-theme="viper"] .site-footer {
-  border-top-color: rgba(255, 215, 0, 0.2);
+[data-theme="cyberpunk-cool"] .site-footer {
+  border-top-color: rgba(255, 0, 255, 0.2);
   background: #000000;
 }
 
-[data-theme="viper"] .footer-logo-link {
+[data-theme="cyberpunk-cool"] .footer-logo-link {
   opacity: 0.55;
   filter: sepia(100%) hue-rotate(10deg) saturate(300%) brightness(1.2);
 }
 
-[data-theme="viper"] .footer-logo-link:hover {
+[data-theme="cyberpunk-cool"] .footer-logo-link:hover {
   opacity: 1;
-  filter: sepia(100%) hue-rotate(10deg) saturate(500%) brightness(1.5) drop-shadow(0 0 10px #FFD700);
+  filter: sepia(100%) hue-rotate(10deg) saturate(500%) brightness(1.5) drop-shadow(0 0 10px #00FFFF);
 }
 
 /* ── Live pill status ── */
-[data-theme="viper"] .live-pill {
-  color: #FFD700;
-  background: rgba(255, 215, 0, 0.15);
-  border-color: rgba(255, 215, 0, 0.3);
+[data-theme="cyberpunk-cool"] .live-pill {
+  color: #00FFFF;
+  background: rgba(255, 0, 255, 0.15);
+  border-color: rgba(0, 255, 255, 0.3);
 }
 
 /* ── Theme Toggle ── */
-[data-theme="viper"] .theme-toggle {
-  border: 1px solid rgba(255, 215, 0, 0.4);
+[data-theme="cyberpunk-cool"] .theme-toggle {
+  border: 1px solid rgba(255, 0, 255, 0.4);
   background: #111;
-  color: #FFD700;
+  color: #00FFFF;
 }
 
-[data-theme="viper"] .theme-toggle:hover {
-  border-color: #FFD700;
-  background: rgba(255, 215, 0, 0.1);
-  box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+[data-theme="cyberpunk-cool"] .theme-toggle:hover {
+  border-color: #00FFFF;
+  background: rgba(0, 255, 255, 0.1);
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0.4);
   color: #fff;
 }
 
 /* ── Feature sections ── */
-[data-theme="viper"] .feature-section {
-  border: 1px solid rgba(255, 215, 0, 0.2) !important;
-  background: #080808 !important;
+[data-theme="cyberpunk-cool"] .feature-section {
+  border: 1px solid rgba(255, 0, 255, 0.2) !important;
+  background: rgba(8, 8, 12, 0.7) !important;
 }
 
-[data-theme="viper"] .module-card {
+[data-theme="cyberpunk-cool"] .module-card {
   background: #0a0a0a;
-  border-color: rgba(255, 215, 0, 0.2);
+  border-color: rgba(255, 0, 255, 0.2);
 }
 
-[data-theme="viper"] .module-top b {
-  background: rgba(255, 215, 0, 0.15);
-  color: #FFD700;
-  border: 1px solid rgba(255, 215, 0, 0.4);
+[data-theme="cyberpunk-cool"] .module-top b {
+  background: rgba(255, 0, 255, 0.15);
+  color: #00FFFF;
+  border: 1px solid rgba(255, 0, 255, 0.4);
 }
 
-[data-theme="viper"] .dispatch-bubble-message {
+[data-theme="cyberpunk-cool"] .dispatch-bubble-message {
   color: #ccc !important;
 }
 
-[data-theme="viper"] main {
+[data-theme="cyberpunk-cool"] main {
   position: relative;
   /* Ensure it is the offset parent */
 }
 
-/* ── VIPER: Move Live Dashboard to Hero ── */
-[data-theme="viper"] .hero-live-feed {
-  display: none !important;
-}
+/* Grids preserved per user request */
 
-[data-theme="viper"] .live-command-center {
+[data-theme="cyberpunk-cool"] .live-command-center {
   position: absolute;
   top: 15vh;
   right: 2%;
@@ -4178,14 +4180,14 @@ body,
   flex-direction: column;
 }
 
-[data-theme="viper"] .live-process-header {
+[data-theme="cyberpunk-cool"] .live-process-header {
   display: none !important;
 }
 
-[data-theme="viper"] .live-board {
+[data-theme="cyberpunk-cool"] .live-board {
   display: flex;
   flex-direction: column;
-  background: #080808 !important;
+  background: rgba(8, 8, 12, 0.7) !important;
   border: 1px solid #1a1a1a !important;
   border-radius: 16px !important;
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.9), 0 0 30px rgba(255, 42, 42, 0.15) !important;
@@ -4196,7 +4198,7 @@ body,
   gap: 0.5rem;
 }
 
-[data-theme="viper"] .live-board::before {
+[data-theme="cyberpunk-cool"] .live-board::before {
   content: "◉ SYSTEM LOG";
   display: flex;
   align-items: center;
@@ -4224,7 +4226,7 @@ body,
   }
 }
 
-[data-theme="viper"] .live-board>div {
+[data-theme="cyberpunk-cool"] .live-board>div {
   width: 100% !important;
   flex: 0 0 auto !important;
   border: none !important;
@@ -4234,7 +4236,7 @@ body,
   padding: 0 !important;
 }
 
-[data-theme="viper"] .live-board>aside {
+[data-theme="cyberpunk-cool"] .live-board>aside {
   width: 100% !important;
   flex: 1 1 0 !important;
   border: none !important;
@@ -4248,9 +4250,9 @@ body,
 }
 
 /* Inner containers mimicking the segmented LED boxes */
-[data-theme="viper"] .status-stage,
-[data-theme="viper"] .event-list-panel {
-  background: #0c0c0c !important;
+[data-theme="cyberpunk-cool"] .status-stage,
+[data-theme="cyberpunk-cool"] .event-list-panel {
+  background: rgba(12, 12, 16, 0.75) !important;
   border: 1px solid #1a1a1a !important;
   border-radius: 8px !important;
   padding: 0.5rem !important;
@@ -4259,11 +4261,11 @@ body,
 }
 
 /* Hide event meta to save vertical space */
-[data-theme="viper"] .event-meta-row {
+[data-theme="cyberpunk-cool"] .event-meta-row {
   display: none !important;
 }
 
-[data-theme="viper"] [data-event-title] {
+[data-theme="cyberpunk-cool"] [data-event-title] {
   color: #ff2a2a !important;
   font-family: 'Impact', 'Arial Black', sans-serif !important;
   font-size: 1.2rem !important;
@@ -4274,30 +4276,30 @@ body,
   line-height: 1.1 !important;
 }
 
-[data-theme="viper"] [data-event-message] {
+[data-theme="cyberpunk-cool"] [data-event-message] {
   color: #ff7b7b !important;
   font-family: var(--font-mono) !important;
   font-size: 0.8rem !important;
   letter-spacing: 1px;
 }
 
-[data-theme="viper"] .dispatch-feed {
+[data-theme="cyberpunk-cool"] .dispatch-feed {
   flex: 1 1 auto;
   overflow-y: auto;
   padding-right: 5px;
   min-height: 0;
 }
 
-[data-theme="viper"] .dispatch-feed::-webkit-scrollbar {
+[data-theme="cyberpunk-cool"] .dispatch-feed::-webkit-scrollbar {
   width: 4px;
 }
 
-[data-theme="viper"] .dispatch-feed::-webkit-scrollbar-thumb {
+[data-theme="cyberpunk-cool"] .dispatch-feed::-webkit-scrollbar-thumb {
   background: #ff2a2a;
   border-radius: 4px;
 }
 
-[data-theme="viper"] .dispatch-bubble {
+[data-theme="cyberpunk-cool"] .dispatch-bubble {
   background: rgba(20, 0, 0, 0.4) !important;
   border: 1px solid #2a0000 !important;
   border-left: 3px solid #ff2a2a !important;
@@ -4306,34 +4308,34 @@ body,
   margin-bottom: 8px !important;
 }
 
-[data-theme="viper"] .dispatch-bubble-title {
+[data-theme="cyberpunk-cool"] .dispatch-bubble-title {
   color: #ff2a2a !important;
   font-family: var(--font-mono) !important;
   font-size: 0.85rem !important;
   text-transform: uppercase;
 }
 
-[data-theme="viper"] .dispatch-bubble-message {
+[data-theme="cyberpunk-cool"] .dispatch-bubble-message {
   color: #a0a0a0 !important;
   font-family: var(--font-mono) !important;
   font-size: 0.75rem !important;
 }
 
-[data-theme="viper"] .dispatch-bubble-time {
+[data-theme="cyberpunk-cool"] .dispatch-bubble-time {
   color: #ff7b7b !important;
   font-family: var(--font-mono) !important;
   font-size: 0.7rem !important;
 }
 
-[data-theme="viper"] .live-metrics {
+[data-theme="cyberpunk-cool"] .live-metrics {
   display: grid !important;
   grid-template-columns: repeat(2, 1fr) !important;
   gap: 10px !important;
   margin-top: 10px !important;
 }
 
-[data-theme="viper"] .live-metrics article {
-  background: #0c0c0c !important;
+[data-theme="cyberpunk-cool"] .live-metrics article {
+  background: rgba(12, 12, 16, 0.75) !important;
   border: 1px solid #1a1a1a !important;
   border-radius: 8px !important;
   padding: 1rem !important;
@@ -4342,14 +4344,14 @@ body,
   box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5) !important;
 }
 
-[data-theme="viper"] .live-metrics strong {
-  color: #FFD700 !important;
+[data-theme="cyberpunk-cool"] .live-metrics strong {
+  color: #00FFFF !important;
   font-family: 'Impact', sans-serif !important;
   font-size: 1.8rem !important;
-  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5) !important;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5) !important;
 }
 
-[data-theme="viper"] .live-metrics span {
+[data-theme="cyberpunk-cool"] .live-metrics span {
   color: #777 !important;
   font-family: var(--font-mono) !important;
   font-size: 0.7rem !important;
@@ -4357,12 +4359,12 @@ body,
   letter-spacing: 1px;
 }
 
-[data-theme="viper"] .server-radar {
+[data-theme="cyberpunk-cool"] .server-radar {
   display: none !important;
 }
 
-[data-theme="viper"] .status-topline,
-[data-theme="viper"] .radar-topline {
+[data-theme="cyberpunk-cool"] .status-topline,
+[data-theme="cyberpunk-cool"] .radar-topline {
   color: #ff2a2a !important;
   border-bottom: 1px solid #2a0000 !important;
   padding-bottom: 0.5rem !important;
@@ -4373,7 +4375,7 @@ body,
   letter-spacing: 2px !important;
 }
 
-[data-theme="viper"] .avatar-snapshot img {
+[data-theme="cyberpunk-cool"] .avatar-snapshot img {
   border: 2px solid #ff2a2a !important;
   filter: grayscale(100%) sepia(100%) hue-rotate(300deg) saturate(500%) brightness(0.8) !important;
 }
@@ -4391,58 +4393,109 @@ body,
 }
 
 /* ── System Info Readout (Footer) ── */
-.viper-system-info {
+.cyberpunk-cool-system-info {
   display: none;
 }
 
-[data-theme="viper"] .viper-system-info {
+[data-theme="cyberpunk-cool"] .cyberpunk-cool-system-info {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   font-family: var(--font-mono);
   color: #ff7b7b;
-  font-size: 0.8rem;
-  line-height: 1.3;
-  letter-spacing: 1px;
-  flex: 1;
-  max-width: 300px;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  letter-spacing: 0.5px;
+  flex: 1.5;
+  max-width: 500px;
 }
 
-[data-theme="viper"] .sys-info-header {
+[data-theme="cyberpunk-cool"] .sys-info-header {
   font-weight: bold;
   text-transform: uppercase;
-  color: #ff2a2a;
+  color: #FFD700;
   margin-bottom: 0.25rem;
-  text-shadow: 0 0 10px rgba(255, 42, 42, 0.8);
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+  text-align: center;
 }
 
-[data-theme="viper"] .sys-info-divider {
-  color: #ff2a2a;
+[data-theme="cyberpunk-cool"] .sys-info-divider {
+  color: transparent;
+  border-bottom: 1px dashed rgba(255, 42, 42, 0.4);
   margin: 0.25rem 0;
-  white-space: nowrap;
+  width: 100%;
+  height: 0;
   overflow: hidden;
-  opacity: 0.5;
 }
 
-[data-theme="viper"] .sys-info-grid {
+[data-theme="cyberpunk-cool"] .sys-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 1.5rem;
+  row-gap: 0.25rem;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  [data-theme="cyberpunk-cool"] .sys-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+[data-theme="cyberpunk-cool"] .sys-row {
   display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+  justify-content: space-between;
+  align-items: center;
 }
 
-[data-theme="viper"] .sys-row {
-  display: flex;
-}
-
-[data-theme="viper"] .sys-label {
-  width: 120px;
+[data-theme="cyberpunk-cool"] .sys-label {
+  width: auto;
   color: #ff2a2a;
   opacity: 0.8;
+  margin-right: 0.5rem;
 }
 
-[data-theme="viper"] .sys-value {
-  color: #FFD700;
-  text-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
+[data-theme="cyberpunk-cool"] .sys-value {
+  color: #00FFFF;
+  text-shadow: 0 0 5px rgba(255, 0, 255, 0.4);
+}
+
+[data-theme="cyberpunk-cool"] .sys-blue {
+  color: #00FFFF !important;
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.6) !important;
+}
+
+[data-theme="cyberpunk-cool"] .sys-pink {
+  color: #FF00FF !important;
+  text-shadow: 0 0 5px rgba(255, 0, 255, 0.6) !important;
+}
+
+[data-theme="cyberpunk-cool"] .sys-neon {
+  color: #39FF14 !important;
+  text-shadow: 0 0 5px rgba(57, 255, 20, 0.6) !important;
+}
+
+/* Footer bottom copyright styling */
+.footer-bottom {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-size: 0.85rem;
+  opacity: 0.7;
+  width: 100%;
+}
+[data-theme="cyberpunk-cool"] .footer-bottom {
+  border-top-color: rgba(0, 255, 255, 0.1);
+  color: #e0f2fe;
+}
+[data-theme="hacker"] .footer-bottom {
+  border-top-color: rgba(0, 255, 65, 0.2);
+  color: #33ff33;
+}
+[data-theme="cartoon"] .footer-bottom {
+  border-top-color: #191919;
+  color: #191919;
 }
 
 /* Theme toggle icon helper states */
@@ -4450,7 +4503,7 @@ body,
 .theme-toggle .hacker-icon,
 .theme-toggle .cartoon-icon,
 .theme-toggle .aurora-icon,
-.theme-toggle .viper-icon {
+.theme-toggle .cyberpunk-cool-icon {
   display: none;
 }
 
@@ -4486,11 +4539,11 @@ body,
   display: block !important;
 }
 
-[data-theme="viper"] .theme-toggle .sun-icon {
+[data-theme="cyberpunk-cool"] .theme-toggle .sun-icon {
   display: none;
 }
 
-[data-theme="viper"] .theme-toggle .viper-icon {
+[data-theme="cyberpunk-cool"] .theme-toggle .cyberpunk-cool-icon {
   display: block !important;
 }
 
@@ -5325,51 +5378,58 @@ body,
   border-color: var(--primary-glow);
 }
 
-/* ── Viper Theme Style Overrides ── */
-[data-theme="viper"] {
+/* ── Cyberpunk Cool Theme Style Overrides ── */
+[data-theme="cyberpunk-cool"] {
   --radius: 4px;
   --background: #000000;
   --card: #050805;
-  --border: rgba(255, 215, 0, 0.2);
-  --foreground: #FFD700;
+  --border: rgba(0, 255, 255, 0.2);
+  --foreground: #e0f2fe;
   --muted-foreground: #aaaaaa;
   --primary: #00FFFF;
   --primary-glow: #00e6e6;
   --primary-foreground: #000000;
   --secondary: #080808;
-  --secondary-foreground: #FFD700;
+  --secondary-foreground: #00FFFF;
   --shadow-glow: 0 0 15px rgba(0, 255, 255, 0.4);
 }
 
-[data-theme="viper"] body {
+[data-theme="cyberpunk-cool"] body {
   background-image: none !important;
   background-color: #000000 !important;
-  color: #FFD700 !important;
+  color: #e0f2fe !important;
 }
 
-[data-theme="viper"] .ghost-link.dashboard-cta,
-[data-theme="viper"] .button {
+[data-theme="cyberpunk-cool"] .ghost-link.dashboard-cta,
+[data-theme="cyberpunk-cool"] .button {
   border: 2px solid #00FFFF !important;
   background: #050505 !important;
   color: #FFFFFF !important;
   box-shadow: 0 0 15px rgba(0, 255, 255, 0.4), inset 0 0 10px rgba(0, 255, 255, 0.15) !important;
 }
 
-[data-theme="viper"] .ghost-link.dashboard-cta:hover,
-[data-theme="viper"] .button:hover {
+[data-theme="cyberpunk-cool"] .ghost-link.dashboard-cta:hover,
+[data-theme="cyberpunk-cool"] .button:hover {
   box-shadow: 0 0 25px rgba(0, 255, 255, 0.6), inset 0 0 15px rgba(0, 255, 255, 0.25) !important;
   background: #0a0a0a !important;
 }
 
-[data-theme="viper"] .feature-card,
-[data-theme="viper"] .stats-grid article,
-[data-theme="viper"] .showcase-card {
+[data-theme="cyberpunk-cool"] .feature-card,
+[data-theme="cyberpunk-cool"] .stats-grid article,
+[data-theme="cyberpunk-cool"] .showcase-card {
   background: #050805 !important;
-  border: 1px solid rgba(255, 215, 0, 0.2) !important;
+  border: 1px solid rgba(0, 255, 255, 0.2) !important;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.8) !important;
 }
 
-[data-theme="viper"] .typing-line {
+[data-theme="cyberpunk-cool"] .feature-card:hover,
+[data-theme="cyberpunk-cool"] .stats-grid article:hover,
+[data-theme="cyberpunk-cool"] .showcase-card:hover {
+  border-color: #FF00FF !important;
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.3), 0 8px 32px rgba(0, 0, 0, 0.8) !important;
+}
+
+[data-theme="cyberpunk-cool"] .typing-line {
   background: linear-gradient(135deg, #00FFFF 0%, #FF00FF 100%) !important;
   background-clip: text !important;
   -webkit-background-clip: text !important;
@@ -5377,7 +5437,466 @@ body,
   -webkit-text-fill-color: transparent !important;
 }
 
-[data-theme="viper"] .site-header {
+[data-theme="cyberpunk-cool"] .site-header {
   background: #080808 !important;
-  border-bottom: 1px solid rgba(255, 215, 0, 0.2) !important;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.2) !important;
+}
+
+/* ── USER FEEDBACK OVERRIDES ── */
+/* 1. Ensure Cyberpunk buttons look good */
+[data-theme="cyberpunk-cool"] .btn,
+[data-theme="cyberpunk-cool"] button {
+  background: linear-gradient(45deg, #00FFFF, #00BFFF) !important;
+  color: #000 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px) !important;
+  text-transform: uppercase !important;
+  font-weight: 800 !important;
+  letter-spacing: 1px !important;
+  font-family: 'Outfit', sans-serif !important;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.6) !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-theme="cyberpunk-cool"] .btn:hover,
+[data-theme="cyberpunk-cool"] button:hover {
+  background: linear-gradient(45deg, #FF00FF, #FF1493) !important;
+  box-shadow: 0 0 25px rgba(255, 0, 255, 0.9) !important;
+  color: #fff !important;
+  transform: scale(1.05) !important;
+}
+
+/* 2. Don't remove grids from front page */
+[data-theme="cyberpunk-cool"] .hero-live-feed {
+  display: flex !important;
+}
+
+[data-theme="cyberpunk-cool"] .live-command-center {
+  display: none !important; /* Hide the fake console so the grids can be seen clearly */
+}
+
+/* Make sure the background grid is visible */
+[data-theme="cyberpunk-cool"] .hero .grid-bg {
+  opacity: 0.3 !important;
+}
+
+/* ── SECOND OVERRIDES: FIX HOVERS, CHAT FAB, SYSTEM LOG ── */
+
+/* 1. Fix Add to Discord / Dashboard Buttons hover transparency */
+[data-theme="cyberpunk-cool"] .cta-btn,
+[data-theme="cyberpunk-cool"] .ghost-link,
+[data-theme="cyberpunk-cool"] a.ghost-link.dashboard-cta {
+  background: linear-gradient(45deg, #00FFFF, #00BFFF) !important;
+  color: #000 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px) !important;
+  text-transform: uppercase !important;
+  font-weight: 800 !important;
+  letter-spacing: 1px !important;
+  font-family: 'Outfit', sans-serif !important;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.6) !important;
+  transition: all 0.2s ease !important;
+  padding: 10px 24px !important;
+}
+
+[data-theme="cyberpunk-cool"] .cta-btn:hover,
+[data-theme="cyberpunk-cool"] .ghost-link:hover,
+[data-theme="cyberpunk-cool"] a.ghost-link.dashboard-cta:hover {
+  background: linear-gradient(45deg, #FF00FF, #FF1493) !important;
+  box-shadow: 0 0 25px rgba(255, 0, 255, 0.9) !important;
+  color: #fff !important;
+  transform: scale(1.05) !important;
+}
+
+/* 2. Community Chat button should be circular */
+[data-theme="cyberpunk-cool"] .floating-chat-fab {
+  border-radius: 50% !important;
+  clip-path: none !important; /* In case a button clip path was inherited */
+  width: 60px !important;
+  height: 60px !important;
+  background: linear-gradient(135deg, #FF00FF, #8A2BE2) !important;
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.6) !important;
+  border: 2px solid #00FFFF !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+[data-theme="cyberpunk-cool"] .floating-chat-fab:hover {
+  background: linear-gradient(135deg, #00FFFF, #0088FF) !important;
+  box-shadow: 0 0 25px rgba(0, 255, 255, 0.8) !important;
+  border-color: #FF00FF !important;
+  transform: scale(1.1) !important;
+}
+
+/* 3. Bring back System Log (.live-command-center) and remove Live Process (.hero-live-feed) */
+[data-theme="cyberpunk-cool"] .hero-live-feed {
+  display: none !important;
+}
+
+[data-theme="cyberpunk-cool"] .live-command-center {
+  display: flex !important; 
+}
+
+/* Make sure the background grid (.grid-bg) is visible */
+[data-theme="cyberpunk-cool"] .hero .grid-bg {
+  opacity: 0.3 !important;
+  display: block !important;
+}
+
+/* ── THIRD OVERRIDES: DESIGNER LOG, CIRCLE FAB, ONLY FRONT PAGE GRIDS ── */
+
+/* 1. Add grids in front page only */
+[data-theme="cyberpunk-cool"] .bg-animation {
+  background-image: none !important; /* Removes grid from dashboard/other pages */
+  opacity: 0 !important;
+}
+/* Ensure the front page grid is perfectly visible */
+[data-theme="cyberpunk-cool"] .hero .grid-bg {
+  opacity: 0.25 !important;
+  display: block !important;
+  background-image: 
+    linear-gradient(rgba(0, 255, 255, 0.25) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 0, 255, 0.25) 1px, transparent 1px) !important;
+}
+
+/* 2. Community Chat Button MUST be a perfect circle */
+[data-theme="cyberpunk-cool"] .floating-chat-fab {
+  border-radius: 50% !important;
+  width: 60px !important;
+  height: 60px !important;
+  padding: 0 !important;
+  background: linear-gradient(135deg, #00FFFF, #8A2BE2) !important;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.6) !important;
+  border: 2px solid #FF00FF !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  clip-path: circle(50% at 50% 50%) !important; /* Force a perfect circle shape */
+}
+
+[data-theme="cyberpunk-cool"] .floating-chat-fab:hover {
+  background: linear-gradient(135deg, #FF00FF, #00BFFF) !important;
+  box-shadow: 0 0 25px rgba(255, 0, 255, 0.8) !important;
+  border-color: #00FFFF !important;
+  transform: scale(1.1) !important;
+}
+
+/* 3. Designer System Log */
+[data-theme="cyberpunk-cool"] .live-board {
+  background: rgba(8, 8, 16, 0.6) !important; /* Glassmorphism base */
+  border: 1px solid rgba(0, 255, 255, 0.4) !important;
+  border-radius: 20px !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow: inset 0 0 30px rgba(0, 255, 255, 0.1), 0 0 25px rgba(255, 0, 255, 0.2) !important;
+}
+
+[data-theme="cyberpunk-cool"] .live-board::before {
+  content: "CYBERPUNK NEURAL LINK" !important;
+  color: #00FFFF !important;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.8) !important;
+  font-family: 'Outfit', sans-serif !important;
+  letter-spacing: 4px !important;
+}
+
+/* Sub-panels inside the system log */
+[data-theme="cyberpunk-cool"] .status-stage,
+[data-theme="cyberpunk-cool"] .event-list-panel {
+  background: rgba(255, 0, 255, 0.05) !important;
+  border: 1px solid rgba(255, 0, 255, 0.25) !important;
+  box-shadow: inset 0 0 15px rgba(255, 0, 255, 0.1) !important;
+  border-radius: 12px !important;
+}
+
+[data-theme="cyberpunk-cool"] .dispatch-bubble {
+  background: rgba(0, 255, 255, 0.08) !important;
+  border: 1px solid rgba(0, 255, 255, 0.2) !important;
+  border-left: 4px solid #00FFFF !important;
+  border-radius: 8px !important;
+}
+
+[data-theme="cyberpunk-cool"] .dispatch-bubble-title {
+  color: #00FFFF !important;
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.5) !important;
+}
+
+[data-theme="cyberpunk-cool"] .dispatch-bubble-time {
+  color: #FF00FF !important;
+}
+
+[data-theme="cyberpunk-cool"] [data-event-title] {
+  color: #00FFFF !important;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5) !important;
+}
+
+[data-theme="cyberpunk-cool"] [data-event-message] {
+  color: #ccc !important;
+}
+
+/* ── Cyberpunk front-page refinement ── */
+[data-theme="cyberpunk-cool"] .hero {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(0, 255, 255, 0.18), transparent 28rem),
+    radial-gradient(circle at 84% 16%, rgba(255, 0, 255, 0.14), transparent 30rem),
+    linear-gradient(180deg, #020206 0%, #05000d 52%, #000 100%) !important;
+}
+
+[data-theme="cyberpunk-cool"] .glow-background {
+  display: block !important;
+  z-index: 0 !important;
+}
+
+[data-theme="cyberpunk-cool"] .hero-glow {
+  height: 100% !important;
+  background:
+    linear-gradient(90deg, rgba(0, 255, 255, 0.08), transparent 35%, rgba(255, 0, 255, 0.08)),
+    radial-gradient(55% 38% at 50% 0%, rgba(0, 255, 255, 0.2), transparent 72%) !important;
+}
+
+[data-theme="cyberpunk-cool"] .hero .grid-bg {
+  display: block !important;
+  inset: 0 !important;
+  height: 100% !important;
+  opacity: 0.72 !important;
+  background-image:
+    linear-gradient(to right, rgba(0, 255, 255, 0.16) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 0, 255, 0.12) 1px, transparent 1px),
+    linear-gradient(to right, rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 255, 255, 0.05) 1px, transparent 1px) !important;
+  background-size: 92px 92px, 92px 92px, 23px 23px, 23px 23px !important;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 78%, transparent 100%) !important;
+}
+
+[data-theme="cyberpunk-cool"] .hero h1 {
+  max-width: 58rem !important;
+  font-family: "Space Grotesk", "DM Sans", sans-serif !important;
+  font-weight: 800 !important;
+  line-height: 0.98 !important;
+  text-transform: uppercase !important;
+  text-shadow:
+    0 0 18px rgba(0, 255, 255, 0.32),
+    0 0 40px rgba(255, 0, 255, 0.18) !important;
+}
+
+[data-theme="cyberpunk-cool"] .hero-command-line {
+  width: fit-content !important;
+  max-width: 100% !important;
+  padding: 0.12em 0.18em 0.16em 0 !important;
+  color: #f6fbff !important;
+  background:
+    linear-gradient(90deg, #ffffff 0%, #b9faff 44%, #ff9cff 100%) !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+[data-theme="cyberpunk-cool"] .typing-line {
+  width: min(100%, 12.5em) !important;
+  max-width: 100% !important;
+  margin-top: 0.18em !important;
+  padding: 0.08em 0.28em 0.16em !important;
+  border-left: 4px solid #00ffff !important;
+  background:
+    linear-gradient(90deg, rgba(0, 255, 255, 0.18), rgba(255, 0, 255, 0.16)),
+    linear-gradient(90deg, #00ffff 0%, #8dfcff 32%, #ff39ff 68%, #ffd166 100%) !important;
+  background-clip: padding-box, text !important;
+  -webkit-background-clip: padding-box, text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 255, 255, 0.18),
+    0 0 22px rgba(0, 255, 255, 0.24),
+    0 0 34px rgba(255, 0, 255, 0.16) !important;
+  filter: none !important;
+}
+
+[data-theme="cyberpunk-cool"] #typed-phrase {
+  background: linear-gradient(90deg, #00ffff 0%, #7dfcff 30%, #ff43ff 68%, #fff066 100%) !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  text-shadow: 0 0 16px rgba(0, 255, 255, 0.28) !important;
+  filter: none !important;
+}
+
+[data-theme="cyberpunk-cool"] .typing-line i {
+  width: 0.08em !important;
+  min-width: 3px !important;
+  height: 0.86em !important;
+  margin-left: 0.12em !important;
+  background: #fff066 !important;
+  box-shadow: 0 0 14px rgba(255, 240, 102, 0.85) !important;
+}
+
+[data-theme="cyberpunk-cool"] .action-row .button {
+  background: linear-gradient(135deg, #5865f2 0%, #7b61ff 58%, #9b6dff 100%) !important;
+  border: 1px solid rgba(199, 210, 254, 0.95) !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 0 0 1px rgba(88, 101, 242, 0.35),
+    0 0 24px rgba(88, 101, 242, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24) !important;
+}
+
+[data-theme="cyberpunk-cool"] .action-row .button.secondary {
+  background: linear-gradient(135deg, #00d9ff 0%, #00a6ff 48%, #006dff 100%) !important;
+  border: 1px solid rgba(141, 232, 255, 0.95) !important;
+  color: #020206 !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 217, 255, 0.35),
+    0 0 24px rgba(0, 217, 255, 0.62),
+    inset 0 1px 0 rgba(255, 255, 255, 0.26) !important;
+}
+
+[data-theme="cyberpunk-cool"] .action-row .button:hover,
+[data-theme="cyberpunk-cool"] .action-row .button:focus-visible {
+  background: linear-gradient(135deg, #4752c4 0%, #5865f2 52%, #8f6dff 100%) !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) !important;
+}
+
+[data-theme="cyberpunk-cool"] .action-row .button.secondary:hover,
+[data-theme="cyberpunk-cool"] .action-row .button.secondary:focus-visible {
+  background: linear-gradient(135deg, #00ffff 0%, #00b7ff 50%, #1d4ed8 100%) !important;
+  color: #020206 !important;
+}
+
+[data-theme="cyberpunk-cool"] .hero h1 {
+  max-width: min(54rem, 52vw) !important;
+  font-family: inherit !important;
+  font-weight: 600 !important;
+  line-height: 1.04 !important;
+  text-transform: none !important;
+  text-shadow: 0 2px 28px rgba(0, 0, 0, 0.58) !important;
+}
+
+[data-theme="cyberpunk-cool"] .typing-line {
+  display: flex !important;
+  align-items: center !important;
+  width: min(100%, 92vw) !important;
+  max-width: 100% !important;
+  margin-top: 0 !important;
+  padding: 0 !important;
+  border-left: 0 !important;
+  background: linear-gradient(135deg, #00FFFF 0%, #FF00FF 100%) !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+[data-theme="cyberpunk-cool"] #typed-phrase {
+  background: inherit !important;
+  background-clip: inherit !important;
+  -webkit-background-clip: inherit !important;
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+  text-shadow: inherit !important;
+  filter: none !important;
+}
+
+[data-theme="cyberpunk-cool"] .typing-line i {
+  display: inline-block !important;
+  flex: 0 0 auto !important;
+  width: 3px !important;
+  min-width: 3px !important;
+  height: 0.85em !important;
+  margin-left: 0.12em !important;
+  background: #00FFFF !important;
+  box-shadow: none !important;
+  -webkit-text-fill-color: initial !important;
+}
+
+[data-theme="cyberpunk-cool"] #floating-chat-fab {
+  width: 64px !important;
+  height: 64px !important;
+  padding: 0 !important;
+  border: 2px solid #00ffff !important;
+  border-radius: 50% !important;
+  clip-path: circle(50% at 50% 50%) !important;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.6), transparent 0.55rem),
+    linear-gradient(135deg, #00ffff 0%, #3758ff 46%, #ff00ff 100%) !important;
+  box-shadow:
+    0 0 0 5px rgba(0, 255, 255, 0.1),
+    0 0 28px rgba(0, 255, 255, 0.72),
+    0 0 44px rgba(255, 0, 255, 0.35) !important;
+}
+
+[data-theme="cyberpunk-cool"] #floating-chat-fab::before,
+[data-theme="cyberpunk-cool"] #floating-chat-fab::after {
+  border-radius: 50% !important;
+  clip-path: circle(50% at 50% 50%) !important;
+}
+
+[data-theme="cyberpunk-cool"] #floating-chat-fab svg {
+  color: #020206 !important;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.45)) !important;
+}
+
+[data-theme="cyberpunk-cool"] #floating-chat-fab:hover,
+[data-theme="cyberpunk-cool"] #floating-chat-fab:focus-visible {
+  transform: translateY(-4px) scale(1.08) !important;
+  border-color: #ff00ff !important;
+  box-shadow:
+    0 0 0 7px rgba(255, 0, 255, 0.12),
+    0 0 34px rgba(255, 0, 255, 0.85),
+    0 0 48px rgba(0, 255, 255, 0.45) !important;
+}
+
+@media (max-width: 620px) {
+  [data-theme="cyberpunk-cool"] .hero h1 {
+    line-height: 1.04 !important;
+  }
+
+  [data-theme="cyberpunk-cool"] .typing-line {
+    width: 100% !important;
+    font-size: clamp(1.42rem, 6.3vw, 1.85rem) !important;
+  }
+
+  [data-theme="cyberpunk-cool"] #floating-chat-fab {
+    width: 58px !important;
+    height: 58px !important;
+  }
+
+  [data-theme="cyberpunk-cool"] .header-inner {
+    gap: 0.6rem !important;
+  }
+
+  [data-theme="cyberpunk-cool"] .ghost-link.dashboard-cta {
+    padding: 0.52rem 0.58rem !important;
+    font-size: 0.68rem !important;
+  }
+}
+
+@media (max-width: 900px) {
+  [data-theme="cyberpunk-cool"] .hero h1 {
+    max-width: 100% !important;
+  }
+
+  [data-theme="cyberpunk-cool"] .live-command-center {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 2.25rem 1rem !important;
+    transform: none !important;
+  }
+
+  [data-theme="cyberpunk-cool"] .live-command-center .container {
+    padding: 0 !important;
+  }
+
+  [data-theme="cyberpunk-cool"] .live-board {
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
 }

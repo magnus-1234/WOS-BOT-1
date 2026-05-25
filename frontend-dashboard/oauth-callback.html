@@ -1,9 +1,13 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="viper">
+<html lang="en" data-theme="cyberpunk-cool">
 
 <head>
     <script>
-        const savedTheme = localStorage.getItem('theme') || 'viper';
+        let savedTheme = localStorage.getItem('theme') || 'cyberpunk-cool';
+    if (savedTheme === 'viper') {
+      savedTheme = 'cyberpunk-cool';
+      localStorage.setItem('theme', 'cyberpunk-cool');
+    }
         if (savedTheme && savedTheme !== 'dark') {
             document.documentElement.setAttribute('data-theme', savedTheme);
         }
@@ -65,38 +69,38 @@
             text-decoration: underline;
         }
 
-        /* ── Viper Theme Style Overrides ── */
-        [data-theme="viper"] body {
+        /* ── Cyberpunk Cool Theme Style Overrides ── */
+        [data-theme="cyberpunk-cool"] body {
             background-color: #000000 !important;
             color: #FFD700 !important;
         }
 
-        [data-theme="viper"] .container {
+        [data-theme="cyberpunk-cool"] .container {
             background: rgba(5, 8, 5, 0.85) !important;
             border: 1px solid rgba(255, 215, 0, 0.2) !important;
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.8) !important;
         }
 
-        [data-theme="viper"] h2 {
+        [data-theme="cyberpunk-cool"] h2 {
             background: linear-gradient(135deg, #00FFFF 0%, #FF00FF 100%) !important;
             -webkit-background-clip: text !important;
             -webkit-text-fill-color: transparent !important;
         }
 
-        [data-theme="viper"] p {
+        [data-theme="cyberpunk-cool"] p {
             color: #aaaaaa !important;
         }
 
-        [data-theme="viper"] .spinner {
+        [data-theme="cyberpunk-cool"] .spinner {
             border-color: rgba(255, 215, 0, 0.2) !important;
             border-top-color: #00FFFF !important;
         }
 
-        [data-theme="viper"] .error-link {
+        [data-theme="cyberpunk-cool"] .error-link {
             color: #00FFFF !important;
         }
 
-        [data-theme="viper"] .error-link:hover {
+        [data-theme="cyberpunk-cool"] .error-link:hover {
             color: #FFD700 !important;
         }
     </style>

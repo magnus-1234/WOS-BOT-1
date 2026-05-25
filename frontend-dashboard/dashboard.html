@@ -1,9 +1,13 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="viper">
+<html lang="en" data-theme="cyberpunk-cool">
 
 <head>
   <script>
-    const savedTheme = localStorage.getItem('theme') || 'viper';
+    let savedTheme = localStorage.getItem('theme') || 'cyberpunk-cool';
+    if (savedTheme === 'viper') {
+      savedTheme = 'cyberpunk-cool';
+      localStorage.setItem('theme', 'cyberpunk-cool');
+    }
     if (savedTheme && savedTheme !== 'dark') {
       document.documentElement.setAttribute('data-theme', savedTheme);
     }
@@ -111,7 +115,7 @@
 
 
     
-    [data-theme="viper"] {
+    [data-theme="cyberpunk-cool"] {
       --radius: 4px;
       --bg-dark: #000000;
       --card-bg: #050805;
@@ -122,30 +126,30 @@
       --gradient-brand: linear-gradient(135deg, #00FFFF 0%, #FF00FF 100%);
     }
 
-    [data-theme="viper"] body {
+    [data-theme="cyberpunk-cool"] body {
       background-image: none !important;
       background-color: #000000 !important;
     }
 
-    [data-theme="viper"] .sidebar,
-    [data-theme="viper"] .main-content,
-    [data-theme="viper"] .stat-card,
-    [data-theme="viper"] .console-panel,
-    [data-theme="viper"] .header,
-    [data-theme="viper"] .server-selector,
-    [data-theme="viper"] .top-bar,
-    [data-theme="viper"] .dashboard-card {
+    [data-theme="cyberpunk-cool"] .sidebar,
+    [data-theme="cyberpunk-cool"] .main-content,
+    [data-theme="cyberpunk-cool"] .stat-card,
+    [data-theme="cyberpunk-cool"] .console-panel,
+    [data-theme="cyberpunk-cool"] .header,
+    [data-theme="cyberpunk-cool"] .server-selector,
+    [data-theme="cyberpunk-cool"] .top-bar,
+    [data-theme="cyberpunk-cool"] .dashboard-card {
       border: 1px solid rgba(255, 215, 0, 0.2) !important;
       background: #080808 !important;
       border-radius: 8px !important;
       box-shadow: 0 4px 24px rgba(0, 0, 0, 0.8) !important;
     }
 
-    [data-theme="viper"] button,
-    [data-theme="viper"] .theme-toggle,
-    [data-theme="viper"] .server-select,
-    [data-theme="viper"] .btn,
-    [data-theme="viper"] .custom-select-trigger {
+    [data-theme="cyberpunk-cool"] button,
+    [data-theme="cyberpunk-cool"] .theme-toggle,
+    [data-theme="cyberpunk-cool"] .server-select,
+    [data-theme="cyberpunk-cool"] .btn,
+    [data-theme="cyberpunk-cool"] .custom-select-trigger {
       border: 2px solid #00FFFF !important;
       background: #050505 !important;
       color: #FFFFFF !important;
@@ -946,7 +950,7 @@
         <svg class="hacker-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 16 4-4-4-4M6 8l-4 4 4 4M14.5 4l-5 16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <svg class="cartoon-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke-width="2"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <svg class="aurora-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"><path d="M2 8c4-4 6 4 10 0s6-4 10 0M2 13c4-4 6 4 10 0s6-4 10 0M2 18c4-4 6 4 10 0s6-4 10 0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <svg class="viper-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"><path d="M12 2C6 2 2 7 2 12s4 10 10 10 10-4.5 10-10S18 2 12 2z" stroke-width="1.5"/><path d="M12 8v4l3 3" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>
+        <svg class="cyberpunk-cool-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <button class="btn" onclick="window.location.href='https://discord.com/api/oauth2/authorize?client_id=1399025185046134866&permissions=8&scope=bot%20applications.commands'">
         Add to Server
@@ -1036,7 +1040,7 @@
       <img src="/logo.gif" alt="Bot Logo" style="width: 3.4rem; height: 3.4rem; border-radius: 0.85rem; border: 1.5px solid rgba(99, 102, 241, 0.4); box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);">
       <span class="brand-text">Whiteout Survival Bot</span>
     </a>
-    <div style="font-weight: 500; margin-top: 0.5rem;">&copy; 2026 • Created for Wos Community.</div>
+    <div style="font-weight: 500; margin-top: 0.5rem;">&copy; 2026 WhiteOut Survival Bot&reg;. All rights reserved</div>
   </footer>
 
   <script>
@@ -1330,7 +1334,7 @@
       // Theme toggle logic
       const themeToggle = document.getElementById("theme-toggle");
       if (themeToggle) {
-        const themes = ['cartoon', 'dark', 'light', 'high-contrast', 'hacker', 'aurora', 'viper'];
+        const themes = ['cartoon', 'dark', 'light', 'high-contrast', 'hacker', 'aurora', 'cyberpunk-cool'];
         themeToggle.addEventListener("click", () => {
           const currentTheme = localStorage.getItem("theme") || "cartoon";
           const currentIndex = themes.indexOf(currentTheme);

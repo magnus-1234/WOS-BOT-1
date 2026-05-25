@@ -114,7 +114,8 @@ async def get_reminders(request: Request, guild_id: str):
 
 @router.post("/upload-url")
 async def upload_reminder_image_from_url(request: Request):
-    """Downloads an image from an external URL, saves it locally, and returns the public URL."""
+    """Validates an external image URL and returns it as-is for use in reminders.
+    Discord can render HTTPS URLs directly — no need to re-host locally."""
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -124,39 +125,10 @@ async def upload_reminder_image_from_url(request: Request):
     if not url or not url.startswith("http"):
         raise HTTPException(status_code=400, detail="A valid 'url' field is required.")
 
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(url, follow_redirects=True)
-            if resp.status_code != 200:
-                raise HTTPException(status_code=400, detail=f"Could not fetch image from URL (HTTP {resp.status_code}).")
-            content = resp.content
+    # Return the original URL unchanged — Discord embeds support HTTPS URLs natively.
+    # Re-hosting locally would give HTTP-only URLs that Discord silently drops.
+    return {"status": "success", "url": url}
 
-        if len(content) > 8 * 1024 * 1024:
-            raise HTTPException(status_code=400, detail="Image too large (max 8MB).")
-
-        # Determine extension from URL or content-type
-        content_type = resp.headers.get("content-type", "image/png")
-        ext_map = {"image/png": "png", "image/jpeg": "jpg", "image/gif": "gif", "image/webp": "webp"}
-        ext = ext_map.get(content_type.split(";")[0].strip(), "png")
-        if "." in url.split("?")[0].split("/")[-1]:
-            url_ext = url.split("?")[0].split("/")[-1].rsplit(".", 1)[-1].lower()
-            if url_ext in ("png", "jpg", "jpeg", "gif", "webp"):
-                ext = url_ext
-
-        filename = f"reminder_{uuid.uuid4().hex}.{ext}"
-        upload_dir = "data/uploads"
-        os.makedirs(upload_dir, exist_ok=True)
-        with open(os.path.join(upload_dir, filename), "wb") as f:
-            f.write(content)
-
-        base_url = str(request.base_url).rstrip("/")
-        public_url = f"{base_url}/api/static/{filename}"
-        return {"status": "success", "url": public_url}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to import image from URL: {e}")
-        raise HTTPException(status_code=500, detail="Failed to import image from URL.")
 
 
 @router.post("/{guild_id}")

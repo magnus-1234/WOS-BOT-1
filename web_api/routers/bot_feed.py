@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Request
 
-from admin_utils import format_furnace_level
+from src.bot.admin_utils import format_furnace_level
 
 try:
     from db.mongo_adapters import (

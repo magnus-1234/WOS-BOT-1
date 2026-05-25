@@ -3,8 +3,8 @@ from pydantic import BaseModel
 import logging
 from typing import List, Optional, Dict, Any, Union
 from datetime import datetime, timedelta
-from admin_utils import format_furnace_level
-from wos_api import fetch_player_info
+from src.bot.admin_utils import format_furnace_level
+from src.api.wos_api import fetch_player_info
 
 try:
     from db.mongo_adapters import (

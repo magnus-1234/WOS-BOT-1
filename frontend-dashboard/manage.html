@@ -1981,6 +1981,86 @@
                     <!-- populated dynamically by JS -->
                 </div>
             </div>
+
+            <!-- Role Menu Tab -->
+            <div id="tab-roles" class="tab-content">
+                <div class="mod-hero">
+                    <div class="mod-hero-icon" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">
+                        <i data-lucide="users"></i>
+                    </div>
+                    <div>
+                        <h2 style="font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:4px;">
+                            Role Management
+                        </h2>
+                        <p style="color:var(--text-muted);font-size:0.9rem;max-width:540px;line-height:1.5;">
+                            Configure reaction roles for self-assignment and auto-roles for new members.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mod-subtab-bar" style="margin-top: 24px;">
+                    <button class="mod-subtab active" id="rst-reaction" onclick="switchRoleSubtab('reaction')">
+                        <i data-lucide="smile"></i> Reaction Roles
+                    </button>
+                    <button class="mod-subtab" id="rst-auto" onclick="switchRoleSubtab('auto')">
+                        <i data-lucide="user-plus"></i> Auto Roles
+                    </button>
+                </div>
+
+                <!-- Reaction Roles Sub-tab -->
+                <div id="role-subtab-reaction" class="mod-subtab-content active">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                        <section class="card glass-card">
+                            <h3 class="card-title"><i data-lucide="plus-circle"></i> Add Reaction Role</h3>
+                            <div class="form-group">
+                                <label>Message ID</label>
+                                <input type="text" id="rr-message-id" placeholder="Enter Discord Message ID">
+                            </div>
+                            <div class="form-group">
+                                <label>Emoji</label>
+                                <input type="text" id="rr-emoji" placeholder="e.g. :white_check_mark: or 🛡️">
+                            </div>
+                            <div class="form-group">
+                                <label>Role</label>
+                                <select id="rr-role-id" class="guild-roles">
+                                    <option value="">Select Role</option>
+                                </select>
+                            </div>
+                            <button onclick="addReactionRole()" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+                                <i data-lucide="plus"></i> Add Reaction Role
+                            </button>
+                        </section>
+
+                        <section class="card glass-card">
+                            <h3 class="card-title"><i data-lucide="list"></i> Active Reaction Roles</h3>
+                            <div id="rr-list" class="mod-log-container" style="height: 300px;">
+                                <div class="empty-state">Loading reaction roles...</div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- Auto Roles Sub-tab -->
+                <div id="role-subtab-auto" class="mod-subtab-content">
+                    <section class="card glass-card" style="margin-top: 20px;">
+                        <h3 class="card-title"><i data-lucide="user-plus"></i> Auto Roles on Join</h3>
+                        <p style="color: var(--text-muted); margin-bottom: 16px;">
+                            Select roles that will be automatically granted to new members when they join the server.
+                        </p>
+                        <div class="form-group">
+                            <label>Auto-Assign Roles</label>
+                            <div id="auto-roles-container" class="roles-selector-grid">
+                                <!-- Populated via JS -->
+                            </div>
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; margin-top: 20px;">
+                            <button onclick="saveAutoRoles()" class="btn btn-primary">
+                                <i data-lucide="save"></i> Save Auto Roles
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            </div>
         </div>
 
         <div class="sidebar-nav">
@@ -2030,6 +2110,10 @@
                     <i data-lucide="shield-alert"></i>
                     <span>Moderation</span>
                     <span style="margin-left:auto;background:linear-gradient(135deg,#ef4444,#f97316);color:#fff;font-size:0.6rem;font-weight:800;padding:2px 7px;border-radius:99px;letter-spacing:0.5px;">NEW</span>
+                </button>
+                <button class="nav-item" id="nav-roles" onclick="switchTab('roles')">
+                    <i data-lucide="user-plus"></i>
+                    <span>Role Menu</span>
                 </button>
             </div>
         </div>
@@ -4478,6 +4562,13 @@
                 loadMonitorHistory();
                 loadMonitoredMembers();
             }
+            if (tabName === 'moderation') {
+                loadModStats();
+                loadModSettings();
+            }
+            if (tabName === 'roles') {
+                loadReactionRoles();
+            }
             lucide.createIcons();
         }
 
@@ -4998,7 +5089,22 @@
                         select.appendChild(opt);
                     });
                 });
-            } catch (e) {}
+                
+                // Also load roles for the roles dropdowns
+                const roles = await fetchData(`/api/guilds/${guildId}/roles`);
+                const roleSelects = document.querySelectorAll('.guild-roles, #rr-role-id, #automod-bypass-roles');
+                roleSelects.forEach(select => {
+                    select.innerHTML = '<option value="">Select Role</option>';
+                    roles.forEach(role => {
+                        const opt = document.createElement('option');
+                        opt.value = role.id;
+                        opt.textContent = role.name;
+                        select.appendChild(opt);
+                    });
+                });
+            } catch (e) {
+                console.error('Failed to load channels/roles:', e);
+            }
         }
 
         // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -7584,95 +7690,247 @@
                 });
             }
         })();
-        // ── Moderation Tab JavaScript ──────────────────────────────────
-        function switchModSubtab(subtabId) {
+        // ── Moderation & Role Menu JavaScript ──────────────────────────
+        async function switchModSubtab(subtabId) {
             document.querySelectorAll('.mod-subtab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.mod-subtab-content').forEach(c => c.classList.remove('active'));
-            document.getElementById(`mst-${subtabId}`).classList.add('active');
-            document.getElementById(`modst-${subtabId}`).classList.add('active');
+            
+            const tabBtn = document.getElementById(`mst-${subtabId}`);
+            const tabContent = document.getElementById(`modst-${subtabId}`);
+            
+            if (tabBtn) tabBtn.classList.add('active');
+            if (tabContent) tabContent.classList.add('active');
+            
+            if (subtabId === 'blacklist') loadBlacklist();
+            if (subtabId === 'log-settings') loadModSettings();
+            if (subtabId === 'automod') loadModSettings();
         }
 
-        function toggleRuleCard(cardId, checkbox) {
-            const card = document.getElementById(cardId);
-            if(checkbox.checked) {
-                card.classList.add('enabled');
-            } else {
-                card.classList.remove('enabled');
+        async function switchRoleSubtab(subtabId) {
+            document.querySelectorAll('.mod-subtab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.mod-subtab-content').forEach(c => c.classList.remove('active'));
+            
+            const tabBtn = document.getElementById(`rst-${subtabId}`);
+            const tabContent = document.getElementById(`role-subtab-${subtabId}`);
+            
+            if (tabBtn) tabBtn.classList.add('active');
+            if (tabContent) tabContent.classList.add('active');
+            
+            if (subtabId === 'reaction') loadReactionRoles();
+            if (subtabId === 'auto') loadAutoRoles();
+        }
+
+        async function loadModStats() {
+            try {
+                const stats = await fetchData(`/api/moderation/${guildId}/stats`);
+                document.getElementById('mod-stat-warns').textContent = stats.warn || 0;
+                document.getElementById('mod-stat-mutes').textContent = stats.mute || 0;
+                document.getElementById('mod-stat-bans').textContent = stats.ban || 0;
+                document.getElementById('mod-stat-automod').textContent = stats.automod || 0;
+                document.getElementById('mod-stat-total').textContent = stats.total || 0;
+            } catch (e) {
+                console.error('Failed to load mod stats:', e);
             }
         }
 
-        function saveAutoModSettings() {
-            showNotification('AutoMod rules saved successfully!', false);
-        }
-
-        function addBypassRole() {
-            const select = document.getElementById('automod-bypass-roles');
-            const val = select.value;
-            if(!val) return;
-            const text = select.options[select.selectedIndex].text;
-            
-            const list = document.getElementById('bypass-roles-list');
-            const div = document.createElement('div');
-            div.className = 'blacklist-tag';
-            div.innerHTML = `@${text} <button onclick="this.parentElement.remove()"><i data-lucide="x" style="width:14px;"></i></button>`;
-            list.appendChild(div);
-            lucide.createIcons();
-            select.value = '';
-        }
-
-        function openModAction(actionType) {
-            showNotification(`Action: ${actionType.toUpperCase()} module opened!`, false);
-        }
-
-        function loadModLog() {
-            showNotification('Mod log refreshed!', false);
-        }
-
-        function saveModLogSettings() {
-            showNotification('Log channels saved successfully!', false);
-        }
-
-        function addBlacklistWord() {
-            const input = document.getElementById('blacklist-input');
-            const type = document.getElementById('blacklist-type').value;
-            const val = input.value.trim();
-            if(!val) return;
-
-            const list = document.getElementById('blacklist-words');
-            if(list.querySelector('span')) { list.innerHTML = ''; } // Remove empty message
-
-            const div = document.createElement('div');
-            div.className = 'blacklist-tag';
-            let prefix = '';
-            if(type === 'regex') prefix = '/.../ ';
-            else if(type === 'link') prefix = '🔗 ';
-            
-            div.innerHTML = `${prefix}${val} <button onclick="this.parentElement.remove()"><i data-lucide="x" style="width:14px;"></i></button>`;
-            list.appendChild(div);
-            lucide.createIcons();
-            input.value = '';
-        }
-
-        function saveBlacklistSettings() {
-            showNotification('Blacklist updated!', false);
-        }
-
-        function saveEscalationSettings() {
-            showNotification('Escalation ladder saved!', false);
-        }
-
-        function filterAuditLog() {
-            // Placeholder for filtering logic
-        }
-
-        function loadMoreAuditLog() {
-            const btn = document.getElementById('audit-load-more');
-            btn.innerHTML = '<i data-lucide="loader-2" style="width:15px;animation:spin 1s linear infinite;"></i> Loading...';
-            lucide.createIcons();
-            setTimeout(() => {
-                btn.innerHTML = '<i data-lucide="chevron-down" style="width:15px;"></i> Load More';
+        async function loadModSettings() {
+            try {
+                const settings = await fetchData(`/api/moderation/${guildId}/settings`);
+                if (settings.automod) {
+                    document.getElementById('automod-enabled').checked = settings.automod.enabled;
+                    document.getElementById('automod-spam').checked = settings.automod.anti_spam;
+                    document.getElementById('automod-links').checked = settings.automod.anti_link;
+                    document.getElementById('automod-invites').checked = settings.automod.anti_invites;
+                    document.getElementById('automod-mentions').value = settings.automod.max_mentions;
+                    
+                    // Render bypass roles
+                    const list = document.getElementById('bypass-roles-list');
+                    list.innerHTML = '';
+                    settings.automod.bypass_roles.forEach(roleId => {
+                        const roleName = getRoleName(roleId);
+                        const div = document.createElement('div');
+                        div.className = 'blacklist-tag';
+                        div.innerHTML = `@${roleName} <button onclick="removeBypassRole('${roleId}')"><i data-lucide="x" style="width:14px;"></i></button>`;
+                        list.appendChild(div);
+                    });
+                }
+                
+                if (settings.logging) {
+                    document.getElementById('mod-log-enabled').checked = settings.logging.enabled;
+                    document.getElementById('mod-log-channel').value = settings.logging.channel_id || '';
+                }
                 lucide.createIcons();
-            }, 1000);
+            } catch (e) {
+                console.error('Failed to load mod settings:', e);
+            }
+        }
+
+        async function saveAutoModSettings() {
+            const settings = {
+                automod: {
+                    enabled: document.getElementById('automod-enabled').checked,
+                    anti_spam: document.getElementById('automod-spam').checked,
+                    anti_link: document.getElementById('automod-links').checked,
+                    anti_invites: document.getElementById('automod-invites').checked,
+                    max_mentions: parseInt(document.getElementById('automod-mentions').value) || 5,
+                    bypass_roles: Array.from(document.getElementById('bypass-roles-list').children).map(c => c.dataset.id)
+                }
+            };
+            
+            try {
+                await fetchData(`/api/moderation/${guildId}/settings`, {
+                    method: 'POST',
+                    body: JSON.stringify(settings)
+                });
+                showNotification('AutoMod settings saved!');
+            } catch (e) {
+                showNotification('Failed to save AutoMod settings', true);
+            }
+        }
+
+        async function loadBlacklist() {
+            try {
+                const data = await fetchData(`/api/moderation/${guildId}/blacklist`);
+                const list = document.getElementById('blacklist-words');
+                list.innerHTML = '';
+                if (data.words && data.words.length > 0) {
+                    data.words.forEach(word => {
+                        const div = document.createElement('div');
+                        div.className = 'blacklist-tag';
+                        div.innerHTML = `${word} <button onclick="removeBlacklistWord('${word}')"><i data-lucide="x" style="width:14px;"></i></button>`;
+                        list.appendChild(div);
+                    });
+                } else {
+                    list.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem;">No words blacklisted yet.</span>';
+                }
+                lucide.createIcons();
+            } catch (e) {
+                console.error('Failed to load blacklist:', e);
+            }
+        }
+
+        async function saveBlacklistSettings() {
+            const words = Array.from(document.getElementById('blacklist-words').querySelectorAll('.blacklist-tag')).map(t => t.textContent.trim().split(' ')[0]);
+            try {
+                await fetchData(`/api/moderation/${guildId}/blacklist`, {
+                    method: 'POST',
+                    body: JSON.stringify({ words })
+                });
+                showNotification('Blacklist updated!');
+            } catch (e) {
+                showNotification('Failed to update blacklist', true);
+            }
+        }
+
+        // --- Role Menu Functions ---
+
+        async function loadReactionRoles() {
+            try {
+                const roles = await fetchData(`/api/roles/${guildId}/reaction`);
+                const list = document.getElementById('rr-list');
+                list.innerHTML = '';
+                if (roles.length > 0) {
+                    roles.forEach(rr => {
+                        const div = document.createElement('div');
+                        div.className = 'mod-log-item';
+                        div.innerHTML = `
+                            <div class="mod-log-icon" style="background:rgba(99,102,241,0.1);color:#818cf8;">
+                                <i data-lucide="smile"></i>
+                            </div>
+                            <div class="mod-log-details">
+                                <strong>${rr.emoji}</strong> on Message <code>${rr.message_id}</code>
+                                <p>Role: ${getRoleName(rr.role_id)}</p>
+                            </div>
+                            <button onclick="removeReactionRole('${rr.message_id}', '${rr.emoji}')" class="btn btn-danger" style="padding:4px 8px;">
+                                <i data-lucide="trash-2" style="width:14px;"></i>
+                            </button>
+                        `;
+                        list.appendChild(div);
+                    });
+                } else {
+                    list.innerHTML = '<div class="empty-state">No reaction roles configured.</div>';
+                }
+                lucide.createIcons();
+            } catch (e) {
+                console.error('Failed to load reaction roles:', e);
+            }
+        }
+
+        async function addReactionRole() {
+            const messageId = document.getElementById('rr-message-id').value;
+            const emoji = document.getElementById('rr-emoji').value;
+            const roleId = document.getElementById('rr-role-id').value;
+            
+            if (!messageId || !emoji || !roleId) {
+                showNotification('Please fill all fields', true);
+                return;
+            }
+            
+            try {
+                await fetchData(`/api/roles/${guildId}/reaction`, {
+                    method: 'POST',
+                    body: JSON.stringify({ message_id: messageId, emoji, role_id: roleId })
+                });
+                showNotification('Reaction role added!');
+                loadReactionRoles();
+            } catch (e) {
+                showNotification('Failed to add reaction role', true);
+            }
+        }
+
+        async function removeReactionRole(messageId, emoji) {
+            try {
+                await fetchData(`/api/roles/${guildId}/reaction/${messageId}/${emoji}`, {
+                    method: 'DELETE'
+                });
+                showNotification('Reaction role removed!');
+                loadReactionRoles();
+            } catch (e) {
+                showNotification('Failed to remove reaction role', true);
+            }
+        }
+
+        async function loadAutoRoles() {
+            try {
+                const data = await fetchData(`/api/roles/${guildId}/auto`);
+                const container = document.getElementById('auto-roles-container');
+                const roles = await fetchData(`/api/guilds/${guildId}/roles`);
+                
+                container.innerHTML = '';
+                roles.forEach(role => {
+                    const isChecked = data.role_ids.includes(parseInt(role.id));
+                    const div = document.createElement('div');
+                    div.className = `role-checkbox ${isChecked ? 'active' : ''}`;
+                    div.innerHTML = `
+                        <input type="checkbox" value="${role.id}" ${isChecked ? 'checked' : ''} onchange="this.parentElement.classList.toggle('active')">
+                        <span>${role.name}</span>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (e) {
+                console.error('Failed to load auto roles:', e);
+            }
+        }
+
+        async function saveAutoRoles() {
+            const roleIds = Array.from(document.querySelectorAll('#auto-roles-container input:checked')).map(i => parseInt(i.value));
+            try {
+                await fetchData(`/api/roles/${guildId}/auto`, {
+                    method: 'POST',
+                    body: JSON.stringify({ role_ids: roleIds })
+                });
+                showNotification('Auto roles saved!');
+            } catch (e) {
+                showNotification('Failed to save auto roles', true);
+            }
+        }
+
+        function getRoleName(roleId) {
+            // Helper to get role name from loaded roles
+            const select = document.querySelector('.guild-roles');
+            if (!select) return roleId;
+            const option = select.querySelector(`option[value="${roleId}"]`);
+            return option ? option.textContent : roleId;
         }
     </script>
     <div id="create-preset-modal" class="modal">

@@ -182,3 +182,29 @@ async def get_guild_channels(guild_id: int, request: Request):
             "type": 0
         })
     return channels
+
+@router.get("/{guild_id}/roles")
+async def get_guild_roles(guild_id: int, request: Request):
+    """Fetch roles for a guild."""
+    _bot = getattr(request.app.state, 'bot', None)
+    if not _bot:
+        return []
+        
+    guild = _bot.get_guild(guild_id)
+    if not guild:
+        return []
+        
+    roles = []
+    # Sort roles by position, descending
+    sorted_roles = sorted(guild.roles, key=lambda r: r.position, reverse=True)
+    for role in sorted_roles:
+        # Skip @everyone
+        if role.name == "@everyone":
+            continue
+        roles.append({
+            "id": str(role.id),
+            "name": role.name,
+            "color": hex(role.color.value) if role.color.value else "#99aab5",
+            "position": role.position
+        })
+    return roles

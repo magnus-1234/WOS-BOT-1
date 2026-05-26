@@ -202,6 +202,20 @@ try:
 except Exception as e:
     logger.error(f"❌ Failed to load admin router: {e}")
 
+try:
+    from web_api.routers.moderation import router as moderation_router
+    app.include_router(moderation_router)
+    logger.info("✅ Moderation router loaded")
+except Exception as e:
+    logger.error(f"❌ Failed to load moderation router: {e}")
+
+try:
+    from web_api.routers.roles import router as roles_router
+    app.include_router(roles_router)
+    logger.info("✅ Roles router loaded")
+except Exception as e:
+    logger.error(f"❌ Failed to load roles router: {e}")
+
 os.makedirs("data/uploads", exist_ok=True)
 os.makedirs("data/assets", exist_ok=True)
 app.mount("/api/static", StaticFiles(directory="data/uploads"), name="static")

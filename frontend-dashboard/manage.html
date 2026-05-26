@@ -1802,7 +1802,7 @@
         /* Automod rule cards */
         .automod-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
             gap: 16px;
             margin-bottom: 24px;
         }
@@ -1835,7 +1835,7 @@
         /* Mod Action Buttons */
         .mod-action-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
             gap: 14px;
             margin-bottom: 24px;
         }
@@ -1954,6 +1954,73 @@
         .duration-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
         .dur-chip { background: #232831; border: 1px solid var(--glass-border); color: var(--text-muted); border-radius: 99px; padding: 5px 11px; font-size: 0.78rem; cursor: pointer; transition: all 0.15s; }
         .dur-chip:hover, .dur-chip.active { border-color: #ef4444; color: #f87171; background: rgba(239,68,68,0.1); }
+        .responsive-form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+            gap: 14px;
+        }
+        .role-management-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+            gap: 18px;
+            align-items: start;
+        }
+        .role-menu-builder {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .reaction-map-row {
+            display: grid;
+            grid-template-columns: minmax(80px, 120px) minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: end;
+        }
+        .embed-preview {
+            background: #111318;
+            border-left: 4px solid #5865f2;
+            border-radius: 6px;
+            padding: 14px 16px;
+            min-height: 160px;
+            overflow-wrap: anywhere;
+        }
+        .embed-preview h4 { margin: 0 0 8px; font-size: 1rem; color: #fff; }
+        .embed-preview p { margin: 0; color: var(--text-muted); white-space: pre-wrap; line-height: 1.45; }
+        .role-checkbox {
+            background: #16191f;
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 11px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+        .role-checkbox.active { border-color: rgba(99,102,241,0.45); background: rgba(99,102,241,0.12); }
+        .role-checkbox span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        @media (max-width: 900px) {
+            .role-management-grid { grid-template-columns: 1fr; }
+            .reaction-map-row { grid-template-columns: 1fr; }
+            .mod-log-entry { flex-direction: column; }
+            .log-time { align-self: flex-start; }
+        }
+        @media (max-width: 700px) {
+            #tab-moderation .mod-hero,
+            #tab-roles .mod-hero,
+            #modst-automod > div:first-child,
+            #modst-audit > div:first-child {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+            }
+            #tab-moderation [style*="grid-template-columns"],
+            #tab-roles [style*="grid-template-columns"] {
+                grid-template-columns: 1fr !important;
+            }
+            .mod-subtab { flex: 1 1 auto; justify-content: center; }
+            .mod-stat-chip, .mod-action-card, .automod-rule-card, .card { min-width: 0; }
+            .escalation-step { flex-wrap: wrap; }
+            .escalation-step select { min-width: 100%; }
+        }
     </style>
 </head>
 
@@ -2031,6 +2098,10 @@
                     <i data-lucide="shield-alert"></i>
                     <span>Moderation</span>
                     <span style="margin-left:auto;background:linear-gradient(135deg,#ef4444,#f97316);color:#fff;font-size:0.6rem;font-weight:800;padding:2px 7px;border-radius:99px;letter-spacing:0.5px;">NEW</span>
+                </button>
+                <button class="nav-item" id="nav-roles" onclick="switchTab('roles')">
+                    <i data-lucide="users"></i>
+                    <span>Roles</span>
                 </button>
 
             </div>
@@ -3005,9 +3076,6 @@
                 <button class="mod-subtab" id="mst-audit" onclick="switchModSubtab('audit')">
                     <i data-lucide="scroll-text"></i> Audit Log
                 </button>
-                <button class="mod-subtab" id="mst-roles" onclick="switchModSubtab('roles')">
-                    <i data-lucide="users"></i> Role Menu
-                </button>
             </div>
 
             <!-- ═══ SUB-TAB: AUTO MOD ═══ -->
@@ -3708,68 +3776,123 @@
                 </div>
             </div><!-- /modst-audit -->
 
-            <!-- ═══ SUB-TAB: ROLES ═══ -->
-            <div id="modst-roles" class="mod-subtab-content">
-                <div style="margin-bottom:20px;">
-                    <h3 style="font-family:'Outfit',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:4px;">Server Roles</h3>
-                    <p style="font-size:0.85rem;color:var(--text-muted);">Manage Auto Roles for new members and Reaction Roles for specific messages.</p>
-                </div>
-                
-                <div style="display:flex;gap:10px;margin-bottom:20px;">
-                    <button class="mod-subtab active" id="rst-reaction" onclick="switchRoleSubtab('reaction')">Reaction Roles</button>
-                    <button class="mod-subtab" id="rst-auto" onclick="switchRoleSubtab('auto')">Auto Roles</button>
-                </div>
+        </div><!-- /tab-moderation -->
 
-                <!-- Reaction Roles -->
-                <div id="role-subtab-reaction" class="mod-subtab-content active">
-                    <div class="card" style="margin-bottom:20px;">
-                        <h4 style="margin-bottom:12px;font-weight:600;">Add Reaction Role</h4>
-                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end;">
+        <!-- ══════════════════════════════════════════════════════════════
+             ROLES TAB
+        ══════════════════════════════════════════════════════════════════ -->
+        <div id="tab-roles" class="tab-content">
+            <div class="mod-hero">
+                <div class="mod-hero-icon" style="background:rgba(99,102,241,0.15);color:#818cf8;">
+                    <i data-lucide="users"></i>
+                </div>
+                <div>
+                    <h2 style="font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:4px;">Role Menu</h2>
+                    <p style="color:var(--text-muted);font-size:0.9rem;max-width:620px;line-height:1.5;">
+                        Configure automatic join roles and publish reaction-role messages for self-assignment.
+                    </p>
+                </div>
+            </div>
+
+            <div class="mod-subtab-bar" id="roles-subtab-bar">
+                <button class="mod-subtab active" id="rst-auto" onclick="switchRoleSubtab('auto')">
+                    <i data-lucide="user-plus"></i> Auto Roles
+                </button>
+                <button class="mod-subtab" id="rst-reaction" onclick="switchRoleSubtab('reaction')">
+                    <i data-lucide="smile-plus"></i> Reaction Roles
+                </button>
+            </div>
+
+            <div id="role-subtab-auto" class="mod-subtab-content active">
+                <div class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+                        <div>
+                            <h3 style="font-weight:700;margin-bottom:4px;">Auto Roles on Join</h3>
+                            <p style="font-size:0.85rem;color:var(--text-muted);">Selected roles are automatically assigned when a member joins this server.</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="saveAutoRoles()">
+                            <i data-lucide="save" style="width:16px;"></i> Save Auto Roles
+                        </button>
+                    </div>
+                    <div id="auto-roles-container" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;">
+                        <div class="empty-state">Loading roles...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="role-subtab-reaction" class="mod-subtab-content">
+                <div class="role-management-grid">
+                    <div class="card role-menu-builder">
+                        <div>
+                            <h3 style="font-weight:700;margin-bottom:4px;">Publish Reaction Role Message</h3>
+                            <p style="font-size:0.85rem;color:var(--text-muted);">Send a bot embed message, add reactions, and bind each reaction to a role.</p>
+                        </div>
+                        <div class="responsive-form-grid">
                             <div class="form-group" style="margin:0;">
-                                <label>Message ID</label>
-                                <input type="text" id="rr-message-id" placeholder="e.g. 1234567890">
-                            </div>
-                            <div class="form-group" style="margin:0;">
-                                <label>Emoji</label>
-                                <input type="text" id="rr-emoji" placeholder="e.g. 👍">
-                            </div>
-                            <div class="form-group" style="margin:0;">
-                                <label>Role</label>
-                                <select id="rr-role-id" class="guild-roles">
-                                    <option value="">Select Role...</option>
+                                <label>Message Sender</label>
+                                <select id="rr-message-mode" onchange="toggleReactionRoleSender()" class="rule-action-select">
+                                    <option value="bot" selected>Bot Message</option>
+                                    <option value="webhook">Webhook Message</option>
                                 </select>
                             </div>
-                            <button class="btn btn-primary" onclick="addReactionRole()" style="height:46px;margin-bottom:0;">
-                                <i data-lucide="plus" style="width:16px;"></i> Add
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <h4 style="margin-bottom:12px;font-weight:600;">Active Reaction Roles</h4>
-                    <div id="rr-list" class="mod-log-list">
-                        <!-- Populated dynamically -->
-                    </div>
-                </div>
-
-                <!-- Auto Roles -->
-                <div id="role-subtab-auto" class="mod-subtab-content">
-                    <div class="card">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                            <div>
-                                <h4 style="font-weight:600;margin-bottom:4px;">Auto Roles on Join</h4>
-                                <p style="font-size:0.85rem;color:var(--text-muted);">These roles will be automatically assigned to new members.</p>
+                            <div class="form-group" style="margin:0;">
+                                <label>Send Channel</label>
+                                <select id="rr-channel-id" class="guild-channels">
+                                    <option value="">Select channel...</option>
+                                </select>
                             </div>
-                            <button class="btn btn-primary" onclick="saveAutoRoles()">
-                                <i data-lucide="save" style="width:16px;"></i> Save
+                            <div class="form-group" style="margin:0;">
+                                <label>Embed Color</label>
+                                <input type="color" id="rr-embed-color" value="#5865f2" style="height:42px;padding:4px;">
+                            </div>
+                        </div>
+                        <div class="form-group" id="rr-webhook-url-group" style="display:none;margin:0;">
+                            <label>Webhook URL</label>
+                            <input type="password" id="rr-webhook-url" placeholder="https://discord.com/api/webhooks/...">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label>Embed Title</label>
+                            <input type="text" id="rr-embed-title" placeholder="Choose your roles">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label>Embed Message</label>
+                            <textarea id="rr-embed-description" placeholder="React below to receive or remove roles." style="min-height:110px;"></textarea>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                            <h4 style="margin:0;font-weight:700;">Reaction Mapping</h4>
+                            <button class="btn btn-secondary" onclick="addReactionMapRow()" style="padding:8px 12px;">
+                                <i data-lucide="plus" style="width:15px;"></i> Add Reaction
                             </button>
                         </div>
-                        <div id="auto-roles-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
-                            <!-- Checkboxes populated dynamically -->
+                        <div id="rr-map-rows" style="display:flex;flex-direction:column;gap:10px;"></div>
+                        <button class="btn btn-primary" onclick="publishReactionRoleMessage()" style="justify-content:center;">
+                            <i data-lucide="send" style="width:16px;"></i> Publish Role Menu
+                        </button>
+                    </div>
+
+                    <div style="display:flex;flex-direction:column;gap:18px;min-width:0;">
+                        <div class="card">
+                            <h3 style="font-weight:700;margin-bottom:12px;">Preview</h3>
+                            <div class="embed-preview" id="rr-embed-preview">
+                                <h4>Choose your roles</h4>
+                                <p>React below to receive or remove roles.</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;">
+                                <h3 style="font-weight:700;margin:0;">Active Reaction Roles</h3>
+                                <button class="btn btn-secondary" onclick="loadReactionRoles()" style="padding:8px 12px;">
+                                    <i data-lucide="refresh-cw" style="width:14px;"></i>
+                                </button>
+                            </div>
+                            <div id="rr-list" class="mod-log-list">
+                                <div class="empty-state">Loading reaction roles...</div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div><!-- /modst-roles -->
-        </div><!-- /tab-moderation -->
+            </div>
+        </div><!-- /tab-roles -->
 
     </div><!-- /content-area -->
 </div><!-- /main-container -->
@@ -4563,6 +4686,9 @@
             if (tabName === 'moderation') {
                 loadModStats();
                 loadModSettings();
+            }
+            if (tabName === 'roles') {
+                switchRoleSubtab('auto');
             }
             lucide.createIcons();
         }
@@ -7700,7 +7826,6 @@
             if (subtabId === 'blacklist') loadBlacklist();
             if (subtabId === 'log-settings') loadModSettings();
             if (subtabId === 'automod') loadModSettings();
-            if (subtabId === 'roles') switchRoleSubtab('reaction');
             if (subtabId === 'audit') loadModLog();
         }
 
@@ -7841,9 +7966,9 @@
         }
 
         async function switchRoleSubtab(subtabId) {
-            const roleRoot = document.getElementById('modst-roles');
+            const roleRoot = document.getElementById('tab-roles');
             if (!roleRoot) return;
-            roleRoot.querySelectorAll('.mod-subtab').forEach(t => t.classList.remove('active'));
+            roleRoot.querySelectorAll('#roles-subtab-bar .mod-subtab').forEach(t => t.classList.remove('active'));
             roleRoot.querySelectorAll(':scope > .mod-subtab-content').forEach(c => c.classList.remove('active'));
             
             const tabBtn = roleRoot.querySelector(`#rst-${subtabId}`);
@@ -7852,7 +7977,10 @@
             if (tabBtn) tabBtn.classList.add('active');
             if (tabContent) tabContent.classList.add('active');
             
-            if (subtabId === 'reaction') loadReactionRoles();
+            if (subtabId === 'reaction') {
+                ensureReactionRoleBuilderReady();
+                loadReactionRoles();
+            }
             if (subtabId === 'auto') loadAutoRoles();
         }
 
@@ -7873,27 +8001,28 @@
             try {
                 const settings = await fetchData(`/api/moderation/${guildId}/settings`);
                 if (settings.automod) {
-                    document.getElementById('automod-enabled').checked = settings.automod.enabled;
-                    document.getElementById('automod-spam').checked = settings.automod.anti_spam;
-                    document.getElementById('automod-links').checked = settings.automod.anti_link;
-                    document.getElementById('automod-invites').checked = settings.automod.anti_invites;
-                    document.getElementById('automod-mentions').value = settings.automod.max_mentions;
+                    setChecked('antispam-enabled', settings.automod.anti_spam || settings.automod.enabled);
+                    setChecked('antilink-enabled', settings.automod.anti_link);
+                    setChecked('massmention-enabled', Boolean(settings.automod.max_mentions));
+                    setValue('massmention-threshold', settings.automod.max_mentions || 5);
                     
                     // Render bypass roles
                     const list = document.getElementById('bypass-roles-list');
-                    list.innerHTML = '';
-                    (settings.automod.bypass_roles || []).forEach(roleId => {
-                        const div = document.createElement('div');
-                        div.className = 'blacklist-tag';
-                        div.dataset.id = String(roleId);
-                        div.innerHTML = `@${escapeHtml(getRoleName(roleId))} <button onclick="removeBypassRole('${roleId}')"><i data-lucide="x" style="width:14px;"></i></button>`;
-                        list.appendChild(div);
-                    });
+                    if (list) {
+                        list.innerHTML = '';
+                        (settings.automod.bypass_roles || []).forEach(roleId => {
+                            const div = document.createElement('div');
+                            div.className = 'blacklist-tag';
+                            div.dataset.id = String(roleId);
+                            div.innerHTML = `@${escapeHtml(getRoleName(roleId))} <button onclick="removeBypassRole('${roleId}')"><i data-lucide="x" style="width:14px;"></i></button>`;
+                            list.appendChild(div);
+                        });
+                    }
                 }
                 
                 if (settings.logging) {
-                    document.getElementById('mod-log-enabled').checked = settings.logging.enabled;
-                    document.getElementById('mod-log-channel').value = settings.logging.channel_id || '';
+                    const channelId = settings.logging.channel_id || '';
+                    ['mod-log-warn', 'mod-log-mute', 'mod-log-kick', 'mod-log-ban', 'mod-log-automod', 'mod-log-messages'].forEach(id => setValue(id, channelId));
                 }
                 lucide.createIcons();
             } catch (e) {
@@ -7904,11 +8033,11 @@
         async function saveAutoModSettings() {
             const settings = {
                 automod: {
-                    enabled: document.getElementById('automod-enabled').checked,
-                    anti_spam: document.getElementById('automod-spam').checked,
-                    anti_link: document.getElementById('automod-links').checked,
-                    anti_invites: document.getElementById('automod-invites').checked,
-                    max_mentions: parseInt(document.getElementById('automod-mentions').value) || 5,
+                    enabled: ['antispam-enabled', 'antilink-enabled', 'massmention-enabled', 'caps-enabled', 'antiraid-enabled', 'profanity-enabled'].some(id => document.getElementById(id)?.checked),
+                    anti_spam: document.getElementById('antispam-enabled')?.checked || false,
+                    anti_link: document.getElementById('antilink-enabled')?.checked || false,
+                    anti_invites: ['invites', 'all'].includes(document.getElementById('antilink-type')?.value || ''),
+                    max_mentions: parseInt(document.getElementById('massmention-threshold')?.value) || 5,
                     bypass_roles: Array.from(document.getElementById('bypass-roles-list').children).map(c => parseInt(c.dataset.id)).filter(Boolean)
                 }
             };
@@ -7943,6 +8072,47 @@
                 lucide.createIcons();
             } catch (e) {
                 console.error('Failed to load blacklist:', e);
+            }
+        }
+
+        function setChecked(id, checked) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.checked = Boolean(checked);
+                const card = el.closest('.automod-rule-card');
+                if (card) card.classList.toggle('active', el.checked);
+            }
+        }
+
+        function setValue(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.value = value ?? '';
+        }
+
+        async function saveModLogSettings() {
+            const ids = ['mod-log-warn', 'mod-log-mute', 'mod-log-kick', 'mod-log-ban', 'mod-log-automod', 'mod-log-messages'];
+            const channelId = ids.map(id => document.getElementById(id)?.value).find(Boolean) || null;
+            const events = ids.filter(id => document.getElementById(id)?.value).map(id => id.replace('mod-log-', ''));
+            try {
+                await fetchData(`/api/moderation/${guildId}/settings`, {
+                    method: 'POST',
+                    body: JSON.stringify({ logging: { enabled: Boolean(channelId), channel_id: channelId ? parseInt(channelId) : null, events } })
+                });
+                showNotification('Moderation log settings saved!');
+            } catch (e) {
+                showNotification('Failed to save log settings', true);
+            }
+        }
+
+        async function saveEscalationSettings() {
+            try {
+                await fetchData(`/api/moderation/${guildId}/settings`, {
+                    method: 'POST',
+                    body: JSON.stringify({ escalation: { enabled: document.getElementById('escalation-enabled')?.checked || false, rules: [] } })
+                });
+                showNotification('Escalation settings saved!');
+            } catch (e) {
+                showNotification('Failed to save escalation settings', true);
             }
         }
 
@@ -8000,20 +8170,24 @@
                 const list = document.getElementById('rr-list');
                 list.innerHTML = '';
                 if (roles.length > 0) {
-                    roles.forEach(rr => {
+                    const grouped = roles.reduce((acc, rr) => {
+                        const key = String(rr.message_id);
+                        if (!acc[key]) acc[key] = [];
+                        acc[key].push(rr);
+                        return acc;
+                    }, {});
+                    Object.entries(grouped).forEach(([messageId, rows]) => {
                         const div = document.createElement('div');
-                        div.className = 'mod-log-item';
+                        div.className = 'mod-log-entry';
                         div.innerHTML = `
-                            <div class="mod-log-icon" style="background:rgba(99,102,241,0.1);color:#818cf8;">
-                                <i data-lucide="smile"></i>
+                            <span class="log-action-badge log-badge-automod">Roles</span>
+                            <div class="log-meta">
+                                <strong>Message <code>${messageId}</code></strong>
+                                <span>${rows.map(rr => `${escapeHtml(rr.emoji)} -> ${escapeHtml(getRoleName(rr.role_id))}`).join(' | ')}</span>
                             </div>
-                            <div class="mod-log-details">
-                                <strong>${escapeHtml(rr.emoji)}</strong> on Message <code>${rr.message_id}</code>
-                                <p>Role: ${getRoleName(rr.role_id)}</p>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                                ${rows.map(rr => `<button onclick="removeReactionRole('${rr.message_id}', '${encodeURIComponent(rr.emoji)}')" class="btn btn-danger" style="padding:4px 8px;">${escapeHtml(rr.emoji)} <i data-lucide="trash-2" style="width:14px;"></i></button>`).join('')}
                             </div>
-                            <button onclick="removeReactionRole('${rr.message_id}', '${encodeURIComponent(rr.emoji)}')" class="btn btn-danger" style="padding:4px 8px;">
-                                <i data-lucide="trash-2" style="width:14px;"></i>
-                            </button>
                         `;
                         list.appendChild(div);
                     });
@@ -8026,31 +8200,89 @@
             }
         }
 
-        async function addReactionRole() {
-            const messageId = document.getElementById('rr-message-id').value.trim();
-            const emoji = document.getElementById('rr-emoji').value.trim();
-            const roleId = document.getElementById('rr-role-id').value;
-            
-            if (!messageId || !emoji || !roleId) {
-                showNotification('Please fill all fields', true);
+        function addReactionMapRow(emoji = '', roleId = '') {
+            const rows = document.getElementById('rr-map-rows');
+            if (!rows) return;
+            const div = document.createElement('div');
+            div.className = 'reaction-map-row';
+            div.innerHTML = `
+                <div class="form-group" style="margin:0;">
+                    <label>Emoji</label>
+                    <input type="text" class="rr-map-emoji" placeholder="e.g. 👍" value="${escapeHtml(emoji)}">
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label>Role</label>
+                    <select class="rr-map-role guild-roles">
+                        <option value="">Select Role...</option>
+                        ${(window.guildRoles || []).map(role => `<option value="${role.id}" ${String(role.id) === String(roleId) ? 'selected' : ''}>${escapeHtml(role.name)}</option>`).join('')}
+                    </select>
+                </div>
+                <button class="btn btn-danger" onclick="this.closest('.reaction-map-row').remove()" style="height:42px;">
+                    <i data-lucide="trash-2" style="width:15px;"></i>
+                </button>
+            `;
+            rows.appendChild(div);
+            lucide.createIcons();
+        }
+
+        function updateReactionRolePreview() {
+            const title = document.getElementById('rr-embed-title')?.value || 'Choose your roles';
+            const description = document.getElementById('rr-embed-description')?.value || 'React below to receive or remove roles.';
+            const color = document.getElementById('rr-embed-color')?.value || '#5865f2';
+            const preview = document.getElementById('rr-embed-preview');
+            if (!preview) return;
+            preview.style.borderLeftColor = color;
+            preview.innerHTML = `<h4>${escapeHtml(title)}</h4><p>${escapeHtml(description)}</p>`;
+        }
+
+        function toggleReactionRoleSender() {
+            const mode = document.getElementById('rr-message-mode')?.value || 'bot';
+            const group = document.getElementById('rr-webhook-url-group');
+            if (group) group.style.display = mode === 'webhook' ? 'block' : 'none';
+        }
+
+        async function publishReactionRoleMessage() {
+            const channelId = document.getElementById('rr-channel-id')?.value;
+            const mode = document.getElementById('rr-message-mode')?.value || 'bot';
+            const webhookUrl = document.getElementById('rr-webhook-url')?.value?.trim() || null;
+            const title = document.getElementById('rr-embed-title')?.value?.trim() || 'Choose your roles';
+            const description = document.getElementById('rr-embed-description')?.value?.trim() || 'React below to receive or remove roles.';
+            const color = document.getElementById('rr-embed-color')?.value || '#5865f2';
+            const mappings = Array.from(document.querySelectorAll('#rr-map-rows .reaction-map-row')).map(row => ({
+                emoji: row.querySelector('.rr-map-emoji')?.value?.trim(),
+                role_id: parseInt(row.querySelector('.rr-map-role')?.value)
+            })).filter(item => item.emoji && item.role_id);
+
+            if (!channelId) {
+                showNotification('Select a channel for the role menu message', true);
                 return;
             }
-            if (!/^\d{15,25}$/.test(messageId)) {
-                showNotification('Enter a valid Discord message ID', true);
+            if (mode === 'webhook' && !webhookUrl) {
+                showNotification('Enter a webhook URL or switch sender to Bot Message', true);
+                return;
+            }
+            if (!mappings.length) {
+                showNotification('Add at least one emoji and role mapping', true);
                 return;
             }
             
             try {
-                await fetchData(`/api/roles/${guildId}/reaction`, {
+                const result = await fetchData(`/api/roles/${guildId}/reaction-message`, {
                     method: 'POST',
-                    body: JSON.stringify({ message_id: parseInt(messageId), emoji, role_id: parseInt(roleId) })
+                    body: JSON.stringify({
+                        channel_id: parseInt(channelId),
+                        mode,
+                        webhook_url: webhookUrl,
+                        title,
+                        description,
+                        color,
+                        mappings
+                    })
                 });
-                showNotification('Reaction role added!');
-                document.getElementById('rr-message-id').value = '';
-                document.getElementById('rr-emoji').value = '';
+                showNotification(`Role menu published to message ${result.message_id}`);
                 loadReactionRoles();
             } catch (e) {
-                showNotification('Failed to add reaction role', true);
+                showNotification(e.message || 'Failed to publish role menu', true);
             }
         }
 
@@ -8086,6 +8318,20 @@
             } catch (e) {
                 console.error('Failed to load auto roles:', e);
             }
+        }
+
+        function ensureReactionRoleBuilderReady() {
+            ['rr-embed-title', 'rr-embed-description', 'rr-embed-color'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && !el.dataset.previewBound) {
+                    el.addEventListener('input', updateReactionRolePreview);
+                    el.dataset.previewBound = '1';
+                }
+            });
+            const rows = document.getElementById('rr-map-rows');
+            if (rows && !rows.children.length) addReactionMapRow();
+            toggleReactionRoleSender();
+            updateReactionRolePreview();
         }
 
         async function saveAutoRoles() {

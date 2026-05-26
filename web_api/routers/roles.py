@@ -75,6 +75,9 @@ async def create_reaction_role_message(guild_id: int, data: ReactionRoleMessageC
         role = guild.get_role(int(mapping.role_id))
         if not role:
             raise HTTPException(status_code=400, detail=f"Role {mapping.role_id} was not found")
+        bot_member = guild.me
+        if role.managed or not bot_member or role >= bot_member.top_role:
+            raise HTTPException(status_code=400, detail=f"Bot cannot assign role {role.name}. Move the bot role higher and avoid managed roles.")
         key = emoji
         if key in seen:
             raise HTTPException(status_code=400, detail=f"Duplicate emoji mapping: {emoji}")
@@ -132,8 +135,21 @@ async def get_auto_roles(guild_id: int):
     return {"role_ids": roles}
 
 @router.post("/api/roles/{guild_id}/auto")
-async def update_auto_roles(guild_id: int, data: AutoRolesUpdate):
+async def update_auto_roles(guild_id: int, data: AutoRolesUpdate, request: Request):
     role_ids = sorted({int(role_id) for role_id in data.role_ids})
+    bot = getattr(request.app.state, "bot", None)
+    guild = bot.get_guild(int(guild_id)) if bot else None
+    if not guild:
+        raise HTTPException(status_code=503, detail="Discord bot is not available for this guild")
+
+    bot_member = guild.me
+    for role_id in role_ids:
+        role = guild.get_role(int(role_id))
+        if not role:
+            raise HTTPException(status_code=400, detail=f"Role {role_id} was not found")
+        if role.managed or not bot_member or role >= bot_member.top_role:
+            raise HTTPException(status_code=400, detail=f"Bot cannot assign role {role.name}. Move the bot role higher and avoid managed roles.")
+
     success = await AutoRolesAdapter.set_auto_roles(guild_id, role_ids)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to update auto roles")

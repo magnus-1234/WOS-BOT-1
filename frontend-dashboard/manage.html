@@ -448,6 +448,8 @@
         .content-area {
             flex: 1;
             overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 0;
             padding: 32px;
         }
 
@@ -1798,6 +1800,13 @@
         .mod-subtab i { width: 15px; height: 15px; }
         .mod-subtab-content { display: none; animation: fadeIn 0.25s ease-out; }
         .mod-subtab-content.active { display: block; }
+        #tab-moderation.active,
+        #tab-roles.active {
+            max-height: calc(100dvh - var(--top-bar-height) - 64px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 8px;
+        }
 
         /* Automod rule cards */
         .automod-grid {
@@ -1997,6 +2006,7 @@
             min-width: 0;
         }
         .role-checkbox.active { border-color: rgba(99,102,241,0.45); background: rgba(99,102,241,0.12); }
+        .role-checkbox.disabled { opacity: 0.55; cursor: not-allowed; }
         .role-checkbox span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         @media (max-width: 900px) {
             .role-management-grid { grid-template-columns: 1fr; }
@@ -5220,7 +5230,8 @@
                     roles.forEach(role => {
                         const opt = document.createElement('option');
                         opt.value = role.id;
-                        opt.textContent = role.name;
+                        opt.textContent = role.assignable === false ? `${role.name} (bot cannot assign)` : role.name;
+                        if (role.assignable === false && !select.id.includes('bypass')) opt.disabled = true;
                         select.appendChild(opt);
                     });
                 });
@@ -8003,8 +8014,19 @@
                 if (settings.automod) {
                     setChecked('antispam-enabled', settings.automod.anti_spam || settings.automod.enabled);
                     setChecked('antilink-enabled', settings.automod.anti_link);
-                    setChecked('massmention-enabled', Boolean(settings.automod.max_mentions));
+                    setChecked('massmention-enabled', settings.automod.mention_enabled);
+                    setChecked('caps-enabled', settings.automod.caps_enabled);
+                    setChecked('profanity-enabled', settings.automod.profanity_enabled);
+                    setValue('antispam-threshold', settings.automod.spam_threshold || 5);
+                    setValue('antispam-action', settings.automod.spam_action || 'warn');
+                    setValue('antispam-duration', settings.automod.spam_duration || 600);
                     setValue('massmention-threshold', settings.automod.max_mentions || 5);
+                    setValue('massmention-action', settings.automod.mention_action || 'warn');
+                    setValue('antilink-type', settings.automod.link_type || (settings.automod.anti_invites ? 'invites' : 'external'));
+                    setValue('antilink-action', settings.automod.link_action || 'delete');
+                    setValue('caps-threshold', settings.automod.caps_threshold || 70);
+                    setValue('caps-action', settings.automod.caps_action || 'delete');
+                    setValue('profanity-action', settings.automod.profanity_action || 'delete');
                     
                     // Render bypass roles
                     const list = document.getElementById('bypass-roles-list');
@@ -8038,6 +8060,18 @@
                     anti_link: document.getElementById('antilink-enabled')?.checked || false,
                     anti_invites: ['invites', 'all'].includes(document.getElementById('antilink-type')?.value || ''),
                     max_mentions: parseInt(document.getElementById('massmention-threshold')?.value) || 5,
+                    spam_threshold: parseInt(document.getElementById('antispam-threshold')?.value) || 5,
+                    spam_action: document.getElementById('antispam-action')?.value || 'warn',
+                    spam_duration: parseInt(document.getElementById('antispam-duration')?.value) || 600,
+                    mention_enabled: document.getElementById('massmention-enabled')?.checked || false,
+                    mention_action: document.getElementById('massmention-action')?.value || 'warn',
+                    link_type: document.getElementById('antilink-type')?.value || 'external',
+                    link_action: document.getElementById('antilink-action')?.value || 'delete',
+                    caps_enabled: document.getElementById('caps-enabled')?.checked || false,
+                    caps_threshold: parseInt(document.getElementById('caps-threshold')?.value) || 70,
+                    caps_action: document.getElementById('caps-action')?.value || 'delete',
+                    profanity_enabled: document.getElementById('profanity-enabled')?.checked || false,
+                    profanity_action: document.getElementById('profanity-action')?.value || 'delete',
                     bypass_roles: Array.from(document.getElementById('bypass-roles-list').children).map(c => parseInt(c.dataset.id)).filter(Boolean)
                 }
             };
@@ -8214,7 +8248,7 @@
                     <label>Role</label>
                     <select class="rr-map-role guild-roles">
                         <option value="">Select Role...</option>
-                        ${(window.guildRoles || []).map(role => `<option value="${role.id}" ${String(role.id) === String(roleId) ? 'selected' : ''}>${escapeHtml(role.name)}</option>`).join('')}
+                        ${(window.guildRoles || []).map(role => `<option value="${role.id}" ${String(role.id) === String(roleId) ? 'selected' : ''} ${role.assignable === false ? 'disabled' : ''}>${escapeHtml(role.assignable === false ? `${role.name} (bot cannot assign)` : role.name)}</option>`).join('')}
                     </select>
                 </div>
                 <button class="btn btn-danger" onclick="this.closest('.reaction-map-row').remove()" style="height:42px;">
@@ -8308,10 +8342,11 @@
                 roles.forEach(role => {
                     const isChecked = (data.role_ids || []).map(Number).includes(parseInt(role.id));
                     const div = document.createElement('div');
-                    div.className = `role-checkbox ${isChecked ? 'active' : ''}`;
+                    const disabled = role.assignable === false;
+                    div.className = `role-checkbox ${isChecked ? 'active' : ''} ${disabled ? 'disabled' : ''}`;
                     div.innerHTML = `
-                        <input type="checkbox" value="${role.id}" ${isChecked ? 'checked' : ''} onchange="this.parentElement.classList.toggle('active')">
-                        <span>${escapeHtml(role.name)}</span>
+                        <input type="checkbox" value="${role.id}" ${isChecked ? 'checked' : ''} ${disabled ? 'disabled' : ''} onchange="this.parentElement.classList.toggle('active')">
+                        <span title="${disabled ? 'Move the bot role above this role in Discord first' : ''}">${escapeHtml(disabled ? `${role.name} (bot cannot assign)` : role.name)}</span>
                     `;
                     container.appendChild(div);
                 });

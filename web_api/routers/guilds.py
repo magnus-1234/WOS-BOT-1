@@ -197,14 +197,22 @@ async def get_guild_roles(guild_id: int, request: Request):
     roles = []
     # Sort roles by position, descending
     sorted_roles = sorted(guild.roles, key=lambda r: r.position, reverse=True)
+    bot_member = guild.me
     for role in sorted_roles:
         # Skip @everyone
         if role.name == "@everyone":
             continue
+        assignable = bool(
+            bot_member
+            and not role.managed
+            and role < bot_member.top_role
+        )
         roles.append({
             "id": str(role.id),
             "name": role.name,
             "color": hex(role.color.value) if role.color.value else "#99aab5",
-            "position": role.position
+            "position": role.position,
+            "managed": role.managed,
+            "assignable": assignable
         })
     return roles

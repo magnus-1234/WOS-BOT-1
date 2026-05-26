@@ -15,6 +15,18 @@ class AutoModSettings(BaseModel):
     anti_invites: bool
     max_mentions: int
     bypass_roles: List[int]
+    spam_threshold: Optional[int] = 5
+    spam_action: Optional[str] = "warn"
+    spam_duration: Optional[int] = 600
+    mention_enabled: Optional[bool] = False
+    mention_action: Optional[str] = "warn"
+    link_type: Optional[str] = "external"
+    link_action: Optional[str] = "delete"
+    caps_enabled: Optional[bool] = False
+    caps_threshold: Optional[int] = 70
+    caps_action: Optional[str] = "delete"
+    profanity_enabled: Optional[bool] = False
+    profanity_action: Optional[str] = "delete"
 
 class LoggingSettings(BaseModel):
     enabled: bool

@@ -947,6 +947,7 @@ async def setup_hook():
         "cogs.ai_chat",  # AI Chat functionality on mentions/DMs
         "cogs.registration_admin",  # Self-service server registration review (global admin)
         "cogs.role_menu",  # Dashboard reaction roles and auto roles
+        "cogs.moderation",  # Dashboard AutoMod and moderation logging
         # NOTE: cogs.start_menu removed from here — it was duplicated (also at top of list)
         # "cogs.debug_mongo_cog",  # Removed — debug tools moved to /settings button
     ]

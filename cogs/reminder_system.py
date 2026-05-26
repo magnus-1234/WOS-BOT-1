@@ -1345,6 +1345,13 @@ class ReminderSystem(commands.Cog):
                     success = self.storage.update_reminder_time(reminder['id'], next_time)
                     if not success:
                         logger.warning(f'Failed to update reminder time for {reminder.get("id")} via storage.update_reminder_time')
+                elif hasattr(self.storage, 'update_reminder_fields'):
+                    success = self.storage.update_reminder_fields(reminder['id'], {
+                        'reminder_time': next_time.isoformat(),
+                        'is_sent': 0
+                    })
+                    if not success:
+                        logger.warning(f'Failed to update reminder time for {reminder.get("id")} via storage.update_reminder_fields')
                 else:
                     # Fallback to SQLite behaviour if original storage is in use
                     with sqlite3.connect(self.storage.db_path) as conn:

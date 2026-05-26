@@ -3,10 +3,10 @@
 
 <head>
     <script>
-        let savedTheme = localStorage.getItem('theme') || 'cyberpunk-cool';
+        let savedTheme = localStorage.getItem('theme') || 'high-contrast';
     if (savedTheme === 'viper') {
-      savedTheme = 'cyberpunk-cool';
-      localStorage.setItem('theme', 'cyberpunk-cool');
+      savedTheme = 'high-contrast';
+      localStorage.setItem('theme', 'high-contrast');
     }
         if (savedTheme && savedTheme !== 'dark') {
             document.documentElement.setAttribute('data-theme', savedTheme);
@@ -56,7 +56,7 @@
             --glass-border: #ffffff;
             --text-main: #ffffff;
             --text-muted: #e0e0e0;
-            --primary: #00f0ff;
+            --primary: #ffffff;
         }
 
         [data-theme="high-contrast"] .sidebar,
@@ -338,7 +338,7 @@
         }
 
         .nav-group {
-            margin-bottom: 24px;
+            margin-bottom: 8px;
         }
 
         .nav-item {

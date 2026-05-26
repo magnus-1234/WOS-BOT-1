@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="cyberpunk-cool">
+<html lang="en" data-theme="high-contrast">
 
 <head>
   <script>
-    let savedTheme = localStorage.getItem('theme') || 'cyberpunk-cool';
+    let savedTheme = localStorage.getItem('theme') || 'high-contrast';
     if (savedTheme === 'viper') {
-      savedTheme = 'cyberpunk-cool';
-      localStorage.setItem('theme', 'cyberpunk-cool');
+      savedTheme = 'high-contrast';
+      localStorage.setItem('theme', 'high-contrast');
     }
     if (savedTheme && savedTheme !== 'dark') {
       document.documentElement.setAttribute('data-theme', savedTheme);
@@ -62,7 +62,8 @@
       --glass-border: #ffffff;
       --text-main: #ffffff;
       --text-muted: #e0e0e0;
-      --primary: #00f0ff;
+      --primary: #ffffff;
+      --accent: #ff003c;
       --gradient-brand: linear-gradient(135deg, #fff 0%, #00f0ff 100%);
     }
 

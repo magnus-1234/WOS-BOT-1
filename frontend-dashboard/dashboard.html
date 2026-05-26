@@ -23,15 +23,27 @@
   
   <style>
     :root {
-      --primary: #6366f1;
-      --primary-glow: rgba(99, 102, 241, 0.5);
+      --primary: #ffffff;
+      --primary-glow: rgba(255, 255, 255, 0.3);
       --accent: #f43f5e;
-      --bg-dark: #030712;
-      --card-bg: rgba(17, 24, 39, 0.7);
-      --glass-border: rgba(255, 255, 255, 0.05);
+      --bg-dark: #0f172a;
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --gradient-brand: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+    }
+
+    [data-theme="cyberpunk-cool"] {
+      --primary: #00ffff;
+      --primary-glow: rgba(0, 255, 255, 0.5);
+      --accent: #ff00ea;
+      --bg-dark: #000000;
+      --card-bg: rgba(10, 10, 15, 0.85);
+      --glass-border: rgba(0, 255, 255, 0.1);
       --text-main: #f9fafb;
-      --text-muted: #9ca3af;
-      --gradient-brand: linear-gradient(135deg, #fff 0%, #9ca3af 100%);
+      --text-muted: #6b7280;
+      --gradient-brand: linear-gradient(135deg, #00ffff 0%, #ff00ea 100%);
     }
 
     [data-theme="light"] {
@@ -352,7 +364,9 @@
     .theme-toggle .moon-icon,
     .theme-toggle .contrast-icon,
     .theme-toggle .hacker-icon,
-    .theme-toggle .cartoon-icon { display: none;  }
+    .theme-toggle .cartoon-icon,
+    .theme-toggle .aurora-icon,
+    .theme-toggle .cyberpunk-cool-icon { display: none;  }
 
     [data-theme="light"] .theme-toggle .sun-icon  { display: none;  }
     [data-theme="light"] .theme-toggle .moon-icon { display: block; }
@@ -365,6 +379,12 @@
 
     [data-theme="cartoon"] .theme-toggle .sun-icon  { display: none;  }
     [data-theme="cartoon"] .theme-toggle .cartoon-icon { display: block !important; }
+
+    [data-theme="aurora"] .theme-toggle .sun-icon  { display: none;  }
+    [data-theme="aurora"] .theme-toggle .aurora-icon { display: block !important; }
+
+    [data-theme="cyberpunk-cool"] .theme-toggle .sun-icon  { display: none;  }
+    [data-theme="cyberpunk-cool"] .theme-toggle .cyberpunk-cool-icon { display: block !important; }
 
     * {
       box-sizing: border-box;

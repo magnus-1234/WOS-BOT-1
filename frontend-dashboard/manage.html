@@ -23,8 +23,8 @@
     
     <style>
         :root {
-            --primary: #8b5cf6; /* Purple like the screenshot */
-            --primary-hover: #7c3aed;
+            --primary: #ffffff;
+            --primary-hover: #e2e8f0;
             --accent: #f59e0b;
             --bg-dark: #0f1115;
             --sidebar-bg: #16191f;
@@ -120,13 +120,15 @@
     
     [data-theme="cyberpunk-cool"] {
       --radius: 8px;
-      --bg-dark: #030712;
-      --card-bg: rgba(17, 24, 39, 0.7);
-      --glass-border: rgba(255, 255, 255, 0.05);
+      --bg-dark: #000000;
+      --sidebar-bg: #050505;
+      --card-bg: rgba(10, 10, 15, 0.85);
+      --glass-border: rgba(0, 255, 255, 0.1);
       --text-main: #f9fafb;
-      --text-muted: #9ca3af;
-      --primary: #6366f1;
-      --gradient-brand: linear-gradient(135deg, #fff 0%, #9ca3af 100%);
+      --text-muted: #6b7280;
+      --primary: #00ffff;
+      --primary-hover: #00cccc;
+      --gradient-brand: linear-gradient(135deg, #00ffff 0%, #ff00ff 100%);
     }
 
     @keyframes cartoonBgShift {
@@ -296,7 +298,7 @@
             font-family: 'Outfit', sans-serif;
             font-size: 1.15rem;
             font-weight: 800;
-            background: linear-gradient(135deg, #ffffff 0%, #a78bfa 100%);
+            background: linear-gradient(135deg, #ffffff 0%, #9ca3af 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             letter-spacing: -0.5px;
@@ -353,7 +355,7 @@
             border: none;
             background: transparent;
             width: 100%;
-            margin-bottom: 4px;
+            margin-bottom: 8px;
             font-size: 0.95rem;
         }
 
@@ -363,7 +365,7 @@
         }
 
         .nav-item.active {
-            background: rgba(139, 92, 246, 0.15);
+            background: rgba(255, 255, 255, 0.1);
             color: var(--primary);
             border-left: 3px solid var(--primary);
             border-radius: 4px 10px 10px 4px;
@@ -1679,7 +1681,9 @@
         .theme-toggle .moon-icon,
         .theme-toggle .contrast-icon,
         .theme-toggle .hacker-icon,
-        .theme-toggle .cartoon-icon { display: none;  }
+        .theme-toggle .cartoon-icon,
+        .theme-toggle .aurora-icon,
+        .theme-toggle .cyberpunk-cool-icon { display: none;  }
 
         [data-theme="light"] .theme-toggle .sun-icon  { display: none;  }
         [data-theme="light"] .theme-toggle .moon-icon { display: block; }
@@ -1692,6 +1696,12 @@
 
         [data-theme="cartoon"] .theme-toggle .sun-icon  { display: none;  }
         [data-theme="cartoon"] .theme-toggle .cartoon-icon { display: block !important; }
+
+        [data-theme="aurora"] .theme-toggle .sun-icon  { display: none;  }
+        [data-theme="aurora"] .theme-toggle .aurora-icon { display: block !important; }
+
+        [data-theme="cyberpunk-cool"] .theme-toggle .sun-icon  { display: none;  }
+        [data-theme="cyberpunk-cool"] .theme-toggle .cyberpunk-cool-icon { display: block !important; }
 
         /* ── Moderation Tab Styles ─────────────────────────────────────── */
         .mod-hero {
@@ -2047,6 +2057,8 @@
                     <svg class="contrast-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke-width="2"/></svg>
                     <svg class="hacker-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 16 4-4-4-4M6 8l-4 4 4 4M14.5 4l-5 16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     <svg class="cartoon-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke-width="2"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <svg class="aurora-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"><path d="M2 8c4-4 6 4 10 0s6-4 10 0M2 13c4-4 6 4 10 0s6-4 10 0M2 18c4-4 6 4 10 0s6-4 10 0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <svg class="cyberpunk-cool-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
                 <div class="user-profile-wrapper" id="user-profile-wrapper">
                     <div class="user-profile" id="user-profile-trigger">

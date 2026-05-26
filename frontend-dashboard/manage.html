@@ -1982,85 +1982,6 @@
                 </div>
             </div>
 
-            <!-- Role Menu Tab -->
-            <div id="tab-roles" class="tab-content">
-                <div class="mod-hero">
-                    <div class="mod-hero-icon" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">
-                        <i data-lucide="users"></i>
-                    </div>
-                    <div>
-                        <h2 style="font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:4px;">
-                            Role Management
-                        </h2>
-                        <p style="color:var(--text-muted);font-size:0.9rem;max-width:540px;line-height:1.5;">
-                            Configure reaction roles for self-assignment and auto-roles for new members.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="mod-subtab-bar" style="margin-top: 24px;">
-                    <button class="mod-subtab active" id="rst-reaction" onclick="switchRoleSubtab('reaction')">
-                        <i data-lucide="smile"></i> Reaction Roles
-                    </button>
-                    <button class="mod-subtab" id="rst-auto" onclick="switchRoleSubtab('auto')">
-                        <i data-lucide="user-plus"></i> Auto Roles
-                    </button>
-                </div>
-
-                <!-- Reaction Roles Sub-tab -->
-                <div id="role-subtab-reaction" class="mod-subtab-content active">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
-                        <section class="card glass-card">
-                            <h3 class="card-title"><i data-lucide="plus-circle"></i> Add Reaction Role</h3>
-                            <div class="form-group">
-                                <label>Message ID</label>
-                                <input type="text" id="rr-message-id" placeholder="Enter Discord Message ID">
-                            </div>
-                            <div class="form-group">
-                                <label>Emoji</label>
-                                <input type="text" id="rr-emoji" placeholder="e.g. :white_check_mark: or 🛡️">
-                            </div>
-                            <div class="form-group">
-                                <label>Role</label>
-                                <select id="rr-role-id" class="guild-roles">
-                                    <option value="">Select Role</option>
-                                </select>
-                            </div>
-                            <button onclick="addReactionRole()" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
-                                <i data-lucide="plus"></i> Add Reaction Role
-                            </button>
-                        </section>
-
-                        <section class="card glass-card">
-                            <h3 class="card-title"><i data-lucide="list"></i> Active Reaction Roles</h3>
-                            <div id="rr-list" class="mod-log-container" style="height: 300px;">
-                                <div class="empty-state">Loading reaction roles...</div>
-                            </div>
-                        </section>
-                    </div>
-                </div>
-
-                <!-- Auto Roles Sub-tab -->
-                <div id="role-subtab-auto" class="mod-subtab-content">
-                    <section class="card glass-card" style="margin-top: 20px;">
-                        <h3 class="card-title"><i data-lucide="user-plus"></i> Auto Roles on Join</h3>
-                        <p style="color: var(--text-muted); margin-bottom: 16px;">
-                            Select roles that will be automatically granted to new members when they join the server.
-                        </p>
-                        <div class="form-group">
-                            <label>Auto-Assign Roles</label>
-                            <div id="auto-roles-container" class="roles-selector-grid">
-                                <!-- Populated via JS -->
-                            </div>
-                        </div>
-                        <div style="display:flex; justify-content:flex-end; margin-top: 20px;">
-                            <button onclick="saveAutoRoles()" class="btn btn-primary">
-                                <i data-lucide="save"></i> Save Auto Roles
-                            </button>
-                        </div>
-                    </section>
-                </div>
-            </div>
         </div>
 
         <div class="sidebar-nav">
@@ -3431,20 +3352,6 @@
                         </button>
                     </div>
 
-                    <!-- Purge Messages -->
-                    <div class="mod-action-card purge-card" onclick="openModAction('purge')">
-                        <div class="action-card-icon" style="background:rgba(139,92,246,0.12);color:#a78bfa;">
-                            <i data-lucide="trash-2"></i>
-                        </div>
-                        <div>
-                            <div class="action-card-title">🗑️ Purge Messages</div>
-                            <div class="action-card-desc">Bulk delete up to 100 messages from a channel, with optional user filter.</div>
-                        </div>
-                        <button class="btn" style="background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.25);width:100%;justify-content:center;">
-                            <i data-lucide="trash-2" style="width:14px;"></i> Purge Channel
-                        </button>
-                    </div>
-
                 </div>
 
                 <!-- Recent Actions by Moderators -->
@@ -4657,9 +4564,6 @@
                 loadModStats();
                 loadModSettings();
             }
-            if (tabName === 'roles') {
-                loadReactionRoles();
-            }
             lucide.createIcons();
         }
 
@@ -5183,7 +5087,8 @@
                 
                 // Also load roles for the roles dropdowns
                 const roles = await fetchData(`/api/guilds/${guildId}/roles`);
-                const roleSelects = document.querySelectorAll('.guild-roles, #rr-role-id, #automod-bypass-roles');
+                window.guildRoles = roles || [];
+                const roleSelects = document.querySelectorAll('.guild-roles, #automod-bypass-roles');
                 roleSelects.forEach(select => {
                     select.innerHTML = '<option value="">Select Role</option>';
                     roles.forEach(role => {
@@ -5451,7 +5356,7 @@
             }
         }
 
-        const escapeHtml = str => str ? String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)) : 'Unknown User';
+        const escapeHtml = str => String(str ?? '').replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
         let _birthdayRecords = [];
 
         async function loadBirthdaySettings() {
@@ -7783,8 +7688,8 @@
         })();
         // ── Moderation & Role Menu JavaScript ──────────────────────────
         async function switchModSubtab(subtabId) {
-            document.querySelectorAll('.mod-subtab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.mod-subtab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('#tab-moderation > .mod-subtab-bar .mod-subtab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#tab-moderation > .mod-subtab-content').forEach(c => c.classList.remove('active'));
             
             const tabBtn = document.getElementById(`mst-${subtabId}`);
             const tabContent = document.getElementById(`modst-${subtabId}`);
@@ -7809,8 +7714,7 @@
                 'mute': 'Apply Timeout',
                 'kick': 'Kick Member',
                 'ban': 'Ban User',
-                'unban': 'Unban User',
-                'purge': 'Purge Messages'
+                'unban': 'Unban User'
             };
             document.getElementById('mod-action-title').textContent = titleMap[actionType] || 'Moderation Action';
             
@@ -7823,6 +7727,36 @@
 
         function closeModActionModal() {
             document.getElementById('mod-action-modal').style.display = 'none';
+        }
+
+        function toggleRuleCard(cardId, checkbox) {
+            const card = document.getElementById(cardId);
+            if (card) card.classList.toggle('active', Boolean(checkbox && checkbox.checked));
+        }
+
+        function addBypassRole() {
+            const select = document.getElementById('automod-bypass-roles');
+            const list = document.getElementById('bypass-roles-list');
+            if (!select || !list || !select.value) {
+                showNotification('Select a role first', true);
+                return;
+            }
+            if (list.querySelector(`[data-id="${select.value}"]`)) {
+                showNotification('That bypass role is already added', true);
+                return;
+            }
+            const div = document.createElement('div');
+            div.className = 'blacklist-tag';
+            div.dataset.id = select.value;
+            div.innerHTML = `@${escapeHtml(getRoleName(select.value))} <button onclick="removeBypassRole('${select.value}')"><i data-lucide="x" style="width:14px;"></i></button>`;
+            list.appendChild(div);
+            select.value = '';
+            lucide.createIcons();
+        }
+
+        function removeBypassRole(roleId) {
+            const item = document.querySelector(`#bypass-roles-list [data-id="${roleId}"]`);
+            if (item) item.remove();
         }
 
         async function submitModAction() {
@@ -7852,9 +7786,9 @@
             }
         }
 
-        async function loadModLog() {
+        async function loadModLog(limit = 100) {
             try {
-                const logs = await fetchData(`/api/moderation/${guildId}/actions`);
+                const logs = await fetchData(`/api/moderation/${guildId}/actions?limit=${limit}`);
                 const list = document.getElementById('audit-log-list');
                 const recentList = document.getElementById('recent-mod-log');
                 
@@ -7866,7 +7800,7 @@
                                 <span class="log-action-badge log-badge-${log.action_type.toLowerCase()}">${log.action_type}</span>
                                 <div class="log-meta">
                                     <strong>Target ID: ${log.user_id}</strong>
-                                    <span>Reason: ${log.reason || 'None'} • Mod ID: ${log.moderator_id}</span>
+                                    <span>Reason: ${escapeHtml(log.reason || 'None')} • Mod ID: ${log.moderator_id}</span>
                                 </div>
                                 <span class="log-time">${new Date(log.created_at).toLocaleString()}</span>
                             </div>
@@ -7878,17 +7812,42 @@
                 
                 if (list) list.innerHTML = html;
                 if (recentList) recentList.innerHTML = html;
+                window.currentAuditLogs = logs || [];
             } catch (e) {
                 console.error('Failed to load audit log:', e);
             }
         }
 
+        function filterAuditLog() {
+            const type = document.getElementById('audit-filter-type')?.value || 'all';
+            const query = (document.getElementById('audit-search')?.value || '').toLowerCase();
+            const rows = document.querySelectorAll('#audit-log-list .mod-log-entry');
+            rows.forEach(row => {
+                const action = row.querySelector('.log-action-badge')?.textContent?.toLowerCase() || '';
+                const text = row.textContent.toLowerCase();
+                const matchesType = type === 'all' || action === type;
+                const matchesQuery = !query || text.includes(query);
+                row.style.display = matchesType && matchesQuery ? '' : 'none';
+            });
+        }
+
+        async function loadMoreAuditLog() {
+            try {
+                const current = window.currentAuditLogs?.length || 100;
+                await loadModLog(current + 100);
+            } catch (e) {
+                showNotification('Failed to load more audit entries', true);
+            }
+        }
+
         async function switchRoleSubtab(subtabId) {
-            document.querySelectorAll('.mod-subtab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.mod-subtab-content').forEach(c => c.classList.remove('active'));
+            const roleRoot = document.getElementById('modst-roles');
+            if (!roleRoot) return;
+            roleRoot.querySelectorAll('.mod-subtab').forEach(t => t.classList.remove('active'));
+            roleRoot.querySelectorAll(':scope > .mod-subtab-content').forEach(c => c.classList.remove('active'));
             
-            const tabBtn = document.getElementById(`rst-${subtabId}`);
-            const tabContent = document.getElementById(`role-subtab-${subtabId}`);
+            const tabBtn = roleRoot.querySelector(`#rst-${subtabId}`);
+            const tabContent = roleRoot.querySelector(`#role-subtab-${subtabId}`);
             
             if (tabBtn) tabBtn.classList.add('active');
             if (tabContent) tabContent.classList.add('active');
@@ -7923,11 +7882,11 @@
                     // Render bypass roles
                     const list = document.getElementById('bypass-roles-list');
                     list.innerHTML = '';
-                    settings.automod.bypass_roles.forEach(roleId => {
-                        const roleName = getRoleName(roleId);
+                    (settings.automod.bypass_roles || []).forEach(roleId => {
                         const div = document.createElement('div');
                         div.className = 'blacklist-tag';
-                        div.innerHTML = `@${roleName} <button onclick="removeBypassRole('${roleId}')"><i data-lucide="x" style="width:14px;"></i></button>`;
+                        div.dataset.id = String(roleId);
+                        div.innerHTML = `@${escapeHtml(getRoleName(roleId))} <button onclick="removeBypassRole('${roleId}')"><i data-lucide="x" style="width:14px;"></i></button>`;
                         list.appendChild(div);
                     });
                 }
@@ -7950,7 +7909,7 @@
                     anti_link: document.getElementById('automod-links').checked,
                     anti_invites: document.getElementById('automod-invites').checked,
                     max_mentions: parseInt(document.getElementById('automod-mentions').value) || 5,
-                    bypass_roles: Array.from(document.getElementById('bypass-roles-list').children).map(c => c.dataset.id)
+                    bypass_roles: Array.from(document.getElementById('bypass-roles-list').children).map(c => parseInt(c.dataset.id)).filter(Boolean)
                 }
             };
             
@@ -7974,7 +7933,8 @@
                     data.words.forEach(word => {
                         const div = document.createElement('div');
                         div.className = 'blacklist-tag';
-                        div.innerHTML = `${word} <button onclick="removeBlacklistWord('${word}')"><i data-lucide="x" style="width:14px;"></i></button>`;
+                        div.dataset.word = word;
+                        div.innerHTML = `${escapeHtml(word)} <button onclick="removeBlacklistWord('${encodeURIComponent(word)}')"><i data-lucide="x" style="width:14px;"></i></button>`;
                         list.appendChild(div);
                     });
                 } else {
@@ -7986,8 +7946,41 @@
             }
         }
 
+        function addBlacklistWord() {
+            const input = document.getElementById('blacklist-input');
+            const list = document.getElementById('blacklist-words');
+            const value = input?.value?.trim();
+            if (!input || !list || !value) {
+                showNotification('Enter a word, phrase, regex, or domain', true);
+                return;
+            }
+            const existing = Array.from(list.querySelectorAll('.blacklist-tag')).some(item => item.dataset.word === value);
+            if (existing) {
+                showNotification('That blacklist entry already exists', true);
+                return;
+            }
+            if (!list.querySelector('.blacklist-tag')) list.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'blacklist-tag';
+            div.dataset.word = value;
+            div.innerHTML = `${escapeHtml(value)} <button onclick="removeBlacklistWord('${encodeURIComponent(value)}')"><i data-lucide="x" style="width:14px;"></i></button>`;
+            list.appendChild(div);
+            input.value = '';
+            lucide.createIcons();
+        }
+
+        function removeBlacklistWord(encodedWord) {
+            const word = decodeURIComponent(encodedWord);
+            const item = Array.from(document.querySelectorAll('#blacklist-words .blacklist-tag')).find(tag => tag.dataset.word === word);
+            if (item) item.remove();
+            const list = document.getElementById('blacklist-words');
+            if (list && !list.querySelector('.blacklist-tag')) {
+                list.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem;">No words blacklisted yet.</span>';
+            }
+        }
+
         async function saveBlacklistSettings() {
-            const words = Array.from(document.getElementById('blacklist-words').querySelectorAll('.blacklist-tag')).map(t => t.textContent.trim().split(' ')[0]);
+            const words = Array.from(document.getElementById('blacklist-words').querySelectorAll('.blacklist-tag')).map(t => t.dataset.word || t.textContent.trim()).filter(Boolean);
             try {
                 await fetchData(`/api/moderation/${guildId}/blacklist`, {
                     method: 'POST',
@@ -8015,10 +8008,10 @@
                                 <i data-lucide="smile"></i>
                             </div>
                             <div class="mod-log-details">
-                                <strong>${rr.emoji}</strong> on Message <code>${rr.message_id}</code>
+                                <strong>${escapeHtml(rr.emoji)}</strong> on Message <code>${rr.message_id}</code>
                                 <p>Role: ${getRoleName(rr.role_id)}</p>
                             </div>
-                            <button onclick="removeReactionRole('${rr.message_id}', '${rr.emoji}')" class="btn btn-danger" style="padding:4px 8px;">
+                            <button onclick="removeReactionRole('${rr.message_id}', '${encodeURIComponent(rr.emoji)}')" class="btn btn-danger" style="padding:4px 8px;">
                                 <i data-lucide="trash-2" style="width:14px;"></i>
                             </button>
                         `;
@@ -8034,21 +8027,27 @@
         }
 
         async function addReactionRole() {
-            const messageId = document.getElementById('rr-message-id').value;
-            const emoji = document.getElementById('rr-emoji').value;
+            const messageId = document.getElementById('rr-message-id').value.trim();
+            const emoji = document.getElementById('rr-emoji').value.trim();
             const roleId = document.getElementById('rr-role-id').value;
             
             if (!messageId || !emoji || !roleId) {
                 showNotification('Please fill all fields', true);
                 return;
             }
+            if (!/^\d{15,25}$/.test(messageId)) {
+                showNotification('Enter a valid Discord message ID', true);
+                return;
+            }
             
             try {
                 await fetchData(`/api/roles/${guildId}/reaction`, {
                     method: 'POST',
-                    body: JSON.stringify({ message_id: messageId, emoji, role_id: roleId })
+                    body: JSON.stringify({ message_id: parseInt(messageId), emoji, role_id: parseInt(roleId) })
                 });
                 showNotification('Reaction role added!');
+                document.getElementById('rr-message-id').value = '';
+                document.getElementById('rr-emoji').value = '';
                 loadReactionRoles();
             } catch (e) {
                 showNotification('Failed to add reaction role', true);
@@ -8071,16 +8070,16 @@
             try {
                 const data = await fetchData(`/api/roles/${guildId}/auto`);
                 const container = document.getElementById('auto-roles-container');
-                const roles = await fetchData(`/api/guilds/${guildId}/roles`);
+                const roles = window.guildRoles || await fetchData(`/api/guilds/${guildId}/roles`);
                 
                 container.innerHTML = '';
                 roles.forEach(role => {
-                    const isChecked = data.role_ids.includes(parseInt(role.id));
+                    const isChecked = (data.role_ids || []).map(Number).includes(parseInt(role.id));
                     const div = document.createElement('div');
                     div.className = `role-checkbox ${isChecked ? 'active' : ''}`;
                     div.innerHTML = `
                         <input type="checkbox" value="${role.id}" ${isChecked ? 'checked' : ''} onchange="this.parentElement.classList.toggle('active')">
-                        <span>${role.name}</span>
+                        <span>${escapeHtml(role.name)}</span>
                     `;
                     container.appendChild(div);
                 });
@@ -8104,11 +8103,14 @@
 
         function getRoleName(roleId) {
             // Helper to get role name from loaded roles
+            const role = (window.guildRoles || []).find(r => String(r.id) === String(roleId));
+            if (role) return role.name;
             const select = document.querySelector('.guild-roles');
             if (!select) return roleId;
             const option = select.querySelector(`option[value="${roleId}"]`);
             return option ? option.textContent : roleId;
         }
+
     </script>
     <div id="create-preset-modal" class="modal">
         <div class="modal-content" style="max-width: 960px;">

@@ -22,6 +22,9 @@ async def get_reaction_roles(guild_id: int):
 
 @router.post("/api/roles/{guild_id}/reaction")
 async def add_reaction_role(guild_id: int, data: ReactionRoleAdd):
+    data.emoji = data.emoji.strip()
+    if not data.emoji:
+        raise HTTPException(status_code=400, detail="Emoji is required")
     success = await ReactionRolesAdapter.add_reaction_role(guild_id, data.message_id, data.emoji, data.role_id)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to add reaction role")
@@ -41,7 +44,8 @@ async def get_auto_roles(guild_id: int):
 
 @router.post("/api/roles/{guild_id}/auto")
 async def update_auto_roles(guild_id: int, data: AutoRolesUpdate):
-    success = await AutoRolesAdapter.set_auto_roles(guild_id, data.role_ids)
+    role_ids = sorted({int(role_id) for role_id in data.role_ids})
+    success = await AutoRolesAdapter.set_auto_roles(guild_id, role_ids)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to update auto roles")
     return {"status": "success"}

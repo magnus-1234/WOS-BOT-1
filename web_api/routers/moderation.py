@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 import logging
+import discord
 from db.moderation_adapters import ModerationSettingsAdapter, ModerationActionsAdapter, BlacklistAdapter
 
 logger = logging.getLogger(__name__)
@@ -82,12 +83,43 @@ async def execute_mod_action(guild_id: int, request: Request, data: ModActionReq
     # Retrieve user from auth session if exists, else default to 0 for dashboard actions
     user = request.session.get("user") if hasattr(request, "session") else None
     moderator_id = int(user["id"]) if user and "id" in user else 0
+    action = data.action.lower().strip()
+    if action not in {"warn", "mute", "kick", "ban", "unban"}:
+        raise HTTPException(status_code=400, detail="Unsupported moderation action")
+
+    bot = getattr(request.app.state, "bot", None)
+    if not bot:
+        raise HTTPException(status_code=503, detail="Discord bot is not available")
+
+    guild = bot.get_guild(int(guild_id))
+    if not guild:
+        raise HTTPException(status_code=404, detail="Guild not found")
+
+    try:
+        if action == "warn":
+            pass
+        elif action == "mute":
+            from datetime import datetime, timedelta, timezone
+            member = guild.get_member(int(data.user_id)) or await guild.fetch_member(int(data.user_id))
+            minutes = max(1, min(int(data.duration or 10), 40320))
+            until = datetime.now(timezone.utc) + timedelta(minutes=minutes)
+            await member.timeout(until, reason=data.reason or "Dashboard moderation action")
+        elif action == "kick":
+            member = guild.get_member(int(data.user_id)) or await guild.fetch_member(int(data.user_id))
+            await member.kick(reason=data.reason or "Dashboard moderation action")
+        elif action == "ban":
+            await guild.ban(discord.Object(id=int(data.user_id)), reason=data.reason or "Dashboard moderation action")
+        elif action == "unban":
+            await guild.unban(discord.Object(id=int(data.user_id)), reason=data.reason or "Dashboard moderation action")
+    except Exception as e:
+        logger.error(f"Failed to execute {action} in guild {guild_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Discord action failed: {e}")
     
     success = await ModerationActionsAdapter.add_action(
         guild_id=guild_id,
         user_id=data.user_id,
         moderator_id=moderator_id,
-        action_type=data.action.title(),
+        action_type=action,
         reason=data.reason,
         duration=data.duration
     )

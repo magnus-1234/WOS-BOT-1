@@ -2111,10 +2111,7 @@
                     <span>Moderation</span>
                     <span style="margin-left:auto;background:linear-gradient(135deg,#ef4444,#f97316);color:#fff;font-size:0.6rem;font-weight:800;padding:2px 7px;border-radius:99px;letter-spacing:0.5px;">NEW</span>
                 </button>
-                <button class="nav-item" id="nav-roles" onclick="switchTab('roles')">
-                    <i data-lucide="user-plus"></i>
-                    <span>Role Menu</span>
-                </button>
+
             </div>
         </div>
 
@@ -3087,6 +3084,9 @@
                 <button class="mod-subtab" id="mst-audit" onclick="switchModSubtab('audit')">
                     <i data-lucide="scroll-text"></i> Audit Log
                 </button>
+                <button class="mod-subtab" id="mst-roles" onclick="switchModSubtab('roles')">
+                    <i data-lucide="users"></i> Role Menu
+                </button>
             </div>
 
             <!-- ═══ SUB-TAB: AUTO MOD ═══ -->
@@ -3801,12 +3801,103 @@
                 </div>
             </div><!-- /modst-audit -->
 
+            <!-- ═══ SUB-TAB: ROLES ═══ -->
+            <div id="modst-roles" class="mod-subtab-content">
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-family:'Outfit',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:4px;">Server Roles</h3>
+                    <p style="font-size:0.85rem;color:var(--text-muted);">Manage Auto Roles for new members and Reaction Roles for specific messages.</p>
+                </div>
+                
+                <div style="display:flex;gap:10px;margin-bottom:20px;">
+                    <button class="mod-subtab active" id="rst-reaction" onclick="switchRoleSubtab('reaction')">Reaction Roles</button>
+                    <button class="mod-subtab" id="rst-auto" onclick="switchRoleSubtab('auto')">Auto Roles</button>
+                </div>
+
+                <!-- Reaction Roles -->
+                <div id="role-subtab-reaction" class="mod-subtab-content active">
+                    <div class="card" style="margin-bottom:20px;">
+                        <h4 style="margin-bottom:12px;font-weight:600;">Add Reaction Role</h4>
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end;">
+                            <div class="form-group" style="margin:0;">
+                                <label>Message ID</label>
+                                <input type="text" id="rr-message-id" placeholder="e.g. 1234567890">
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label>Emoji</label>
+                                <input type="text" id="rr-emoji" placeholder="e.g. 👍">
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label>Role</label>
+                                <select id="rr-role-id" class="guild-roles">
+                                    <option value="">Select Role...</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" onclick="addReactionRole()" style="height:46px;margin-bottom:0;">
+                                <i data-lucide="plus" style="width:16px;"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <h4 style="margin-bottom:12px;font-weight:600;">Active Reaction Roles</h4>
+                    <div id="rr-list" class="mod-log-list">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Auto Roles -->
+                <div id="role-subtab-auto" class="mod-subtab-content">
+                    <div class="card">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                            <div>
+                                <h4 style="font-weight:600;margin-bottom:4px;">Auto Roles on Join</h4>
+                                <p style="font-size:0.85rem;color:var(--text-muted);">These roles will be automatically assigned to new members.</p>
+                            </div>
+                            <button class="btn btn-primary" onclick="saveAutoRoles()">
+                                <i data-lucide="save" style="width:16px;"></i> Save
+                            </button>
+                        </div>
+                        <div id="auto-roles-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
+                            <!-- Checkboxes populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /modst-roles -->
         </div><!-- /tab-moderation -->
 
     </div><!-- /content-area -->
 </div><!-- /main-container -->
 
     <!-- Modals -->
+    <div id="mod-action-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="mod-action-title">Moderation Action</h3>
+                <button onclick="closeModActionModal()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="mod-action-type">
+                <div class="form-group">
+                    <label>User ID</label>
+                    <input type="text" id="mod-action-userid" placeholder="e.g. 123456789012345678">
+                </div>
+                <div class="form-group">
+                    <label>Reason</label>
+                    <input type="text" id="mod-action-reason" placeholder="Optional reason for audit log">
+                </div>
+                <div class="form-group" id="mod-action-duration-group" style="display:none;">
+                    <label>Duration (Minutes)</label>
+                    <input type="number" id="mod-action-duration" value="10" min="1">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModActionModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitModAction()">Submit</button>
+            </div>
+        </div>
+    </div>
+
     <div id="translate-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -7704,6 +7795,92 @@
             if (subtabId === 'blacklist') loadBlacklist();
             if (subtabId === 'log-settings') loadModSettings();
             if (subtabId === 'automod') loadModSettings();
+            if (subtabId === 'roles') switchRoleSubtab('reaction');
+            if (subtabId === 'audit') loadModLog();
+        }
+
+        // Manual Moderation Actions
+        function openModAction(actionType) {
+            document.getElementById('mod-action-modal').style.display = 'flex';
+            document.getElementById('mod-action-type').value = actionType;
+            
+            const titleMap = {
+                'warn': 'Issue Warning',
+                'mute': 'Apply Timeout',
+                'kick': 'Kick Member',
+                'ban': 'Ban User',
+                'unban': 'Unban User',
+                'purge': 'Purge Messages'
+            };
+            document.getElementById('mod-action-title').textContent = titleMap[actionType] || 'Moderation Action';
+            
+            if (actionType === 'mute') {
+                document.getElementById('mod-action-duration-group').style.display = 'block';
+            } else {
+                document.getElementById('mod-action-duration-group').style.display = 'none';
+            }
+        }
+
+        function closeModActionModal() {
+            document.getElementById('mod-action-modal').style.display = 'none';
+        }
+
+        async function submitModAction() {
+            const action = document.getElementById('mod-action-type').value;
+            const userId = document.getElementById('mod-action-userid').value;
+            const reason = document.getElementById('mod-action-reason').value;
+            const duration = document.getElementById('mod-action-duration').value;
+            
+            if (!userId) {
+                showNotification('User ID is required', true);
+                return;
+            }
+            
+            const payload = { action, user_id: userId, reason };
+            if (action === 'mute') payload.duration = parseInt(duration) || 10;
+
+            try {
+                await fetchData(`/api/moderation/${guildId}/action`, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                showNotification(`Action ${action} executed successfully!`);
+                closeModActionModal();
+                loadModLog();
+            } catch (e) {
+                showNotification(`Failed to execute ${action}`, true);
+            }
+        }
+
+        async function loadModLog() {
+            try {
+                const logs = await fetchData(`/api/moderation/${guildId}/actions`);
+                const list = document.getElementById('audit-log-list');
+                const recentList = document.getElementById('recent-mod-log');
+                
+                let html = '';
+                if (logs && logs.length > 0) {
+                    logs.forEach(log => {
+                        html += `
+                            <div class="mod-log-entry">
+                                <span class="log-action-badge log-badge-${log.action_type.toLowerCase()}">${log.action_type}</span>
+                                <div class="log-meta">
+                                    <strong>Target ID: ${log.user_id}</strong>
+                                    <span>Reason: ${log.reason || 'None'} • Mod ID: ${log.moderator_id}</span>
+                                </div>
+                                <span class="log-time">${new Date(log.created_at).toLocaleString()}</span>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html = '<div class="empty-state">No actions logged yet.</div>';
+                }
+                
+                if (list) list.innerHTML = html;
+                if (recentList) recentList.innerHTML = html;
+            } catch (e) {
+                console.error('Failed to load audit log:', e);
+            }
         }
 
         async function switchRoleSubtab(subtabId) {

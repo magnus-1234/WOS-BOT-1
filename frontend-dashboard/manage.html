@@ -748,6 +748,12 @@
         .preset-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
         .preset-header h3 { font-size:1rem; margin:0; display:flex; align-items:center; gap:8px; }
         .preset-header p { color:var(--text-muted); font-size:0.82rem; margin:4px 0 0; }
+        .preset-controls { display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
+        .preset-search-wrap { position:relative; min-width:240px; flex:1 1 280px; max-width:360px; }
+        .preset-search-wrap i { position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--text-muted); pointer-events:none; }
+        .preset-search-wrap input { width:100%; padding:10px 14px 10px 38px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; font-size:0.9rem; transition:border-color 0.2s, background 0.2s; }
+        .preset-search-wrap input:focus { outline:none; border-color:var(--primary); background:rgba(139,92,246,0.05); }
+        .preset-filter-select { min-width:150px; padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:#1a1d26; color:#fff; font-size:0.9rem; }
         .preset-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:12px; }
         .preset-card { background:linear-gradient(135deg, rgba(25, 28, 36, 0.9) 0%, rgba(22, 25, 31, 0.95) 100%); backdrop-filter: blur(10px); border:1px solid var(--glass-border); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; min-width:0; transition:all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); animation:cardPop 0.3s ease; }
         .preset-card:hover { transform:translateY(-5px) scale(1.02); border-color:rgba(139,92,246,0.6); box-shadow:0 12px 32px rgba(139,92,246,0.25), inset 0 0 0 1px rgba(139,92,246,0.1); }
@@ -817,6 +823,9 @@
             #reminder-modal .modal-body { grid-template-columns: 1fr !important; }
             #reminder-modal .modal-content { max-width: 95% !important; margin: 10px; }
             .reminder-preview-side { order: -1; margin-bottom: 20px; }
+            .reminders-toolbar, .preset-header { align-items:stretch; }
+            .reminder-actions, .preset-controls { width:100%; justify-content:stretch; }
+            .reminder-actions input, .reminder-actions select, .reminder-actions .btn, .preset-search-wrap, .preset-filter-select { width:100%; max-width:none; flex:1 1 100%; }
         }
         
         .player-input-wrap { display: flex; gap: 10px; margin-bottom: 16px; }
@@ -3008,25 +3017,24 @@
                     </div>
                 </div>
                 <div id="reminder-stats" class="reminder-dashboard-strip"></div>
-<div class="preset-section" id="community-presets-section">
-                     <div class="preset-header" style="flex-wrap:wrap;gap:12px;">
-                         <div>
-                             <h3><i data-lucide="users"></i> Community Presets</h3>
-                             <p>Browse shared event templates. Search, use, or create your own preset for others.</p>
-                         </div>
-<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-                             <div style="position:relative; min-width:260px;">
-                                 <input id="preset-search" class="form-input" type="search" placeholder="Search presets..." oninput="renderReminderPresets()" style="padding:6px 12px; font-size:0.85rem; min-width:200px;">
-                        <select id="preset-filter" onchange="renderReminderPresets()" style="width:100%; padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; font-size:0.9rem; margin-bottom:10px; appearance:none;">
-                                     <option value="all" style="background:#111">All Presets</option>
-                                     <option value="mine" style="background:#111">My Presets</option>
-                                     <option value="bookmarks" style="background:#111">Bookmarks</option>
-                                 </select>
-     <i data-lucide="search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--text-muted);"></i>
-     <input id="preset-search-input" type="search" placeholder="Search community presets..." oninput="loadCommunityPresets(this.value)" style="width:100%; padding:10px 14px 10px 38px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; font-size:0.9rem; transition:all 0.2s;" onfocus="this.style.borderColor='var(--primary)'; this.style.background='rgba(139,92,246,0.05)';" onblur="this.style.borderColor='rgba(255,255,255,0.1)'; this.style.background='rgba(255,255,255,0.03)';">
- </div>
-                         </div>
-                     </div>
+                <div class="preset-section" id="community-presets-section">
+                    <div class="preset-header">
+                        <div>
+                            <h3><i data-lucide="users"></i> Community Presets</h3>
+                            <p>Browse shared event templates. Search, use, or create your own preset for others.</p>
+                        </div>
+                        <div class="preset-controls">
+                            <div class="preset-search-wrap">
+                                <i data-lucide="search"></i>
+                                <input id="preset-search" type="search" placeholder="Search community presets..." oninput="loadCommunityPresets(this.value)">
+                            </div>
+                            <select id="preset-filter" class="preset-filter-select" onchange="renderReminderPresets()">
+                                <option value="all">All Presets</option>
+                                <option value="mine">My Presets</option>
+                                <option value="bookmarks">Bookmarks</option>
+                            </select>
+                        </div>
+                    </div>
                      <div id="community-presets-loading" style="text-align:center;padding:30px;color:var(--text-muted);display:none;">
                          <i data-lucide="loader-2" style="width:28px;height:28px;animation:spin 1s linear infinite;"></i><br><span style="font-size:0.85rem;margin-top:8px;display:block;">Loading community presets...</span>
                      </div>
@@ -6733,6 +6741,19 @@
             }
         }
 
+        function openSaveAsPresetModal() {
+            const chk = document.getElementById('reminder-save-as-preset');
+            const titleInput = document.getElementById('reminder-preset-title');
+            if (!chk) return;
+            chk.checked = true;
+            handleSavePresetChange(chk);
+            if (titleInput) {
+                const message = document.getElementById('reminder-message')?.value.trim();
+                if (message && !titleInput.value.trim()) titleInput.value = message;
+                titleInput.focus();
+            }
+        }
+
         
         function formatDateTimeLocal(dateStr) {
             if (!dateStr) return '';
@@ -6848,18 +6869,26 @@
             const chips = document.getElementById('reminder-preset-chips');
             const emptyState = document.getElementById('community-presets-empty');
             const loadingState = document.getElementById('community-presets-loading');
+            const filterVal = document.getElementById('preset-filter') ? document.getElementById('preset-filter').value : 'all';
+            const searchText = (document.getElementById('preset-search')?.value || '').trim().toLowerCase();
+            let displayedPresets = REMINDER_PRESETS.slice();
             
             if (loadingState) loadingState.style.display = 'none';
-            
-                        if (grid) { 
-                const filterVal = document.getElementById('preset-filter') ? document.getElementById('preset-filter').value : 'all';
-                let displayedPresets = REMINDER_PRESETS;
-                if (filterVal === 'mine') {
-                    displayedPresets = REMINDER_PRESETS.filter(p => p.created_by_id === _discordUserId);
-                } else if (filterVal === 'bookmarks') {
-                    displayedPresets = REMINDER_PRESETS.filter(p => BOOKMARKED_PRESETS.has(p.id));
-                }
 
+            if (filterVal === 'mine') {
+                displayedPresets = displayedPresets.filter(p => p.created_by_id === _discordUserId);
+            } else if (filterVal === 'bookmarks') {
+                displayedPresets = displayedPresets.filter(p => BOOKMARKED_PRESETS.has(p.id));
+            }
+
+            if (searchText) {
+                displayedPresets = displayedPresets.filter(p => {
+                    const haystack = `${p.title || ''} ${p.message || ''} ${p.body || ''} ${p.badge || ''} ${p.created_by || ''}`.toLowerCase();
+                    return haystack.includes(searchText);
+                });
+            }
+
+            if (grid) {
                 if (displayedPresets.length === 0) {
                     grid.style.display = 'none';
                     if (emptyState) emptyState.style.display = 'block';
@@ -6916,7 +6945,7 @@
                     <button type="button" class="chip-button" onclick="applyReminderPreset('${escapeAttribute(p.id)}')">${escapeHTML(p.title)}</button>
                 `).join('');
             }
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         function openCreatePresetModal() {
@@ -7095,8 +7124,8 @@
             currentReminderId = reminderId;
             selectedReminderPreset = null;
             const titleEl = document.querySelector('#reminder-modal h3');
-            const submitBtn = document.querySelector('#reminder-modal .btn-primary');
-            renderReminderPresets();
+            const submitBtn = document.getElementById('reminder-submit-btn');
+            try { renderReminderPresets(); } catch(e) { console.error('Failed to render reminder presets:', e); }
             
             if (reminderId && remindersMap[reminderId]) {
                 const r = remindersMap[reminderId];
@@ -7184,7 +7213,7 @@
             
             // Initialize flatpickr if not already initialized
             const dateInput = document.getElementById('reminder-date');
-            if (!dateInput._flatpickr) {
+            if (dateInput && window.flatpickr && !dateInput._flatpickr) {
                 flatpickr(dateInput, {
                     dateFormat: "Y-m-d",
                     minDate: "today",

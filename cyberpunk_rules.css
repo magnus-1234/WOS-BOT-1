@@ -800,15 +800,15 @@
 
 
 [data-theme="cyberpunk-cool"] .footer-logo-link {
-  opacity: 0.55;
-  filter: sepia(100%) hue-rotate(10deg) saturate(300%) brightness(1.2);
+  opacity: 0.8;
+  filter: none;
 }
 
 
 
 [data-theme="cyberpunk-cool"] .footer-logo-link:hover {
   opacity: 1;
-  filter: sepia(100%) hue-rotate(10deg) saturate(500%) brightness(1.5) drop-shadow(0 0 10px #00FFFF);
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
 }
 
 
@@ -919,21 +919,7 @@
 
 
 
-[data-theme="cyberpunk-cool"] .live-board::before {
-  content: "Γùë SYSTEM LOG";
-  display: flex;
-  align-items: center;
-  color: #ff2a2a;
-  font-family: var(--font-mono);
-  font-weight: 900;
-  font-size: 0.8rem;
-  letter-spacing: 3px;
-  margin-bottom: 0;
-  text-shadow: 0 0 10px rgba(255, 42, 42, 0.8);
-  animation: alarmPulse 2s infinite;
-}
-
-
+/* Removed ::before pseudo-element for SYSTEM LOG to fix full-text pulsing */
 
 [data-theme="cyberpunk-cool"] .live-board>div {
   width: 100% !important;
@@ -1123,8 +1109,8 @@
 
 
 [data-theme="cyberpunk-cool"] .avatar-snapshot img {
-  border: 2px solid #ff2a2a !important;
-  filter: grayscale(100%) sepia(100%) hue-rotate(300deg) saturate(500%) brightness(0.8) !important;
+  border: 2px solid #00FFFF !important;
+  filter: none !important;
 }
 
 
@@ -1531,11 +1517,7 @@
 
 
 [data-theme="cyberpunk-cool"] .live-board::before {
-  content: "SYSTEM LOG" !important;
-  color: #00FFFF !important;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.8) !important;
-  font-family: 'Outfit', sans-serif !important;
-  letter-spacing: 4px !important;
+  display: none !important;
 }
 
 

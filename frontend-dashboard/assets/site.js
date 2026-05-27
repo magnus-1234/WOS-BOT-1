@@ -376,7 +376,7 @@
         </div>
       `}).join("");
       
-      if (els.eventCount) els.eventCount.textContent = feedEvents[0]?.type === "idle" ? "waiting for dispatch" : `${feedEvents.length} live records`;
+      if (els.eventCount) els.eventCount.textContent = feedEvents[0]?.type === "idle" ? "waiting for dispatch" : `${feedEvents.length} records`;
     };
     const rotate = () => {
       if (!feedEvents.length) return;
@@ -449,7 +449,7 @@
             else els.heroState.textContent = feed.status === "redeeming" ? "redeeming now" : "waiting for data";
           }
           if (els.source) {
-            if (visualState === "live") els.source.textContent = "live feed";
+            if (visualState === "live") els.source.textContent = "";
             else if (visualState === "recent") els.source.textContent = "stored events";
             else els.source.textContent = feed.source === "idle" ? "idle" : "api error";
           }

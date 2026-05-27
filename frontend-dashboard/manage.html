@@ -3016,7 +3016,8 @@
                          </div>
 <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
                              <div style="position:relative; min-width:260px;">
-                                 <select id="preset-filter" onchange="renderReminderPresets()" style="width:100%; padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; font-size:0.9rem; margin-bottom:10px; appearance:none;">
+                                 <input id="preset-search" class="form-input" type="search" placeholder="Search presets..." oninput="renderReminderPresets()" style="padding:6px 12px; font-size:0.85rem; min-width:200px;">
+                        <select id="preset-filter" onchange="renderReminderPresets()" style="width:100%; padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; font-size:0.9rem; margin-bottom:10px; appearance:none;">
                                      <option value="all" style="background:#111">All Presets</option>
                                      <option value="mine" style="background:#111">My Presets</option>
                                      <option value="bookmarks" style="background:#111">Bookmarks</option>
@@ -4642,7 +4643,7 @@
 
         let pendingTabToUnlock = null;
 
-        // â”€â”€ Registration Wizard State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Registration Wizard State ──────────────────────────────────────
         let _regWizardAllianceName = '';
         let _regWizardState = '';
         let _regServerName = '';
@@ -4713,7 +4714,7 @@
                 const unlockedUntil = localStorage.getItem(`premium_unlocked_until_${guildId}`);
                 if (unlockedUntil && Date.now() < parseInt(unlockedUntil)) {
                     // Use a 'key' icon for temporary unlocked
-                    setIcon('key', '#10b981', 'rgba(16, 185, 129, 0.15)', 'rgba(16, 185, 129, 0.3)', 'Temporarily Unlocked');
+                    setIcon('unlock', '#34d399', 'rgba(16, 185, 129, 0.15)', 'rgba(16, 185, 129, 0.3)', 'Temporarily Unlocked');
                     return;
                 }
                 
@@ -7454,7 +7455,7 @@
         async function loadReminders() {
             const list = document.getElementById('reminders-list');
             list.innerHTML = '<div class="empty-state">Loading reminders...</div>';
-            renderReminderPresets();
+            try { renderReminderPresets(); } catch(e) { console.error(e); }
             try {
                 const data = await fetchData(`/api/reminders/${guildId}`);
                 remindersData = data.reminders || [];

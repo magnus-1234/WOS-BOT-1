@@ -3,7 +3,16 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 import logging
 import discord
+import httpx
+from datetime import datetime, timedelta, timezone
 from db.moderation_adapters import ModerationSettingsAdapter, ModerationActionsAdapter, BlacklistAdapter
+
+async def _get_discord_user(auth_header: str) -> dict:
+    async with httpx.AsyncClient() as client:
+        r = await client.get('https://discord.com/api/users/@me', headers={"Authorization": auth_header})
+        if r.status_code != 200:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return r.json()
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Moderation"])

@@ -44,6 +44,9 @@
     profileAvatar: roomRoot.querySelector("[data-room-profile-avatar]"),
     profileName: roomRoot.querySelector("[data-room-profile-name]"),
     profileKind: roomRoot.querySelector("[data-room-profile-kind]"),
+    profileId: roomRoot.querySelector("[data-room-profile-id]"),
+    profileFurnace: roomRoot.querySelector("[data-room-profile-furnace]"),
+    profileState: roomRoot.querySelector("[data-room-profile-state]"),
     profileWhisper: roomRoot.querySelector("[data-room-profile-whisper]"),
     profileFriend: roomRoot.querySelector("[data-room-profile-friend]"),
     profileMute: roomRoot.querySelector("[data-room-profile-mute]"),
@@ -75,6 +78,7 @@
     guestId: "wos_global_chat_guest_id",
     guestName: "wos_global_chat_guest_name",
     guestAvatar: "wos_global_chat_guest_avatar",
+    wosProfile: "wos_global_chat_player_profile",
     lastSeen: "wos_global_chat_last_seen_at",
     admin: "wos_global_chat_admin",
     friends: "wos_global_chat_friends",
@@ -129,6 +133,19 @@
   };
   const getGuestName = () => localStorage.getItem(STORAGE_KEYS.guestName) || "";
   const getGuestAvatar = () => localStorage.getItem(STORAGE_KEYS.guestAvatar) || null;
+  const getWosProfile = () => {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.wosProfile) || "null");
+    } catch (error) {
+      return null;
+    }
+  };
+  const setWosProfile = (profile) => {
+    localStorage.setItem(STORAGE_KEYS.wosProfile, JSON.stringify(profile));
+    localStorage.setItem(STORAGE_KEYS.guestId, profile.id);
+    localStorage.setItem(STORAGE_KEYS.guestName, profile.nickname || "WOS Player");
+    if (profile.avatar_image) localStorage.setItem(STORAGE_KEYS.guestAvatar, profile.avatar_image);
+  };
   const setGuestName = (name) => {
     const cleaned = (name || "").trim().slice(0, 32);
     if (cleaned) localStorage.setItem(STORAGE_KEYS.guestName, cleaned);
@@ -156,9 +173,7 @@
   const userDisplayName = (user) => user ? (user.name || user.global_name || user.username || "Guest Player") : "Guest Player";
   const getUserById = (userId) => onlineUsers.find((user) => normalizeUserId(user.id || user.name) === normalizeUserId(userId));
   const isCurrentUser = (user) => normalizeUserId(user && (user.id || user.name)) === normalizeUserId(getMyId());
-  const botUser = { id: "wos_bot", name: "WOS BOT", avatar_url: null, kind: "bot" };
-  const isBotId = (userId) => normalizeUserId(userId) === "wos_bot";
-  onlineUsers = [botUser];
+  const isBotId = () => false;
   const otherPartyId = (message) => {
     const targetId = normalizeUserId(message.target_user_id);
     if (!targetId) return "";
@@ -214,13 +229,13 @@
   const updateIdentityView = () => {
     const guestName = getGuestName();
     if (currentUser) {
-      el.identity.innerHTML = `Discord: ${currentUser.global_name || currentUser.username} <button type="button" data-edit-profile style="background:none;border:none;cursor:pointer;color:var(--primary);margin-left:8px;font-size:0.8em;" title="Edit Profile">✏️</button>`;
+      el.identity.innerHTML = `WOS: ${currentUser.name || currentUser.global_name || currentUser.username} <button type="button" data-edit-profile style="background:none;border:none;cursor:pointer;color:var(--primary);margin-left:8px;font-size:0.8em;" title="Edit Profile">Edit</button>`;
       el.login.classList.add("is-hidden");
     } else if (guestName) {
-      el.identity.innerHTML = `Guest: ${guestName} <button type="button" data-edit-profile style="background:none;border:none;cursor:pointer;color:var(--primary);margin-left:8px;font-size:0.8em;" title="Edit Profile">✏️</button>`;
+      el.identity.innerHTML = `WOS: ${guestName} <button type="button" data-edit-profile style="background:none;border:none;cursor:pointer;color:var(--primary);margin-left:8px;font-size:0.8em;" title="Edit Profile">Edit</button>`;
       el.login.classList.add("is-hidden");
     } else {
-      el.identity.textContent = "Guest access";
+      el.identity.textContent = "Login with WOS player ID";
       el.login.classList.remove("is-hidden");
     }
     
@@ -229,6 +244,22 @@
   };
 
   const resolveDiscordIdentity = async () => {
+    const profile = getWosProfile();
+    if (profile) {
+      currentUser = {
+        id: profile.id,
+        name: profile.nickname || "WOS Player",
+        username: profile.nickname || "WOS Player",
+        avatar_url: profile.avatar_image || null,
+        kind: "wos",
+        furnace_level: profile.furnace_level,
+        furnace_level_formatted: profile.furnace_level_formatted,
+        state_id: profile.state_id
+      };
+      updateIdentityView();
+      initWebSocket();
+      return;
+    }
     if (!getToken()) {
       updateIdentityView();
       initWebSocket();
@@ -337,7 +368,6 @@
 
   // ── Native WebSocket engine ──────────────────────────────────────────────
   const initWebSocket = () => {
-    addSoundToggleButton();
     addSearchInput();
     addTypingContainer();
     startFallbackPolling();   // also polls on first load
@@ -363,7 +393,15 @@
       playChime("connect");
       // Register the current user with the server
       const userInfo = currentUser
-        ? { id: currentUser.id, name: currentUser.global_name || currentUser.username, avatar_url: currentUser.avatar_url, kind: "discord" }
+        ? {
+          id: currentUser.id,
+          name: currentUser.name || currentUser.global_name || currentUser.username,
+          avatar_url: currentUser.avatar_url,
+          kind: currentUser.kind || "wos",
+          furnace_level: currentUser.furnace_level,
+          furnace_level_formatted: currentUser.furnace_level_formatted,
+          state_id: currentUser.state_id
+        }
         : { id: getGuestId(), name: getGuestName() || "Guest Player", avatar_url: getGuestAvatar(), kind: "guest" };
       ws.send(JSON.stringify({ type: "register", user: userInfo }));
       // Stop polling - WebSocket takes over
@@ -424,7 +462,7 @@
       }
       case "presence": {
         el.online.textContent = String(data.online_count || 0);
-        onlineUsers = [botUser, ...(data.users || []).filter((user) => !isBotId(user.id || user.name))];
+        onlineUsers = data.users || [];
         renderActiveRoom();
         renderSessions();
         renderMembers();
@@ -447,15 +485,11 @@
         break;
       }
       case "call:request":
-        showIncomingCall(data);
         break;
       case "call:accept":
-        updateCall("connected", "Connected");
         break;
       case "call:decline":
       case "call:hangup":
-        updateCall("ended", data.type === "call:decline" ? "Declined" : "Ended");
-        setTimeout(hideCall, 1200);
         break;
       case "typing": {
         renderTypingIndicator(data.users || []);
@@ -586,7 +620,7 @@
     }
 
     const name = userDisplayName(target) || "Private player";
-    el.title.textContent = isBotId(replyToUser) ? name : `Whisper: ${name}`;
+    el.title.textContent = isBotId(replyToUser) ? name : `Private chat: ${name}`;
     el.subtitle.textContent = isBotId(replyToUser) ? "Assistant for files, planning, and WOS notes" : "Private messages are visible only to you and this player";
     el.activeAvatar.textContent = initials(name);
     el.activeAvatar.style.backgroundImage = target && target.avatar_url ? `url("${target.avatar_url}")` : "";
@@ -663,7 +697,7 @@
       const strong = document.createElement("strong");
       strong.textContent = name;
       const small = document.createElement("small");
-      small.textContent = last ? (last.content || "Attachment") : "Start a private whisper";
+      small.textContent = last ? (last.content || "Attachment") : "Start a private chat";
       body.append(strong, small);
       button.append(avatar, body);
       button.addEventListener("click", () => startWhisper(userId));
@@ -684,7 +718,10 @@
       el.profileAvatar.style.backgroundImage = user.avatar_url ? `url("${user.avatar_url}")` : "";
     }
     if (el.profileName) el.profileName.textContent = name;
-    if (el.profileKind) el.profileKind.textContent = user.kind === "bot" ? "Assistant" : (user.kind === "discord" ? "Verified Discord player" : "Guest account");
+    if (el.profileKind) el.profileKind.textContent = user.kind === "wos" ? "WOS player" : (user.kind === "discord" ? "Verified Discord player" : "Guest account");
+    if (el.profileId) el.profileId.textContent = normalizeUserId(user.id || user.name) || "-";
+    if (el.profileFurnace) el.profileFurnace.textContent = user.furnace_level_formatted || (user.furnace_level ? `Level ${user.furnace_level}` : "-");
+    if (el.profileState) el.profileState.textContent = user.state_id || "-";
     if (el.profileWhisper) el.profileWhisper.disabled = isCurrentUser(user);
     if (el.profileFriend) {
       el.profileFriend.disabled = isCurrentUser(user) || isBotId(user.id || user.name);
@@ -817,7 +854,7 @@
     }
     el.reply.hidden = false;
     el.replyName.textContent = (message.author || {}).name || "Player";
-    el.replyContent.textContent = isPrivate ? "(Private Message) " + (message.content || "Attachment") : (message.content || "Attachment");
+    el.replyContent.textContent = isPrivate ? "(Private chat) " + (message.content || "Attachment") : (message.content || "Attachment");
     el.input.focus();
   };
 
@@ -947,7 +984,7 @@
        bubble.classList.add("chat-bubble-private");
        const privInd = document.createElement("span");
        privInd.className = "private-indicator";
-       privInd.textContent = "Private Whisper";
+       privInd.textContent = "Private chat";
        top.appendChild(privInd);
     }
 
@@ -1003,24 +1040,6 @@
     replyButton.addEventListener("click", () => setReply(message));
     actions.appendChild(replyButton);
     
-    const dmButton = document.createElement("button");
-    dmButton.className = "chat-reply-button";
-    dmButton.type = "button";
-    dmButton.textContent = "Whisper";
-    dmButton.title = "Private Message";
-    dmButton.addEventListener("click", () => setReply(message, true));
-    actions.appendChild(dmButton);
-
-    quickReactions.forEach((emoji) => {
-      const button = document.createElement("button");
-      button.className = "chat-react-button";
-      button.type = "button";
-      button.textContent = emoji;
-      button.title = `React ${emoji}`;
-      button.addEventListener("click", () => reactToMessage(message.id, emoji));
-      actions.appendChild(button);
-    });
-
     const report = document.createElement("button");
     report.className = "chat-report-button";
     report.type = "button";
@@ -1042,6 +1061,21 @@
     bubble.appendChild(actions);
 
     article.append(avatar, bubble);
+    let pressTimer = null;
+    const showReactionTray = (event) => {
+      event.preventDefault();
+      openReactionTray(message, bubble);
+    };
+    article.addEventListener("contextmenu", showReactionTray);
+    article.addEventListener("touchstart", () => {
+      pressTimer = window.setTimeout(() => openReactionTray(message, bubble), 520);
+    }, { passive: true });
+    article.addEventListener("touchend", () => {
+      if (pressTimer) window.clearTimeout(pressTimer);
+    });
+    article.addEventListener("touchmove", () => {
+      if (pressTimer) window.clearTimeout(pressTimer);
+    });
     return article;
   };
 
@@ -1058,7 +1092,7 @@
       const empty = document.createElement("div");
       empty.className = "chat-empty-state";
       empty.innerHTML = replyToUser
-        ? "<strong>No whispers yet</strong><span>Send the first private message in this conversation.</span>"
+        ? "<strong>No private chat yet</strong><span>Send the first private message in this conversation.</span>"
         : "<strong>No community messages yet</strong><span>Start the room with a message, file, GIF, or voice note.</span>";
       el.messages.appendChild(empty);
     }
@@ -1097,6 +1131,7 @@
         body: JSON.stringify({
           display_name: getGuestName() || el.name.value,
           guest_id: getGuestId(),
+          avatar_url: getGuestAvatar(),
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
         })
       });
@@ -1136,6 +1171,7 @@
           content,
           display_name: guestName,
           guest_id: getGuestId(),
+          avatar_url: getGuestAvatar(),
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
           client_time: new Date().toISOString(),
           reply_to_id: replyTo ? replyTo.id : null,
@@ -1241,6 +1277,33 @@
     } catch (error) {
       setStatus("Report failed", true);
     }
+  };
+
+  const openReactionTray = (message, bubble) => {
+    document.querySelectorAll(".chat-reaction-tray").forEach((node) => node.remove());
+    const tray = document.createElement("div");
+    tray.className = "chat-reaction-tray";
+    quickReactions.forEach((emoji) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = emoji;
+      button.title = `React ${emoji}`;
+      button.addEventListener("click", () => {
+        reactToMessage(message.id, emoji);
+        tray.remove();
+      });
+      tray.appendChild(button);
+    });
+    bubble.appendChild(tray);
+    window.setTimeout(() => {
+      const dismiss = (event) => {
+        if (!tray.contains(event.target)) {
+          tray.remove();
+          document.removeEventListener("click", dismiss);
+        }
+      };
+      document.addEventListener("click", dismiss);
+    }, 0);
   };
 
   const insertEmoji = (emoji) => {
@@ -1355,8 +1418,8 @@
     searchTenor();
   });
 
-  el.discord.href = buildDiscordAuthUrl();
-  el.name.value = getGuestName();
+  if (el.discord) el.discord.href = buildDiscordAuthUrl();
+  el.name.value = (getWosProfile() && getWosProfile().id) || "";
   updateIdentityView();
   resolveDiscordIdentity();
 
@@ -1459,27 +1522,54 @@
     hideCall();
   });
 
-  el.guest.addEventListener("click", () => {
-    const name = setGuestName(el.name.value);
-    if (!name) {
-      setStatus("Enter a player name first", true);
+  el.guest.addEventListener("click", async () => {
+    const fid = (el.name.value || "").replace(/\D/g, "");
+    if (fid.length !== 9) {
+      setStatus("Enter a valid 9-digit WOS player ID", true);
       el.name.focus();
       return;
     }
-    currentUser = null;
-    updateIdentityView();
-    setStatus("Guest login ready");
-    el.input.focus();
-    // Re-register with new guest name over WebSocket
-    if (wsConnected && ws) {
-      ws.send(JSON.stringify({ type: "register", user: { id: getGuestId(), name, avatar_url: null, kind: "guest" } }));
-    } else {
-      sendPresence();
-      refreshMessages();
+    try {
+      setStatus("Fetching WOS profile...");
+      const response = await fetch(`/api/chat/player/${encodeURIComponent(fid)}`, { headers: { Accept: "application/json" } });
+      if (!response.ok) throw new Error("Player lookup failed");
+      const profile = await response.json();
+      setWosProfile(profile);
+      currentUser = {
+        id: profile.id,
+        name: profile.nickname,
+        username: profile.nickname,
+        avatar_url: profile.avatar_image || null,
+        kind: "wos",
+        furnace_level: profile.furnace_level,
+        furnace_level_formatted: profile.furnace_level_formatted,
+        state_id: profile.state_id
+      };
+      updateIdentityView();
+      setStatus("WOS profile connected");
+      if (wsConnected && ws) {
+        ws.send(JSON.stringify({
+          type: "register",
+          user: {
+            id: currentUser.id,
+            name: currentUser.name,
+            avatar_url: currentUser.avatar_url,
+            kind: "wos",
+            furnace_level: currentUser.furnace_level,
+            furnace_level_formatted: currentUser.furnace_level_formatted,
+            state_id: currentUser.state_id
+          }
+        }));
+      }
+      await sendPresence();
+      await refreshMessages();
+      el.input.focus();
+    } catch (error) {
+      setStatus("Could not fetch that WOS player", true);
     }
   });
 
-  el.refresh.addEventListener("click", refreshMessages);
+  if (el.refresh) el.refresh.addEventListener("click", refreshMessages);
   el.file.addEventListener("change", (event) => uploadFiles(event.target.files || []));
   el.form.addEventListener("submit", (event) => {
     event.preventDefault();

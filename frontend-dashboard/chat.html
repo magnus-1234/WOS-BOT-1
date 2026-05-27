@@ -66,9 +66,8 @@
         </div>
 
         <div class="global-chat-login room-login" data-room-login>
-          <input type="text" maxlength="32" placeholder="Custom player name" autocomplete="nickname" data-room-name>
-          <button type="button" data-room-guest>Guest login</button>
-          <a href="login.html" data-room-discord>Discord</a>
+          <input type="text" inputmode="numeric" maxlength="9" placeholder="WOS player ID" autocomplete="off" data-room-name>
+          <button type="button" data-room-guest>Login</button>
         </div>
 
         <div class="chat-room-user">
@@ -98,27 +97,6 @@
           </div>
         </div>
 
-        <div class="chat-session-panel" aria-label="Chat sessions">
-          <div class="chat-panel-heading">
-            <span>Channels</span>
-            <b data-room-session-count>1</b>
-          </div>
-          <button class="chat-session-item active" type="button" data-room-global-session>
-            <span class="chat-session-icon">#</span>
-            <span>
-              <strong>Community Room</strong>
-              <small>Public WOS chat</small>
-            </span>
-          </button>
-          <button class="chat-session-item" type="button" data-room-bot-session>
-            <span class="chat-session-icon">AI</span>
-            <span>
-              <strong>WOS BOT</strong>
-              <small>Assistant and file helper</small>
-            </span>
-          </button>
-          <div class="chat-session-list" data-room-session-list></div>
-        </div>
       </aside>
 
       <section class="chat-room-main">
@@ -131,30 +109,6 @@
               <span data-room-subtitle>UTC and local time are shown on every message</span>
             </div>
           </div>
-          <button class="chat-room-refresh chat-whisper-clear" type="button" data-room-whisper-clear hidden>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M18 6 6 18"></path>
-              <path d="m6 6 12 12"></path>
-            </svg>
-            Public room
-          </button>
-          <button class="chat-room-refresh" type="button" data-room-refresh>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-              <path d="M3 21v-5h5"></path>
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-              <path d="M16 8h5V3"></path>
-            </svg>
-            Refresh
-          </button>
-          <button class="chat-room-refresh chat-call-button" type="button" data-room-voice-call hidden>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.08 4.18 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.9.32 1.78.59 2.63a2 2 0 0 1-.45 2.11L8 9.66a16 16 0 0 0 6.34 6.34l1.2-1.2a2 2 0 0 1 2.11-.45c.85.27 1.73.47 2.63.59A2 2 0 0 1 22 16.92Z"></path></svg>
-            Call
-          </button>
-          <button class="chat-room-refresh chat-call-button" type="button" data-room-video-call hidden>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 13 5.22 3.48A.5.5 0 0 0 22 16.06V7.94a.5.5 0 0 0-.78-.42L16 11"></path><rect x="2" y="6" width="14" height="12" rx="2"></rect></svg>
-            Video
-          </button>
         </div>
 
         <div class="chat-loading" data-room-loading>
@@ -264,26 +218,14 @@
           <div class="chat-profile-avatar" data-room-profile-avatar></div>
           <strong data-room-profile-name>Player</strong>
           <span data-room-profile-kind>Guest Account</span>
-          <div class="chat-profile-actions">
-            <button type="button" data-room-profile-whisper>Whisper</button>
-            <button type="button" data-room-profile-friend>Friend</button>
-            <button type="button" data-room-profile-mute>Mute</button>
-            <button type="button" data-room-profile-copy>Copy ID</button>
-          </div>
+          <dl class="chat-profile-details">
+            <div><dt>Player ID</dt><dd data-room-profile-id>-</dd></div>
+            <div><dt>Furnace</dt><dd data-room-profile-furnace>-</dd></div>
+            <div><dt>State</dt><dd data-room-profile-state>-</dd></div>
+          </dl>
         </div>
       </aside>
     </section>
-    <div class="chat-call-overlay" data-room-call-overlay hidden>
-      <div class="chat-call-card">
-        <span data-room-call-avatar></span>
-        <strong data-room-call-title>Call</strong>
-        <p data-room-call-status>Connecting...</p>
-        <div class="chat-call-actions">
-          <button type="button" data-room-call-accept hidden>Accept</button>
-          <button type="button" data-room-call-decline>End</button>
-        </div>
-      </div>
-    </div>
   </main>
 
   <script src="assets/site-data.js"></script>

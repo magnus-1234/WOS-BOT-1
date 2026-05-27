@@ -6294,3 +6294,119 @@ body,
     overflow: hidden !important;
   }
 }
+
+/* Chat uses a restrained dark professional treatment even when the site theme is cyberpunk-cool. */
+.chat-profile-details {
+  display: grid;
+  gap: 0.55rem;
+  margin: 1rem 0 0;
+  text-align: left;
+}
+
+.chat-profile-details div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  padding-top: 0.55rem;
+}
+
+.chat-profile-details dt {
+  color: rgba(203, 213, 225, 0.6);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.chat-profile-details dd {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.chat-room-messages .chat-message-actions {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity 0.18s ease, max-height 0.18s ease;
+}
+
+.chat-room-messages .chat-message:hover .chat-message-actions,
+.chat-room-messages .chat-message:focus-within .chat-message-actions {
+  opacity: 1;
+  max-height: 3rem;
+}
+
+.chat-reaction-tray {
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  gap: 0.25rem;
+  right: 1rem;
+  bottom: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.96);
+  padding: 0.25rem;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.32);
+}
+
+.chat-reaction-tray button {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.chat-reaction-tray button:hover {
+  background: rgba(148, 163, 184, 0.14);
+}
+
+[data-theme="cyberpunk-cool"] body.chat-room-body,
+[data-theme="cyberpunk-cool"] .chat-room-body {
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.98), #020617) !important;
+  color: #e5e7eb !important;
+}
+
+[data-theme="cyberpunk-cool"] body.chat-room-body .site-header,
+[data-theme="cyberpunk-cool"] .chat-room-body .site-header {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14) !important;
+  background: rgba(2, 6, 23, 0.9) !important;
+  box-shadow: none !important;
+}
+
+[data-theme="cyberpunk-cool"] body.chat-room-body .primary-nav,
+[data-theme="cyberpunk-cool"] .chat-room-body .primary-nav {
+  border-color: rgba(148, 163, 184, 0.16) !important;
+  background: rgba(15, 23, 42, 0.78) !important;
+  box-shadow: none !important;
+}
+
+[data-theme="cyberpunk-cool"] body.chat-room-body .primary-nav a,
+[data-theme="cyberpunk-cool"] .chat-room-body .primary-nav a {
+  color: #94a3b8 !important;
+  text-shadow: none !important;
+}
+
+[data-theme="cyberpunk-cool"] body.chat-room-body .primary-nav a.active,
+[data-theme="cyberpunk-cool"] .chat-room-body .primary-nav a.active,
+[data-theme="cyberpunk-cool"] body.chat-room-body .primary-nav a:hover,
+[data-theme="cyberpunk-cool"] .chat-room-body .primary-nav a:hover {
+  border-color: rgba(148, 163, 184, 0.28) !important;
+  background: rgba(30, 41, 59, 0.82) !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="cyberpunk-cool"] .chat-room-side,
+[data-theme="cyberpunk-cool"] .chat-room-main,
+[data-theme="cyberpunk-cool"] .chat-member-panel {
+  border-color: rgba(148, 163, 184, 0.16) !important;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.94)) !important;
+  box-shadow: 0 24px 70px -52px rgba(0, 0, 0, 0.95) !important;
+}

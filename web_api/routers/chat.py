@@ -11,6 +11,8 @@ from typing import Any, Dict, List, Optional
 import httpx
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
+from src.api.wos_api import fetch_player_info
+from src.bot.admin_utils import format_furnace_level
 
 try:
     from db.mongo_adapters import _get_db_main_async, mongo_enabled
@@ -52,6 +54,9 @@ class ConnectionManager:
                 "name": user_info.get("name", "Guest Player"),
                 "avatar_url": user_info.get("avatar_url"),
                 "kind": user_info.get("kind", "guest"),
+                "furnace_level": user_info.get("furnace_level"),
+                "furnace_level_formatted": user_info.get("furnace_level_formatted"),
+                "state_id": user_info.get("state_id"),
             })
             await self.broadcast_presence()
             await websocket.send_json({"type": "room_state", **self.room_state})
@@ -96,7 +101,10 @@ class ConnectionManager:
                     "id": info.get("id"),
                     "name": info.get("name"),
                     "avatar_url": info.get("avatar_url"),
-                    "kind": info.get("kind")
+                    "kind": info.get("kind"),
+                    "furnace_level": info.get("furnace_level"),
+                    "furnace_level_formatted": info.get("furnace_level_formatted"),
+                    "state_id": info.get("state_id"),
                 })
         
         await self.broadcast({
@@ -189,6 +197,27 @@ async def get_tinode_config():
     }
 
 
+@router.get("/player/{fid}")
+async def lookup_chat_player(fid: str):
+    safe_fid = re.sub(r"\D", "", fid or "")
+    if len(safe_fid) != 9:
+        raise HTTPException(status_code=400, detail="Enter a valid 9-digit player ID.")
+
+    player = await fetch_player_info(safe_fid)
+    if not player:
+        raise HTTPException(status_code=404, detail="Player was not found.")
+
+    furnace_level = int(player.get("level") or 0)
+    return {
+        "id": safe_fid,
+        "nickname": player.get("name") or "WOS Player",
+        "furnace_level": furnace_level,
+        "furnace_level_formatted": format_furnace_level(furnace_level),
+        "state_id": str(player.get("id") or ""),
+        "avatar_image": player.get("avatar_image") or None,
+    }
+
+
 
 CHAT_COLLECTION = "global_chat_messages"
 PRESENCE_COLLECTION = "global_chat_presence"
@@ -231,6 +260,7 @@ class ChatMessageCreate(BaseModel):
     content: str = Field(default="", max_length=MAX_MESSAGE_LENGTH)
     display_name: Optional[str] = Field(default=None, max_length=MAX_NAME_LENGTH)
     guest_id: Optional[str] = Field(default=None, max_length=80)
+    avatar_url: Optional[str] = Field(default=None, max_length=500)
     timezone: Optional[str] = Field(default=None, max_length=80)
     client_time: Optional[str] = Field(default=None, max_length=80)
     reply_to_id: Optional[str] = Field(default=None, max_length=80)
@@ -260,6 +290,7 @@ class ReportRequest(BaseModel):
 class PresenceRequest(BaseModel):
     display_name: Optional[str] = Field(default=None, max_length=MAX_NAME_LENGTH)
     guest_id: Optional[str] = Field(default=None, max_length=80)
+    avatar_url: Optional[str] = Field(default=None, max_length=500)
     timezone: Optional[str] = Field(default=None, max_length=80)
 
 
@@ -390,7 +421,7 @@ def _reply_snapshot(message: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any
     }
 
 
-async def _resolve_chat_actor(request: Request, display_name: Optional[str], guest_id: Optional[str]) -> Dict[str, Any]:
+async def _resolve_chat_actor(request: Request, display_name: Optional[str], guest_id: Optional[str], avatar_url: Optional[str] = None) -> Dict[str, Any]:
     auth_header = request.headers.get("Authorization")
     discord_user = await _resolve_discord_user(auth_header)
     if discord_user:
@@ -401,8 +432,8 @@ async def _resolve_chat_actor(request: Request, display_name: Optional[str], gue
         "id": safe_guest_id,
         "name": _clean_name(display_name),
         "username": _clean_name(display_name),
-        "avatar_url": None,
-        "kind": "guest",
+        "avatar_url": avatar_url if avatar_url and (avatar_url.startswith("http://") or avatar_url.startswith("https://")) else None,
+        "kind": "wos" if safe_guest_id.isdigit() else "guest",
     }
 
 
@@ -634,7 +665,7 @@ async def create_message(payload: ChatMessageCreate, request: Request):
     if not content and not attachments:
         raise HTTPException(status_code=400, detail="Message text or a file is required.")
 
-    author = await _resolve_chat_actor(request, payload.display_name, payload.guest_id)
+    author = await _resolve_chat_actor(request, payload.display_name, payload.guest_id, payload.avatar_url)
     source = author.get("kind", "guest")
     reply_to = _reply_snapshot(await _find_message(payload.reply_to_id)) if payload.reply_to_id else None
 
@@ -737,7 +768,7 @@ async def delete_message(message_id: str, request: Request, guest_id: Optional[s
 
 @router.post("/presence")
 async def update_presence(payload: PresenceRequest, request: Request):
-    author = await _resolve_chat_actor(request, payload.display_name, payload.guest_id)
+    author = await _resolve_chat_actor(request, payload.display_name, payload.guest_id, payload.avatar_url)
     key = _actor_key(author)
     now = _utc_now_iso()
     doc = {

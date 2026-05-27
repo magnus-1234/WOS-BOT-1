@@ -26,6 +26,10 @@ router = APIRouter(prefix="/api/chat", tags=["Global Chat"])
 class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[WebSocket, Dict[str, Any]] = {}
+        self.room_state: Dict[str, Any] = {
+            "is_blizzard_active": False,
+            "announcement": None,
+        }
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -50,6 +54,7 @@ class ConnectionManager:
                 "kind": user_info.get("kind", "guest"),
             })
             await self.broadcast_presence()
+            await websocket.send_json({"type": "room_state", **self.room_state})
 
     async def set_typing(self, websocket: WebSocket, is_typing: bool):
         if websocket in self.active_connections:
@@ -114,6 +119,18 @@ class ConnectionManager:
             "users": typing_users
         })
 
+    async def send_to_user(self, user_id: str, message: Dict[str, Any]):
+        for ws, info in list(self.active_connections.items()):
+            ws_user_id = str(info.get("id") or info.get("name") or "")
+            if ws_user_id == str(user_id):
+                try:
+                    await ws.send_json(message)
+                except Exception:
+                    self.disconnect(ws)
+
+    async def broadcast_room_state(self):
+        await self.broadcast({"type": "room_state", **self.room_state})
+
 
 manager = ConnectionManager()
 
@@ -133,6 +150,23 @@ async def websocket_endpoint(websocket: WebSocket):
                 await manager.set_typing(websocket, is_typing)
             elif event_type == "ping":
                 await websocket.send_json({"type": "pong"})
+            elif event_type == "admin:blizzard":
+                manager.room_state["is_blizzard_active"] = bool(data.get("is_frozen"))
+                await manager.broadcast_room_state()
+            elif event_type == "admin:announcement":
+                announcement = _clean_text(data.get("announcement") or "", 180)
+                manager.room_state["announcement"] = announcement or None
+                await manager.broadcast({"type": "admin:announcement", "announcement": manager.room_state["announcement"]})
+            elif event_type == "admin:clear":
+                await _clear_all_messages()
+                await manager.broadcast({"type": "clear"})
+            elif event_type and event_type.startswith("call:"):
+                receiver_id = data.get("receiver_id")
+                caller_id = data.get("caller_id")
+                if receiver_id:
+                    await manager.send_to_user(receiver_id, data)
+                if caller_id and event_type in {"call:accept", "call:decline", "call:hangup"}:
+                    await manager.send_to_user(caller_id, data)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         await manager.broadcast_presence()
@@ -504,6 +538,28 @@ async def _update_message_doc(message_id: str, updater):
     return None
 
 
+async def _clear_all_messages() -> None:
+    collection = await _get_collection()
+    if collection is not None:
+        await collection.delete_many({})
+    else:
+        _write_fallback_messages([])
+
+
+def _build_bot_reply(user_text: str, author: Dict[str, Any], attachments: List[Dict[str, Any]]) -> str:
+    text = (user_text or "").strip().lower()
+    if "help" in text:
+        return "WOS BOT: I can help with chat commands, event planning, rally notes, translations, dice rolls, and uploaded file context."
+    if "quote" in text:
+        return "WOS BOT: Hold the line, share the intel, and keep the furnace burning."
+    if attachments:
+        names = ", ".join(item.get("name", "file") for item in attachments[:3])
+        return f"WOS BOT: I received {names}. Tell me what you want extracted or summarized from it."
+    if text:
+        return f"WOS BOT: {author.get('name', 'Chief')}, noted. For Whiteout planning, turn that into a clear action, owner, time, and reminder."
+    return "WOS BOT: Send a message or file and I will help organize it."
+
+
 async def _resolve_discord_user(auth_header: Optional[str]) -> Optional[Dict[str, Any]]:
     if not auth_header:
         return None
@@ -615,6 +671,35 @@ async def create_message(payload: ChatMessageCreate, request: Request):
         
     public_msg = _public_message(doc)
     await manager.broadcast_message({"type": "message", "message": public_msg})
+    if str(payload.target_user_id or "") == "wos_bot":
+        bot_doc = {
+            "_id": uuid.uuid4().hex,
+            "content": _build_bot_reply(content, author, attachments),
+            "author": {
+                "id": "wos_bot",
+                "name": "WOS BOT",
+                "username": "wos_bot",
+                "avatar_url": None,
+                "kind": "bot",
+            },
+            "attachments": [],
+            "reply_to": _reply_snapshot(doc),
+            "target_user_id": author.get("id"),
+            "reactions": [],
+            "report_count": 0,
+            "timezone": "",
+            "client_time": "",
+            "created_at": _utc_now_iso(),
+            "source": "bot",
+        }
+        collection = await _get_collection()
+        if collection is not None:
+            await collection.insert_one(bot_doc)
+        else:
+            messages = _read_fallback_messages()
+            messages.append(bot_doc)
+            _write_fallback_messages(messages)
+        await manager.broadcast_message({"type": "message", "message": _public_message(bot_doc)})
     return {"message": public_msg}
 
 @router.delete("/messages/{message_id}")

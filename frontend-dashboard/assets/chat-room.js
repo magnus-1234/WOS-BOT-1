@@ -45,7 +45,29 @@
     profileName: roomRoot.querySelector("[data-room-profile-name]"),
     profileKind: roomRoot.querySelector("[data-room-profile-kind]"),
     profileWhisper: roomRoot.querySelector("[data-room-profile-whisper]"),
-    profileCopy: roomRoot.querySelector("[data-room-profile-copy]")
+    profileFriend: roomRoot.querySelector("[data-room-profile-friend]"),
+    profileMute: roomRoot.querySelector("[data-room-profile-mute]"),
+    profileCopy: roomRoot.querySelector("[data-room-profile-copy]"),
+    botSession: roomRoot.querySelector("[data-room-bot-session]"),
+    adminToggle: roomRoot.querySelector("[data-room-admin-toggle]"),
+    adminPanel: roomRoot.querySelector("[data-room-admin-panel]"),
+    adminBadge: roomRoot.querySelector("[data-room-admin-badge]"),
+    adminCode: roomRoot.querySelector("[data-room-admin-code]"),
+    adminClaim: roomRoot.querySelector("[data-room-admin-claim]"),
+    blizzard: roomRoot.querySelector("[data-room-blizzard]"),
+    announcement: roomRoot.querySelector("[data-room-announcement]"),
+    announcementInput: roomRoot.querySelector("[data-room-announcement-input]"),
+    announcementSend: roomRoot.querySelector("[data-room-announcement-send]"),
+    clear: roomRoot.querySelector("[data-room-clear]"),
+    dice: roomRoot.querySelector("[data-room-dice]"),
+    voiceCall: roomRoot.querySelector("[data-room-voice-call]"),
+    videoCall: roomRoot.querySelector("[data-room-video-call]"),
+    callOverlay: roomRoot.querySelector("[data-room-call-overlay]"),
+    callAvatar: roomRoot.querySelector("[data-room-call-avatar]"),
+    callTitle: roomRoot.querySelector("[data-room-call-title]"),
+    callStatus: roomRoot.querySelector("[data-room-call-status]"),
+    callAccept: roomRoot.querySelector("[data-room-call-accept]"),
+    callDecline: roomRoot.querySelector("[data-room-call-decline]")
   };
 
   const DISCORD_CLIENT_ID = "1399025185046134866";
@@ -53,7 +75,10 @@
     guestId: "wos_global_chat_guest_id",
     guestName: "wos_global_chat_guest_name",
     guestAvatar: "wos_global_chat_guest_avatar",
-    lastSeen: "wos_global_chat_last_seen_at"
+    lastSeen: "wos_global_chat_last_seen_at",
+    admin: "wos_global_chat_admin",
+    friends: "wos_global_chat_friends",
+    muted: "wos_global_chat_muted"
   };
   
   const emojiCategories = {
@@ -83,6 +108,11 @@
   let typingTimer = null;
   let selectedProfileUser = null;
   let memberSearchQuery = "";
+  let isAdmin = localStorage.getItem(STORAGE_KEYS.admin) === "true";
+  let isBlizzardActive = false;
+  let friendUserIds = JSON.parse(localStorage.getItem(STORAGE_KEYS.friends) || "[]");
+  let mutedUserIds = JSON.parse(localStorage.getItem(STORAGE_KEYS.muted) || "[]");
+  let currentCall = null;
 
   const getToken = () => localStorage.getItem("discord_access_token");
   const authHeaders = () => {
@@ -126,6 +156,9 @@
   const userDisplayName = (user) => user ? (user.name || user.global_name || user.username || "Guest Player") : "Guest Player";
   const getUserById = (userId) => onlineUsers.find((user) => normalizeUserId(user.id || user.name) === normalizeUserId(userId));
   const isCurrentUser = (user) => normalizeUserId(user && (user.id || user.name)) === normalizeUserId(getMyId());
+  const botUser = { id: "wos_bot", name: "WOS BOT", avatar_url: null, kind: "bot" };
+  const isBotId = (userId) => normalizeUserId(userId) === "wos_bot";
+  onlineUsers = [botUser];
   const otherPartyId = (message) => {
     const targetId = normalizeUserId(message.target_user_id);
     if (!targetId) return "";
@@ -146,6 +179,36 @@
   const isAudioAttachment = (attachment) => {
     const type = attachment.type || "";
     return type.startsWith("audio/") || /\.(webm|ogg|mp3|wav|m4a|aac)$/i.test(attachment.url || "");
+  };
+  const saveUserLists = () => {
+    localStorage.setItem(STORAGE_KEYS.friends, JSON.stringify(friendUserIds));
+    localStorage.setItem(STORAGE_KEYS.muted, JSON.stringify(mutedUserIds));
+  };
+  const sendWs = (payload) => {
+    if (!wsConnected || !ws) return false;
+    try {
+      ws.send(JSON.stringify(payload));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+  const setAnnouncement = (text) => {
+    if (!el.announcement) return;
+    el.announcement.hidden = !text;
+    el.announcement.textContent = text || "";
+  };
+  const updateAdminView = () => {
+    if (el.adminBadge) el.adminBadge.textContent = isAdmin ? "Admin" : "Locked";
+    if (el.adminBadge) el.adminBadge.classList.toggle("is-admin", isAdmin);
+    if (el.adminPanel) el.adminPanel.classList.toggle("is-admin", isAdmin);
+    if (el.blizzard) {
+      el.blizzard.checked = isBlizzardActive;
+      el.blizzard.disabled = !isAdmin;
+    }
+    if (el.clear) el.clear.disabled = !isAdmin;
+    if (el.announcementSend) el.announcementSend.disabled = !isAdmin;
+    roomRoot.classList.toggle("is-blizzard", isBlizzardActive);
   };
 
   const updateIdentityView = () => {
@@ -296,7 +359,7 @@
 
     ws.addEventListener("open", () => {
       wsConnected = true;
-      setStatus("🟢 Live global room");
+      setStatus("Live global room");
       playChime("connect");
       // Register the current user with the server
       const userInfo = currentUser
@@ -361,12 +424,39 @@
       }
       case "presence": {
         el.online.textContent = String(data.online_count || 0);
-        onlineUsers = data.users || [];
+        onlineUsers = [botUser, ...(data.users || []).filter((user) => !isBotId(user.id || user.name))];
         renderActiveRoom();
         renderSessions();
         renderMembers();
         break;
       }
+      case "room_state": {
+        isBlizzardActive = !!data.is_blizzard_active;
+        setAnnouncement(data.announcement);
+        updateAdminView();
+        break;
+      }
+      case "admin:announcement": {
+        setAnnouncement(data.announcement);
+        break;
+      }
+      case "clear": {
+        messagesCache = [];
+        renderSessions();
+        renderMessages();
+        break;
+      }
+      case "call:request":
+        showIncomingCall(data);
+        break;
+      case "call:accept":
+        updateCall("connected", "Connected");
+        break;
+      case "call:decline":
+      case "call:hangup":
+        updateCall("ended", data.type === "call:decline" ? "Declined" : "Ended");
+        setTimeout(hideCall, 1200);
+        break;
       case "typing": {
         renderTypingIndicator(data.users || []);
         break;
@@ -481,7 +571,7 @@
 
   const renderActiveRoom = () => {
     if (!el.title || !el.subtitle || !el.activeAvatar) return;
-    const target = replyToUser ? getUserById(replyToUser) : null;
+    const target = isBotId(replyToUser) ? botUser : (replyToUser ? getUserById(replyToUser) : null);
     if (!replyToUser) {
       el.title.textContent = "Community Room";
       el.subtitle.textContent = "Public room with replies, reactions, files, voice, GIFs, and translation";
@@ -489,16 +579,22 @@
       el.activeAvatar.style.backgroundImage = "";
       if (el.whisperClear) el.whisperClear.hidden = true;
       if (el.globalSession) el.globalSession.classList.add("active");
+      if (el.botSession) el.botSession.classList.remove("active");
+      if (el.voiceCall) el.voiceCall.hidden = true;
+      if (el.videoCall) el.videoCall.hidden = true;
       return;
     }
 
     const name = userDisplayName(target) || "Private player";
-    el.title.textContent = `Whisper: ${name}`;
-    el.subtitle.textContent = "Private messages are visible only to you and this player";
+    el.title.textContent = isBotId(replyToUser) ? name : `Whisper: ${name}`;
+    el.subtitle.textContent = isBotId(replyToUser) ? "Assistant for files, planning, and WOS notes" : "Private messages are visible only to you and this player";
     el.activeAvatar.textContent = initials(name);
     el.activeAvatar.style.backgroundImage = target && target.avatar_url ? `url("${target.avatar_url}")` : "";
     if (el.whisperClear) el.whisperClear.hidden = false;
     if (el.globalSession) el.globalSession.classList.remove("active");
+    if (el.botSession) el.botSession.classList.toggle("active", isBotId(replyToUser));
+    if (el.voiceCall) el.voiceCall.hidden = isBotId(replyToUser);
+    if (el.videoCall) el.videoCall.hidden = isBotId(replyToUser);
   };
 
   const switchToGlobalRoom = () => {
@@ -535,6 +631,7 @@
       const id = normalizeUserId(user.id || user.name);
       if (id && !isCurrentUser(user)) ids.add(id);
     });
+    ids.delete("wos_bot");
     return Array.from(ids);
   };
 
@@ -572,8 +669,9 @@
       button.addEventListener("click", () => startWhisper(userId));
       el.sessionList.appendChild(button);
     });
-    if (el.sessionCount) el.sessionCount.textContent = String(partners.length + 1);
+    if (el.sessionCount) el.sessionCount.textContent = String(partners.length + 2);
     if (el.globalSession) el.globalSession.classList.toggle("active", !replyToUser);
+    if (el.botSession) el.botSession.classList.toggle("active", isBotId(replyToUser));
   };
 
   const openProfile = (user) => {
@@ -586,8 +684,16 @@
       el.profileAvatar.style.backgroundImage = user.avatar_url ? `url("${user.avatar_url}")` : "";
     }
     if (el.profileName) el.profileName.textContent = name;
-    if (el.profileKind) el.profileKind.textContent = user.kind === "discord" ? "Verified Discord player" : "Guest account";
+    if (el.profileKind) el.profileKind.textContent = user.kind === "bot" ? "Assistant" : (user.kind === "discord" ? "Verified Discord player" : "Guest account");
     if (el.profileWhisper) el.profileWhisper.disabled = isCurrentUser(user);
+    if (el.profileFriend) {
+      el.profileFriend.disabled = isCurrentUser(user) || isBotId(user.id || user.name);
+      el.profileFriend.textContent = friendUserIds.includes(normalizeUserId(user.id || user.name)) ? "Unfriend" : "Friend";
+    }
+    if (el.profileMute) {
+      el.profileMute.disabled = isCurrentUser(user) || isBotId(user.id || user.name);
+      el.profileMute.textContent = mutedUserIds.includes(normalizeUserId(user.id || user.name)) ? "Unmute" : "Mute";
+    }
   };
 
   const renderMembers = () => {
@@ -613,9 +719,14 @@
       }
       const body = document.createElement("span");
       const strong = document.createElement("strong");
-      strong.textContent = `${name}${isCurrentUser(user) ? " (you)" : ""}`;
+      const labels = [
+        isCurrentUser(user) ? "you" : "",
+        friendUserIds.includes(userId) ? "friend" : "",
+        mutedUserIds.includes(userId) ? "muted" : ""
+      ].filter(Boolean);
+      strong.textContent = `${name}${labels.length ? ` (${labels.join(", ")})` : ""}`;
       const small = document.createElement("small");
-      small.textContent = user.kind === "discord" ? "Discord player" : "Guest player";
+      small.textContent = user.kind === "bot" ? "Assistant" : (user.kind === "discord" ? "Discord player" : "Guest player");
       body.append(strong, small);
       button.append(avatar, body);
       button.addEventListener("click", () => openProfile(user));
@@ -629,6 +740,39 @@
       el.memberList.appendChild(empty);
     }
     if (el.memberCount) el.memberCount.textContent = `${onlineUsers.length} online`;
+  };
+
+  const showCall = (peer, status, incoming = false, isVideo = false, callId = null, callerId = null) => {
+    const name = userDisplayName(peer);
+    currentCall = { peer, isVideo, callId: callId || `call-${Date.now()}`, callerId: callerId || getMyId(), receiverId: peer.id || peer.name, incoming };
+    if (!el.callOverlay) return;
+    el.callOverlay.hidden = false;
+    if (el.callAvatar) el.callAvatar.textContent = initials(name);
+    if (el.callTitle) el.callTitle.textContent = `${isVideo ? "Video" : "Voice"} call with ${name}`;
+    if (el.callStatus) el.callStatus.textContent = status;
+    if (el.callAccept) el.callAccept.hidden = !incoming;
+  };
+
+  const updateCall = (_state, status) => {
+    if (el.callStatus) el.callStatus.textContent = status;
+  };
+
+  const hideCall = () => {
+    if (el.callOverlay) el.callOverlay.hidden = true;
+    currentCall = null;
+  };
+
+  const startCall = (isVideo) => {
+    if (!replyToUser || isBotId(replyToUser)) return;
+    const peer = getUserById(replyToUser) || { id: replyToUser, name: "Private player" };
+    const callId = `call-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    showCall(peer, "Ringing...", false, isVideo, callId);
+    sendWs({ type: "call:request", caller_id: getMyId(), receiver_id: replyToUser, is_video: isVideo, call_id: callId });
+  };
+
+  const showIncomingCall = (data) => {
+    const peer = getUserById(data.caller_id) || { id: data.caller_id, name: "Incoming player" };
+    showCall(peer, "Incoming call", true, !!data.is_video, data.call_id, data.caller_id);
   };
 
   const startFallbackPolling = () => {
@@ -748,13 +892,19 @@
   };
 
   const renderMessage = (message) => {
+    const author = message.author || {};
+    if (mutedUserIds.includes(normalizeUserId(author.id || author.name))) {
+      const hidden = document.createElement("article");
+      hidden.className = "chat-message chat-message-muted";
+      hidden.textContent = "Muted message hidden";
+      return hidden;
+    }
     const article = document.createElement("article");
     article.className = "chat-message";
     article.dataset.messageId = message.id;
 
     const avatar = document.createElement("div");
     avatar.className = "chat-avatar";
-    const author = message.author || {};
     if (normalizeUserId(author.id || author.name) === normalizeUserId(getMyId())) {
       article.classList.add("is-self");
     }
@@ -802,10 +952,18 @@
     }
 
     if (message.content) {
-      const content = document.createElement("p");
-      content.className = "chat-content";
-      content.textContent = message.content;
-      bubble.appendChild(content);
+      const diceMatch = message.content.match(/rolled a survival die:\s*([1-6])/i);
+      if (diceMatch) {
+        const dice = document.createElement("div");
+        dice.className = "chat-dice-card";
+        dice.innerHTML = `<span>Survival Dice</span><strong>${diceMatch[1]}</strong>`;
+        bubble.appendChild(dice);
+      } else {
+        const content = document.createElement("p");
+        content.className = "chat-content";
+        content.textContent = message.content;
+        bubble.appendChild(content);
+      }
     }
 
     if (Array.isArray(message.attachments) && message.attachments.length) {
@@ -961,6 +1119,10 @@
 
     const content = el.input.value.trim();
     if (!content && !pendingAttachments.length) return;
+    if (isBlizzardActive && !isAdmin) {
+      setStatus("Blizzard freeze is active. Admins can still send.", true);
+      return;
+    }
 
     // Stop typing indicator on send
     if (typingTimer) { clearTimeout(typingTimer); typingTimer = null; }
@@ -992,6 +1154,12 @@
     } catch (error) {
       setStatus("Message was not sent", true);
     }
+  };
+
+  const sendDice = () => {
+    const rolled = Math.floor(Math.random() * 6) + 1;
+    el.input.value = `🎲 rolled a survival die: ${rolled}`;
+    sendMessage();
   };
   
   const deleteMessage = async (messageId) => {
@@ -1198,6 +1366,7 @@
     el.online.addEventListener("click", () => showOnlineUsersPopover(el.online));
   }
   if (el.globalSession) el.globalSession.addEventListener("click", switchToGlobalRoom);
+  if (el.botSession) el.botSession.addEventListener("click", () => startWhisper("wos_bot"));
   if (el.whisperClear) el.whisperClear.addEventListener("click", switchToGlobalRoom);
   if (el.memberSearch) {
     el.memberSearch.addEventListener("input", () => {
@@ -1212,6 +1381,23 @@
   if (el.profileWhisper) el.profileWhisper.addEventListener("click", () => {
     if (selectedProfileUser) startWhisper(selectedProfileUser.id || selectedProfileUser.name);
   });
+  if (el.profileFriend) el.profileFriend.addEventListener("click", () => {
+    if (!selectedProfileUser) return;
+    const id = normalizeUserId(selectedProfileUser.id || selectedProfileUser.name);
+    friendUserIds = friendUserIds.includes(id) ? friendUserIds.filter((item) => item !== id) : [...friendUserIds, id];
+    saveUserLists();
+    openProfile(selectedProfileUser);
+    renderMembers();
+  });
+  if (el.profileMute) el.profileMute.addEventListener("click", () => {
+    if (!selectedProfileUser) return;
+    const id = normalizeUserId(selectedProfileUser.id || selectedProfileUser.name);
+    mutedUserIds = mutedUserIds.includes(id) ? mutedUserIds.filter((item) => item !== id) : [...mutedUserIds, id];
+    saveUserLists();
+    openProfile(selectedProfileUser);
+    renderMembers();
+    renderMessages();
+  });
   if (el.profileCopy) el.profileCopy.addEventListener("click", async () => {
     if (!selectedProfileUser) return;
     const id = normalizeUserId(selectedProfileUser.id || selectedProfileUser.name);
@@ -1225,6 +1411,53 @@
   renderActiveRoom();
   renderSessions();
   renderMembers();
+  updateAdminView();
+
+  if (el.adminToggle) el.adminToggle.addEventListener("click", () => {
+    if (el.adminPanel) el.adminPanel.hidden = !el.adminPanel.hidden;
+  });
+  if (el.adminClaim) el.adminClaim.addEventListener("click", () => {
+    const code = (el.adminCode && el.adminCode.value || "").trim();
+    if (code === "survival100") {
+      isAdmin = true;
+      localStorage.setItem(STORAGE_KEYS.admin, "true");
+      setStatus("Command deck unlocked");
+      updateAdminView();
+    } else {
+      setStatus("Invalid admin code", true);
+    }
+  });
+  if (el.blizzard) el.blizzard.addEventListener("change", () => {
+    if (!isAdmin) return updateAdminView();
+    isBlizzardActive = el.blizzard.checked;
+    updateAdminView();
+    sendWs({ type: "admin:blizzard", is_frozen: isBlizzardActive });
+  });
+  if (el.announcementSend) el.announcementSend.addEventListener("click", () => {
+    if (!isAdmin) return;
+    const announcement = (el.announcementInput && el.announcementInput.value || "").trim();
+    setAnnouncement(announcement);
+    sendWs({ type: "admin:announcement", announcement });
+    if (el.announcementInput) el.announcementInput.value = "";
+  });
+  if (el.clear) el.clear.addEventListener("click", () => {
+    if (!isAdmin) return;
+    if (confirm("Clear all community chat logs?")) sendWs({ type: "admin:clear" });
+  });
+  if (el.dice) el.dice.addEventListener("click", sendDice);
+  if (el.voiceCall) el.voiceCall.addEventListener("click", () => startCall(false));
+  if (el.videoCall) el.videoCall.addEventListener("click", () => startCall(true));
+  if (el.callAccept) el.callAccept.addEventListener("click", () => {
+    if (!currentCall) return;
+    updateCall("connected", "Connected");
+    sendWs({ type: "call:accept", caller_id: currentCall.callerId, receiver_id: getMyId(), call_id: currentCall.callId, is_video: currentCall.isVideo });
+  });
+  if (el.callDecline) el.callDecline.addEventListener("click", () => {
+    if (currentCall) {
+      sendWs({ type: currentCall.incoming ? "call:decline" : "call:hangup", caller_id: currentCall.callerId, receiver_id: currentCall.receiverId, call_id: currentCall.callId, is_video: currentCall.isVideo });
+    }
+    hideCall();
+  });
 
   el.guest.addEventListener("click", () => {
     const name = setGuestName(el.name.value);

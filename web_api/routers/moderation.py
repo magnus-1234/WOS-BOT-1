@@ -93,7 +93,7 @@ class ModActionRequest(BaseModel):
 @router.post("/api/moderation/{guild_id}/action")
 async def execute_mod_action(guild_id: int, request: Request, data: ModActionRequest):
     # Retrieve user from auth session if exists, else default to 0 for dashboard actions
-    user = request.session.get("user") if hasattr(request, "session") else None
+    user = request.scope.get("session", {}).get("user") if "session" in request.scope else None
     moderator_id = int(user["id"]) if user and "id" in user else 0
     action = data.action.lower().strip()
     if action not in {"warn", "mute", "kick", "ban", "unban"}:

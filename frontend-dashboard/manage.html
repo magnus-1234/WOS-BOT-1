@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" data-theme="cyberpunk-cool">
 
 <head>
@@ -7996,7 +7996,7 @@
                 loadModLog();
                 loadModStats(); // refresh overview stats if visible
             } catch (e) {
-                showNotification(`Failed to execute ${action}`, true);
+                showNotification(`Failed to execute ${action}: ${e.message || 'Unknown error'}`, true);
             } finally {
                 if (submitBtn) {
                     submitBtn.disabled = false;
@@ -8016,7 +8016,7 @@
                     logs.forEach(log => {
                         html += `
                             <div class="mod-log-entry">
-                                <span class="log-action-badge log-badge-${log.action_type.toLowerCase()}">${log.action_type}</span>
+                                <span class="log-action-badge log-badge-${(log.action_type || 'unknown').toLowerCase()}">${log.action_type || 'Unknown'}</span>
                                 <div class="log-meta">
                                     <strong>Target ID: ${log.user_id}</strong>
                                     <span>Reason: ${escapeHtml(log.reason || 'None')} • Mod ID: ${log.moderator_id}</span>

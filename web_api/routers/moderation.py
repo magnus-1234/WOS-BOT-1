@@ -155,6 +155,32 @@ async def execute_mod_action(guild_id: int, request: Request, data: ModActionReq
         reason=data.reason,
         duration=data.duration
     )
+    
+    # Try to send log to discord channel
+    try:
+        settings = await ModerationSettingsAdapter.get_settings(guild_id)
+        logging_settings = settings.get("logging", {})
+        if logging_settings.get("enabled"):
+            channel_id = logging_settings.get("channel_id")
+            events = logging_settings.get("events", [])
+            if channel_id and action in events:
+                log_channel = guild.get_channel(int(channel_id))
+                if log_channel:
+                    from datetime import datetime
+                    embed = discord.Embed(
+                        title=f"Moderation Action: {action.capitalize()}",
+                        color=discord.Color.red(),
+                        timestamp=datetime.utcnow()
+                    )
+                    embed.add_field(name="Target User", value=f"<@{data.user_id}> (`{data.user_id}`)", inline=True)
+                    embed.add_field(name="Moderator", value=f"<@{moderator_id}>" if moderator_id else "Dashboard AutoMod", inline=True)
+                    embed.add_field(name="Reason", value=data.reason or "No reason provided", inline=False)
+                    if data.duration and action == "mute":
+                        embed.add_field(name="Duration", value=f"{data.duration} minutes", inline=True)
+                    await log_channel.send(embed=embed)
+    except Exception as e:
+        logger.error(f"Failed to send mod log to Discord channel for guild {guild_id}: {e}", exc_info=True)
+
     if not success:
         raise HTTPException(status_code=500, detail="Failed to execute moderation action")
     return {"status": "success", "action": data.action}

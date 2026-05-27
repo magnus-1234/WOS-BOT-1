@@ -88,6 +88,20 @@ def _get_presets_collection():
         logger.warning(f"MongoDB presets collection unavailable: {e}")
         return None
 
+def _get_bookmarks_collection():
+    """Return the MongoDB reminder_bookmarks collection or None."""
+    import os
+    try:
+        mongo_uri = os.environ.get('MONGO_URI')
+        if not mongo_uri:
+            return None
+        from pymongo import MongoClient
+        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=3000)
+        return client['wosbot']['reminder_bookmarks']
+    except Exception as e:
+        logger.warning(f"MongoDB bookmarks collection unavailable: {e}")
+        return None
+
 # ─── Static API Routes ────────────────────────────────────────────────────────
 
 @router.post("/upload-url")
@@ -244,6 +258,108 @@ async def delete_community_preset(request: Request, preset_id: str):
         raise HTTPException(status_code=403, detail="You can only delete your own presets")
         
     col.delete_one({"id": preset_id})
+    return {"status": "success"}
+
+@router.put("/presets/{preset_id}")
+async def update_community_preset(request: Request, preset_id: str, payload: CommunityPresetCreate):
+    """Update an existing community preset. Only the author can update it."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    user = await _get_discord_user(auth_header)
+    col = _get_presets_collection()
+    if col is None:
+        raise HTTPException(status_code=503, detail="Storage not available")
+        
+    preset = col.find_one({"id": preset_id})
+    if not preset:
+        raise HTTPException(status_code=404, detail="Preset not found")
+        
+    if preset.get("created_by_id") != user.get("id"):
+        raise HTTPException(status_code=403, detail="You can only edit your own presets")
+
+    badge_map = {"daily": "Daily", "weekly": "Weekly", "custom": "Custom", "none": "One-time"}
+    badge = payload.badge or badge_map.get(payload.recurrence_type, "One-time")
+
+    update_data = {
+        "title": payload.title.strip(),
+        "badge": badge,
+        "message": payload.message,
+        "body": payload.body,
+        "recurrence_type": payload.recurrence_type,
+        "recurrence_interval": payload.recurrence_interval,
+        "recurrence_days": payload.recurrence_days,
+        "mention": payload.mention,
+        "image_url": payload.image_url,
+        "thumbnail_url": payload.thumbnail_url,
+        "footer_text": payload.footer_text,
+        "footer_icon_url": payload.footer_icon_url,
+        "author_url": payload.author_url,
+    }
+    
+    col.update_one({"id": preset_id}, {"$set": update_data})
+    return {"status": "success"}
+
+@router.post("/presets/{preset_id}/track_use")
+async def track_preset_use(request: Request, preset_id: str):
+    """Increment the usage counter for a preset."""
+    col = _get_presets_collection()
+    if col is not None:
+        col.update_one({"id": preset_id}, {"$inc": {"use_count": 1}})
+    return {"status": "success"}
+
+@router.get("/bookmarks")
+async def get_bookmarked_presets(request: Request):
+    """Get the list of preset IDs bookmarked by the user."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    user = await _get_discord_user(auth_header)
+    col = _get_bookmarks_collection()
+    if col is None:
+        return {"bookmarks": []}
+        
+    doc = col.find_one({"user_id": user.get("id")})
+    bookmarks = doc.get("preset_ids", []) if doc else []
+    return {"bookmarks": bookmarks}
+
+@router.post("/bookmarks/{preset_id}")
+async def add_bookmark(request: Request, preset_id: str):
+    """Bookmark a preset."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    user = await _get_discord_user(auth_header)
+    col = _get_bookmarks_collection()
+    if col is None:
+        raise HTTPException(status_code=503, detail="Storage not available")
+        
+    col.update_one(
+        {"user_id": user.get("id")},
+        {"$addToSet": {"preset_ids": preset_id}},
+        upsert=True
+    )
+    return {"status": "success"}
+
+@router.delete("/bookmarks/{preset_id}")
+async def remove_bookmark(request: Request, preset_id: str):
+    """Remove a preset from bookmarks."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    user = await _get_discord_user(auth_header)
+    col = _get_bookmarks_collection()
+    if col is None:
+        raise HTTPException(status_code=503, detail="Storage not available")
+        
+    col.update_one(
+        {"user_id": user.get("id")},
+        {"$pull": {"preset_ids": preset_id}}
+    )
     return {"status": "success"}
 
 @router.get("/{guild_id}")

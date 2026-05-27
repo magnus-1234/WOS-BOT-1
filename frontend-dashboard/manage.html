@@ -3016,6 +3016,11 @@
                          </div>
 <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
                              <div style="position:relative; min-width:260px;">
+                                 <select id="preset-filter" onchange="renderReminderPresets()" style="width:100%; padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; font-size:0.9rem; margin-bottom:10px; appearance:none;">
+                                     <option value="all" style="background:#111">All Presets</option>
+                                     <option value="mine" style="background:#111">My Presets</option>
+                                     <option value="bookmarks" style="background:#111">Bookmarks</option>
+                                 </select>
      <i data-lucide="search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--text-muted);"></i>
      <input id="preset-search-input" type="search" placeholder="Search community presets..." oninput="loadCommunityPresets(this.value)" style="width:100%; padding:10px 14px 10px 38px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; font-size:0.9rem; transition:all 0.2s;" onfocus="this.style.borderColor='var(--primary)'; this.style.background='rgba(139,92,246,0.05)';" onblur="this.style.borderColor='rgba(255,255,255,0.1)'; this.style.background='rgba(255,255,255,0.03)';">
  </div>
@@ -4681,33 +4686,49 @@
             window.location.href = 'index.html';
         }
 
-        // â”€â”€ Update lock status on nav items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Update lock status on nav items ──────────────────────────────────
         async function updateNavLockStatus() {
             try {
+                const navAlliance = document.getElementById('nav-alliance') || document.querySelector('[onclick*="alliance"]');
+                const navGiftcodes = document.getElementById('nav-giftcodes') || document.querySelector('[onclick*="giftcodes"]');
+                
+                const setIcon = (iconName, color, bg, border, title) => {
+                    [navAlliance, navGiftcodes].forEach(nav => {
+                        if (nav) {
+                            const badge = nav.querySelector('.nav-lock-badge');
+                            if (badge) {
+                                badge.innerHTML = `<i data-lucide="${iconName}" style="width:12px;height:12px;"></i>`;
+                                badge.style.color = color;
+                                badge.style.background = bg;
+                                badge.style.borderColor = border;
+                                badge.title = title;
+                                badge.style.display = '';
+                            }
+                        }
+                    });
+                    lucide.createIcons();
+                };
+
+                // Already unlocked in session?
+                const unlockedUntil = localStorage.getItem(`premium_unlocked_until_${guildId}`);
+                if (unlockedUntil && Date.now() < parseInt(unlockedUntil)) {
+                    // Use a 'key' icon for temporary unlocked
+                    setIcon('key', '#10b981', 'rgba(16, 185, 129, 0.15)', 'rgba(16, 185, 129, 0.3)', 'Temporarily Unlocked');
+                    return;
+                }
+                
+                // Not unlocked — check server registration status
                 const res = await fetch(`/api/register/status?guild_id=${guildId}`);
                 if (!res.ok) return;
                 const data = await res.json();
-                const status = data.status;
                 
-                const navAlliance = document.getElementById('nav-alliance');
-                const navGiftcodes = document.getElementById('nav-giftcodes');
-                
-                if (status === 'approved') {
-                    if (navAlliance) navAlliance.classList.add('configured-ok');
-                    if (navGiftcodes) navGiftcodes.classList.add('configured-ok');
+                if (data.status === 'approved') {
+                    // Permanently unlocked
+                    setIcon('unlock', '#34d399', 'rgba(52, 211, 153, 0.15)', 'rgba(52, 211, 153, 0.3)', 'Unlocked');
                 } else {
-                    if (navAlliance) {
-                        navAlliance.classList.remove('configured-ok');
-                        const lockBadge = navAlliance.querySelector('.nav-lock-badge');
-                        if (lockBadge) lockBadge.style.display = '';
-                    }
-                    if (navGiftcodes) {
-                        navGiftcodes.classList.remove('configured-ok');
-                        const lockBadge = navGiftcodes.querySelector('.nav-lock-badge');
-                        if (lockBadge) lockBadge.style.display = '';
-                    }
+                    // Locked
+                    setIcon('lock', '#f87171', 'rgba(239, 68, 68, 0.2)', 'rgba(239, 68, 68, 0.4)', 'Locked');
                 }
-                lucide.createIcons();
             } catch(e) {
                 console.log('Could not fetch registration status:', e);
             }
@@ -6725,6 +6746,70 @@
         let remindersData = [];
         let selectedReminderPreset = null;
 
+        
+        let BOOKMARKED_PRESETS = new Set();
+        let currentLoadedPresetId = null;
+        let editingPresetId = null;
+
+        async function toggleBookmark(id) {
+            const isBookmarked = BOOKMARKED_PRESETS.has(id);
+            try {
+                if (isBookmarked) {
+                    await fetchData(`/api/reminders/bookmarks/${id}`, { method: 'DELETE' });
+                    BOOKMARKED_PRESETS.delete(id);
+                } else {
+                    await fetchData(`/api/reminders/bookmarks/${id}`, { method: 'POST' });
+                    BOOKMARKED_PRESETS.add(id);
+                }
+                renderReminderPresets();
+            } catch(e) {
+                showNotification('Failed to update bookmark', true);
+            }
+        }
+
+        async function deleteCommunityPreset(id) {
+            if (!confirm('Are you sure you want to delete this community preset?')) return;
+            try {
+                await fetchData(`/api/reminders/presets/${id}`, { method: 'DELETE' });
+                showNotification('Preset deleted');
+                loadCommunityPresets();
+            } catch(e) {
+                showNotification('Failed to delete preset', true);
+            }
+        }
+
+        function editCommunityPreset(id) {
+            const p = REMINDER_PRESETS.find(x => x.id === id);
+            if (!p) return;
+            editingPresetId = id;
+            document.getElementById('cp-title').value = p.title || '';
+            document.getElementById('cp-message').value = p.message || '';
+            document.getElementById('cp-body').value = p.body || '';
+            document.getElementById('cp-recurrence').value = p.recurrence_type || 'none';
+            document.getElementById('cp-interval').value = p.recurrence_interval || '1';
+            document.getElementById('cp-mention').value = p.mention || 'none';
+            document.getElementById('cp-image').value = p.image_url || '';
+            document.getElementById('cp-thumbnail').value = p.thumbnail_url || '';
+            document.getElementById('cp-footer').value = p.footer_text || '';
+            document.getElementById('cp-footer-icon').value = p.footer_icon_url || '';
+            document.getElementById('create-preset-modal').style.display = 'flex';
+            updatePresetPreview();
+        }
+        
+        async function saveAsCommunityPreset(data) {
+            const method = editingPresetId ? 'PUT' : 'POST';
+            const url = editingPresetId ? `/api/reminders/presets/${editingPresetId}` : '/api/reminders/presets';
+            try {
+                await fetchData(url, { method: method, body: JSON.stringify(data) });
+                showNotification(editingPresetId ? 'Preset updated!' : 'Preset published to community!');
+                editingPresetId = null;
+                closeCreatePresetModal();
+                loadCommunityPresets();
+            } catch(e) {
+                showNotification('Failed to save preset', true);
+            }
+        }
+
         let REMINDER_PRESETS = [];
         let communityPresetsDebounce = null;
 
@@ -6742,8 +6827,12 @@
 
                 try {
                     const params = query ? `?q=${encodeURIComponent(query)}` : '';
-                    const res = await fetchData(`/api/reminders/presets${params}`);
-                    REMINDER_PRESETS = res.presets || [];
+                                        const [res, bkRes] = await Promise.all([
+                        fetchData(`/api/reminders/presets${params}`),
+                        fetchData(`/api/reminders/bookmarks`)
+                    ]);
+                    REMINDER_PRESETS = res.presets || []; 
+                    BOOKMARKED_PRESETS = new Set(bkRes.bookmarks || []);
                     renderReminderPresets();
                 } catch (e) {
                     console.error("Failed to load community presets", e);
@@ -6761,15 +6850,23 @@
             
             if (loadingState) loadingState.style.display = 'none';
             
-            if (grid) {
-                if (REMINDER_PRESETS.length === 0) {
+                        if (grid) { 
+                const filterVal = document.getElementById('preset-filter') ? document.getElementById('preset-filter').value : 'all';
+                let displayedPresets = REMINDER_PRESETS;
+                if (filterVal === 'mine') {
+                    displayedPresets = REMINDER_PRESETS.filter(p => p.created_by_id === _discordUserId);
+                } else if (filterVal === 'bookmarks') {
+                    displayedPresets = REMINDER_PRESETS.filter(p => BOOKMARKED_PRESETS.has(p.id));
+                }
+
+                if (displayedPresets.length === 0) {
                     grid.style.display = 'none';
                     if (emptyState) emptyState.style.display = 'block';
                 } else {
                     grid.style.display = 'grid';
                     if (emptyState) emptyState.style.display = 'none';
                     
-                    grid.innerHTML = REMINDER_PRESETS.map(p => `
+                    grid.innerHTML = displayedPresets.map(p => `
                         <div class="preset-card">
                             <div class="preset-thumb">
                                 <img src="${escapeAttribute(getReminderThumbnail({ thumbnail_url: p.thumbnail_url || p.image_url, message: p.title }))}" 
@@ -6787,16 +6884,34 @@
                                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px;">
                                     By: ${escapeHTML(p.created_by || 'Unknown')}
                                 </div>
-                                <button class="btn btn-secondary" onclick="openReminderModal(null, '${escapeAttribute(p.id)}')">
-                                    <i data-lucide="copy-plus"></i> Use preset
-                                </button>
-                            </div>
+                                                                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                                    <button class="btn btn-secondary" onclick="openReminderModal(null, '${escapeAttribute(p.id)}')"> 
+                                        <i data-lucide="copy-plus"></i> Use preset 
+                                    </button> 
+                                    <div style="display:flex; gap:6px; align-items:center;">
+                                        <span title="Used ${p.use_count || 0} times" style="font-size:0.75rem; color:var(--text-muted); display:flex; align-items:center; gap:4px; margin-right:4px;">
+                                            <i data-lucide="users" style="width:12px;height:12px;"></i> ${p.use_count || 0}
+                                        </span>
+                                        <button class="btn btn-icon ${BOOKMARKED_PRESETS.has(p.id) ? 'active-star' : ''}" onclick="toggleBookmark('${escapeAttribute(p.id)}')">
+                                            <i data-lucide="star" style="width:16px;height:16px; ${BOOKMARKED_PRESETS.has(p.id) ? 'fill:#eab308;color:#eab308;' : ''}"></i>
+                                        </button>
+                                        ${p.created_by_id === _discordUserId ? `
+                                            <button class="btn btn-icon" onclick="editCommunityPreset('${escapeAttribute(p.id)}')">
+                                                <i data-lucide="edit-2" style="width:16px;height:16px;"></i>
+                                            </button>
+                                            <button class="btn btn-icon" style="color:#ef4444;" onclick="deleteCommunityPreset('${escapeAttribute(p.id)}')">
+                                                <i data-lucide="trash-2" style="width:16px;height:16px;"></i>
+                                            </button>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div> 
                         </div>
                     `).join('');
                 }
             }
             if (chips) {
-                chips.innerHTML = REMINDER_PRESETS.slice(0, 10).map(p => `
+                chips.innerHTML = displayedPresets.slice(0, 10).map(p => `
                     <button type="button" class="chip-button" onclick="applyReminderPreset('${escapeAttribute(p.id)}')">${escapeHTML(p.title)}</button>
                 `).join('');
             }
@@ -6975,6 +7090,7 @@
         }
 
         function openReminderModal(reminderId = null, presetId = null) {
+            currentLoadedPresetId = presetId;
             currentReminderId = reminderId;
             selectedReminderPreset = null;
             const titleEl = document.querySelector('#reminder-modal h3');
@@ -7306,7 +7422,11 @@
                         console.error('Failed to save community preset:', e);
                     }
                 } else {
-                    showNotification('Reminder created!');
+                                    showNotification('Reminder created!');
+                if (typeof currentLoadedPresetId !== 'undefined' && currentLoadedPresetId) {
+                    fetchData(`/api/reminders/presets/${currentLoadedPresetId}/track_use`, { method: 'POST' }).catch(e=>console.log(e));
+                    currentLoadedPresetId = null;
+                }
                 }
                 
                 closeReminderModal();

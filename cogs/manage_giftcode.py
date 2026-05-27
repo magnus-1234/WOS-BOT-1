@@ -3385,6 +3385,7 @@ class ManageGiftCode(commands.Cog):
             self.logger.info(f"Found {len(new_codes)} codes to process (new or re-issued)!")
             
             # Add new codes to database with auto_redeem_processed = 0
+            published_codes = []
             for code, date in new_codes:
                 code_up = str(code).upper()
                 try:
@@ -3393,6 +3394,7 @@ class ManageGiftCode(commands.Cog):
                         "INSERT OR IGNORE INTO gift_codes (giftcode, date, validation_status, added_at, auto_redeem_processed) VALUES (?, ?, ?, ?, ?)",
                         (code_up, date, "validated", datetime.now(), 0)
                     )
+                    published_codes.append((code_up, date))
                     # Save original case so the WOS API call uses the right casing
                     try:
                         self.cursor.execute(
@@ -3433,6 +3435,20 @@ class ManageGiftCode(commands.Cog):
             
             self.giftcode_db.commit()
             self.logger.info(f"Committed {len(new_codes)} new codes to database")
+
+            for code_up, date in published_codes:
+                try:
+                    await publish_bot_activity(
+                        workflow="gift_code",
+                        event_type="gift_code_detected",
+                        status="detected",
+                        message=f"Active gift code {code_up} detected; auto redeem pending",
+                        gift_code=code_up,
+                        new_value=code_up,
+                        details={"date": str(date), "auto_redeem_processed": False},
+                    )
+                except Exception as activity_err:
+                    self.logger.warning(f"Failed to publish gift-code activity for {code_up}: {activity_err}")
             
             # Notify global admins (this already calls trigger_auto_redeem_for_new_codes)
             await self.notify_admins_new_codes(new_codes)

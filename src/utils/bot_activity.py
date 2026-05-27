@@ -121,7 +121,7 @@ def get_recent_activity_sqlite(limit: int = 100) -> List[Dict[str, Any]]:
             """, (limit,)).fetchall()
         events = []
         for row in rows:
-            details_str = row[16] if len(row) > 16 else None
+            details_str = row[15] if len(row) > 15 else None
             details = None
             if details_str:
                 try:
@@ -138,7 +138,7 @@ def get_recent_activity_sqlite(limit: int = 100) -> List[Dict[str, Any]]:
                 "gift_code": row[11],
                 "old_value": row[12], "new_value": row[13],
                 "reason": row[14], "details": details,
-                "created_at": row[17] if len(row) > 17 else None,
+                "created_at": row[16] if len(row) > 16 else None,
             })
         return events
     except Exception as exc:

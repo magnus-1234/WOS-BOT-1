@@ -171,7 +171,7 @@ def _normalize_activity_event(doc: Dict[str, Any]) -> Dict[str, Any]:
         "workflow": workflow,
         "event_type": event_type,
         "status": status,
-        "title": title if title != "Avatar updated" else "",
+        "title": title,
         "message": message,
         "player": player,
         "fid": str(doc.get("fid") or ""),
@@ -199,6 +199,8 @@ def _normalize_activity_event(doc: Dict[str, Any]) -> Dict[str, Any]:
 def _activity_type_key(workflow: str, event_type: str) -> str:
     if workflow == "auto_redeem" or event_type.startswith("redeem_"):
         return "redeem"
+    if workflow == "gift_code" or "gift_code" in event_type or event_type.startswith("code_"):
+        return "gift_code"
     if "furnace" in event_type:
         return "furnace"
     if "nickname" in event_type or "name" in event_type:
@@ -223,6 +225,8 @@ def _activity_title(workflow: str, event_type: str, status: str) -> str:
         "server_redeem_processing": "Auto redeem processing",
         "server_redeem_completed": "Auto redeem completed",
         "server_redeem_skipped": "Auto redeem skipped",
+        "gift_code_detected": "Active gift code detected",
+        "gift_code_updated": "Gift code updated",
         "furnace_changed": "Furnace upgrade detected",
         "nickname_changed": "Name change detected",
         "avatar_changed": "Avatar updated",
@@ -232,16 +236,22 @@ def _activity_title(workflow: str, event_type: str, status: str) -> str:
 
 
 def _activity_priority(workflow: str, event_type: str, status: str) -> int:
+    if event_type in {"server_redeem_processing", "server_redeem_started"}:
+        return 130
     if event_type in {"redeem_success", "redeem_failed", "redeem_rate_limited"}:
-        return 120
+        return 125
     if event_type in {"furnace_changed", "nickname_changed", "avatar_changed", "state_changed"}:
-        return 115
+        return 120
+    if event_type in {"gift_code_detected", "gift_code_updated"}:
+        return 118
     if event_type in {"redeem_already_claimed", "redeem_skipped_cached"}:
-        return 105
+        return 108
+    if event_type in {"server_redeem_completed", "server_redeem_skipped"}:
+        return 102
     if workflow == "auto_redeem":
-        return 95
+        return 98
     if workflow == "alliance_monitor":
-        return 80
+        return 45
     return 30
 
 
@@ -289,6 +299,7 @@ async def _get_redemption_events(limit: int, server_lookup: Dict[str, str]) -> L
                 "new_value": code,
                 "timestamp": timestamp,
                 "live": _is_recent_iso(timestamp, max_age_seconds=300),
+                "priority": 112 if _is_recent_iso(timestamp, max_age_seconds=300) else 96,
             }
         )
     return events
@@ -315,6 +326,7 @@ def _get_gift_code_events(gift_codes: List[Dict[str, Any]], limit: int) -> List[
                 "new_value": code,
                 "timestamp": timestamp,
                 "live": _is_recent_iso(timestamp, max_age_seconds=300),
+                "priority": 118 if not auto_processed else 92,
             }
         )
     return events
@@ -500,7 +512,7 @@ def _get_auto_redeem_runtime_events(cog: Any, server_lookup: Dict[str, str]) -> 
                 "new_value": code,
                 "timestamp": _epoch_iso(stat.get("started_at")) or datetime.now(timezone.utc).isoformat(),
                 "live": True,
-                "priority": 100,
+                "priority": 132,
             }
         )
 
@@ -514,7 +526,7 @@ def _get_auto_redeem_runtime_events(cog: Any, server_lookup: Dict[str, str]) -> 
                 "server": "Global gift-code system",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "live": True,
-                "priority": 90,
+                "priority": 126,
             }
         )
 
@@ -535,7 +547,7 @@ def _get_auto_redeem_runtime_events(cog: Any, server_lookup: Dict[str, str]) -> 
                 "new_value": last.get("code"),
                 "timestamp": _epoch_iso(last.get("finished_at")) or datetime.now(timezone.utc).isoformat(),
                 "live": True,
-                "priority": 70,
+                "priority": 104,
             }
         )
 
@@ -600,7 +612,7 @@ def _get_alliance_runtime_events(cog: Any) -> tuple[List[Dict[str, Any]], Dict[s
                 "server": "Alliance system",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "live": True,
-                "priority": 90,
+                "priority": 35,
             }
         )
 
@@ -718,10 +730,46 @@ def _event_from_log_line(item: Dict[str, str]) -> Optional[Dict[str, Any]]:
         }
 
     if (
+        "posted furnace_change notification" in lower
+        or "posted name_change notification" in lower
+        or "posted avatar_change notification" in lower
+        or "posted state_change notification" in lower
+        or "detected " in lower and " changes for alliance" in lower
+    ):
+        event_type = "monitor"
+        title = "Alliance change detected"
+        priority = 108 if is_recent else 78
+        if "furnace_change" in lower:
+            event_type = "furnace"
+            title = "Furnace change posted"
+            priority = 112 if is_recent else 86
+        elif "name_change" in lower:
+            event_type = "name"
+            title = "Name change posted"
+            priority = 112 if is_recent else 86
+        elif "avatar_change" in lower:
+            event_type = "avatar"
+            title = "Avatar change posted"
+            priority = 112 if is_recent else 86
+        elif "state_change" in lower:
+            event_type = "state"
+            title = "State change posted"
+            priority = 112 if is_recent else 86
+        return {
+            "id": f"log-change-{abs(hash(line))}",
+            "type": event_type,
+            "title": title,
+            "message": _clean_log_message(line),
+            "server": "Alliance monitor log",
+            "timestamp": timestamp or datetime.now(timezone.utc).isoformat(),
+            "live": is_recent,
+            "priority": priority,
+        }
+
+    if (
         "alliance monitoring cycle" in lower
         or "monitoring " in lower and "alliance" in lower
         or "batch processing complete" in lower
-        or "detected " in lower and " changes for alliance" in lower
     ):
         return {
             "id": f"log-monitor-{abs(hash(line))}",
@@ -843,6 +891,12 @@ def _event_sort_key(event: Dict[str, Any]) -> tuple[int, str]:
     return priority, str(event.get("timestamp") or "")
 
 
+def _normalized_event_priority(event_type: str, live: bool) -> int:
+    if event_type in {"furnace", "name", "avatar", "state"}:
+        return 120 if live else 106
+    return 86 if live else 62
+
+
 def _normalize_event(event: Dict[str, Any]) -> Dict[str, Any]:
     event_type = str(event.get("type") or "event").replace("_change", "")
     old_value = event.get("old_value")
@@ -869,6 +923,7 @@ def _normalize_event(event: Dict[str, Any]) -> Dict[str, Any]:
         message = f"moved from State {old_value or '?'} to State {new_value or '?'}"
 
     timestamp = _iso(event.get("timestamp"))
+    live = _is_recent_iso(timestamp, max_age_seconds=300)
     return {
         "id": str(event.get("id") or f"{event_type}-{event.get('fid', '')}-{timestamp}"),
         "type": event_type,
@@ -878,7 +933,8 @@ def _normalize_event(event: Dict[str, Any]) -> Dict[str, Any]:
         "fid": str(event.get("fid") or ""),
         "alliance_id": event.get("alliance_id"),
         "timestamp": timestamp,
-        "live": _is_recent_iso(timestamp, max_age_seconds=300),
+        "live": live,
+        "priority": _normalized_event_priority(event_type, live),
         "old_value": old_value,
         "new_value": new_value,
         "old_avatar": old_value if event_type == "avatar" else None,

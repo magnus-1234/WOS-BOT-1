@@ -3740,6 +3740,11 @@ class Alliance(commands.Cog):
                 self.log_message(f"Posted {change['type']} notification for ID {change['fid']}")
             
             if changes_detected:
+                try:
+                    async with self._scan_stats_lock:
+                        self._last_cycle_stats["changes"] = int(self._last_cycle_stats.get("changes") or 0) + len(changes_detected)
+                except Exception:
+                    self._last_cycle_stats["changes"] = int(self._last_cycle_stats.get("changes") or 0) + len(changes_detected)
                 self.log_message(f"Detected {len(changes_detected)} changes for alliance {alliance_id}")
             
         except Exception as e:
@@ -3964,7 +3969,11 @@ class Alliance(commands.Cog):
                 workflow="alliance_monitor",
                 event_type="cycle_completed",
                 status="success",
-                message=f"Completed concurrent scan of {len(monitored)} alliance(s)"
+                message=(
+                    f"Completed concurrent scan of {len(monitored)} alliance(s); "
+                    f"{int(self._last_cycle_stats.get('changes') or 0)} change(s) detected"
+                ),
+                details={"changes": int(self._last_cycle_stats.get("changes") or 0)}
             )
 
         except Exception as e:

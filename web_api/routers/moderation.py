@@ -109,7 +109,21 @@ async def execute_mod_action(guild_id: int, request: Request, data: ModActionReq
 
     try:
         if action == "warn":
-            pass
+            # Try to fetch member and DM them the warning
+            try:
+                member = guild.get_member(int(data.user_id)) or await guild.fetch_member(int(data.user_id))
+                reason_text = data.reason or "No reason provided"
+                try:
+                    embed = discord.Embed(
+                        title="⚠️ Warning Received",
+                        description=f"You have received a warning in **{guild.name}**.\n\n**Reason:** {reason_text}",
+                        color=discord.Color.yellow()
+                    )
+                    await member.send(embed=embed)
+                except discord.Forbidden:
+                    pass  # User has DMs disabled — still log the warning
+            except discord.NotFound:
+                raise HTTPException(status_code=404, detail=f"Member {data.user_id} not found in server")
         elif action == "mute":
             from datetime import datetime, timedelta, timezone
             member = guild.get_member(int(data.user_id)) or await guild.fetch_member(int(data.user_id))
@@ -123,6 +137,12 @@ async def execute_mod_action(guild_id: int, request: Request, data: ModActionReq
             await guild.ban(discord.Object(id=int(data.user_id)), reason=data.reason or "Dashboard moderation action")
         elif action == "unban":
             await guild.unban(discord.Object(id=int(data.user_id)), reason=data.reason or "Dashboard moderation action")
+    except HTTPException:
+        raise
+    except discord.NotFound:
+        raise HTTPException(status_code=404, detail=f"Member {data.user_id} not found in server")
+    except discord.Forbidden:
+        raise HTTPException(status_code=403, detail=f"Bot lacks permission to {action} this member")
     except Exception as e:
         logger.error(f"Failed to execute {action} in guild {guild_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Discord action failed: {e}")

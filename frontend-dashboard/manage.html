@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" data-theme="cyberpunk-cool">
 
 <head>
@@ -2366,7 +2366,7 @@
                             <!-- Footer Text -->
                             <div class="form-group">
                                 <label>ðŸ—’ï¸ Embed Footer Text</label>
-                                <input type="text" id="footer-text" placeholder="Member joined â€¢ {date}" oninput="updatePreview()">
+                                <input type="text" id="footer-text" placeholder="Member joined • {date}" oninput="updatePreview()">
                                 <div class="var-chips">
                                     <span class="var-chip" onclick="insertVar('footer-text','{date}')">{date}</span>
                                     <span class="var-chip" onclick="insertVar('footer-text','{member_count}')">{member_count}</span>
@@ -2462,7 +2462,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="dc-embed-footer" id="preview-footer" style="padding: 0 16px 16px 16px; margin-top: 0; border-top: none;">Member joined â€¢ May 02, 2026</div>
+                                            <div class="dc-embed-footer" id="preview-footer" style="padding: 0 16px 16px 16px; margin-top: 0; border-top: none;">Member joined • May 02, 2026</div>
                                         </div>
                                     </div>
                                 </div>
@@ -2597,8 +2597,8 @@
             <!-- Auto Translate Tab -->
             <div id="tab-translate" class="tab-content">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
-                    <h2 class="section-title" style="margin:0;">Translation Pipelines</h2>
-                    <button onclick="openTranslateModal()" class="btn btn-primary"><i data-lucide="plus"></i> Add Pipeline</button>
+                    <h2 class="section-title" style="margin:0;">Auto Translation</h2>
+                    <button onclick="openTranslateModal()" class="btn btn-primary"><i data-lucide="plus"></i> Add Configuration</button>
                 </div>
                 <div id="translate-configs-list"></div>
             </div>
@@ -2723,7 +2723,7 @@
                     <div class="redeem-grid">
                         <div class="redeem-left">
                             <div class="form-group">
-                                <label>Enter Player FID</label>
+                                <label>Enter Player Id</label>
                                 <div class="player-input-wrap">
                                     <input type="text" id="redeem-fid" placeholder="e.g. 123456789" maxlength="9">
                                     <button onclick="fetchPlayerInfo()" class="btn btn-primary" id="fetch-player-btn">
@@ -2734,7 +2734,7 @@
 
                             <div id="player-info-container" class="player-info-display">
                                 <div style="color: var(--text-muted); font-size: 0.9rem; text-align: center; width: 100%;">
-                                    Enter FID and search to fetch player details
+                                    Enter Id and search to fetch player details
                                 </div>
                             </div>
 
@@ -3965,7 +3965,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModActionModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="submitModAction()">Submit</button>
+                <button class="btn btn-primary" id="mod-action-submit-btn" onclick="submitModAction()">Submit</button>
             </div>
         </div>
     </div>
@@ -3981,7 +3981,7 @@
             <div class="modal-body">
                 <input type="hidden" id="config-id">
                 <div class="form-group">
-                    <label>Pipeline Name</label>
+                    <label>Configuration Name</label>
                     <input type="text" id="config-name" placeholder="e.g. Chat Sync">
                 </div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
@@ -4045,7 +4045,7 @@
             </div>
             <div class="modal-footer">
                 <button onclick="closeTranslateModal()" class="btn btn-secondary">Cancel</button>
-                <button onclick="saveTranslateConfig()" class="btn btn-primary">Save Pipeline</button>
+                <button onclick="saveTranslateConfig()" class="btn btn-primary">Save Configuration</button>
             </div>
         </div>
     </div>
@@ -4339,7 +4339,7 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Player FID (9 digits)</label>
+                    <label>Player Id (9 digits)</label>
                     <div class="player-input-wrap">
                         <input type="text" id="add-member-fid" placeholder="e.g. 123456789" maxlength="9">
                         <button onclick="lookupMemberForAdd()" class="btn btn-primary" id="lookup-member-btn">
@@ -4350,7 +4350,7 @@
 
                 <div id="add-member-preview" class="add-member-lookup">
                     <div style="color: var(--text-muted); font-size: 0.9rem; text-align: center; width: 100%;">
-                        Enter a FID and search to verify the player
+                        Enter an Id and search to verify the player
                     </div>
                 </div>
             </div>
@@ -4380,7 +4380,7 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Player FID (9 digits)</label>
+                    <label>Player Id (9 digits)</label>
                     <div class="player-input-wrap">
                         <input type="text" id="add-monitor-fid" placeholder="e.g. 123456789" maxlength="9">
                         <button onclick="lookupMonitorPlayer()" class="btn btn-primary" id="lookup-monitor-player-btn">
@@ -4391,7 +4391,7 @@
 
                 <div id="add-monitor-preview" class="add-member-lookup">
                     <div style="color: var(--text-muted); font-size: 0.9rem; text-align: center; width: 100%;">
-                        Enter a FID and search to verify the player
+                        Enter an Id and search to verify the player
                     </div>
                 </div>
             </div>
@@ -5311,7 +5311,7 @@
             document.getElementById('preview-subtitle-overlay').textContent = resolvedSubtitle;
 
             // Footer
-            const footerVal = document.getElementById('footer-text').value || 'Member joined â€¢ {date}';
+            const footerVal = document.getElementById('footer-text').value || 'Member joined • {date}';
             document.getElementById('preview-footer').textContent = applyVarsPlain(footerVal);
 
             // Embed accent color
@@ -5431,7 +5431,7 @@
             document.getElementById('welcome-text').value    = 'Hi {mention} Welcome to the {server}ðŸ¥³';
             document.getElementById('embed-title').value     = 'Welcome {username} to {server}';
             document.getElementById('embed-subtitle').value  = 'you are the {member_count} member!';
-            document.getElementById('footer-text').value     = 'Member joined â€¢ {date}';
+            document.getElementById('footer-text').value     = 'Member joined • {date}';
             document.getElementById('embed-color').value     = '#e53e3e';
             document.getElementById('embed-color-hex').value = '#e53e3e';
             document.getElementById('welcome-bg').value      = '';
@@ -5457,7 +5457,7 @@
                 document.getElementById('welcome-text').value          = s.welcome_text  || 'Hi {mention} Welcome to the {server}ðŸ¥³';
                 document.getElementById('embed-title').value           = s.embed_title   || 'Welcome {username} to {server}';
                 document.getElementById('embed-subtitle').value        = s.embed_subtitle|| 'you are the {member_count} member!';
-                document.getElementById('footer-text').value           = s.footer_text   || 'Member joined â€¢ {date}';
+                document.getElementById('footer-text').value           = s.footer_text   || 'Member joined • {date}';
 
                 const color = s.embed_color || '#e53e3e';
                 document.getElementById('embed-color').value     = color;
@@ -5853,7 +5853,7 @@
                         <div class="result-item ${statusClass}" style="display: flex; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 10px 14px; border-radius: 8px; font-size: 0.85rem;">
                             <div>
                                 <strong style="color: #fff; font-family: monospace; font-size: 0.95rem;">${escapeHTML(item.code || 'UNKNOWN')}</strong>
-                                <span style="color: var(--text-muted); margin-left: 8px;">FID: ${escapeHTML(item.fid || 'Unknown')}</span>
+                                <span style="color: var(--text-muted); margin-left: 8px;">Id: ${escapeHTML(item.fid || 'Unknown')}</span>
                             </div>
                             <div style="display: flex; gap: 12px; align-items: center;">
                                 <span style="font-weight: 600;" class="${statusClass === 'success' ? 'text-green' : (statusClass === 'failed' ? 'text-red' : 'text-purple')}">${statusText}</span>
@@ -6032,7 +6032,7 @@
             const btn = document.getElementById('fetch-player-btn');
 
             if (!fid || fid.length !== 9 || !/^\d+$/.test(fid)) {
-                showNotification('Please enter a valid 9-digit FID', true);
+                showNotification('Please enter a valid 9-digit Id', true);
                 return;
             }
 
@@ -6052,7 +6052,7 @@
                         <img src="${res.data.avatar_image || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="player-avatar-large" alt="Avatar">
                         <div class="player-meta">
                             <h4>${escapeHTML(res.data.nickname)}</h4>
-                            <p>FID: ${res.data.id} â€¢ ${res.data.furnace_lv_formatted}</p>
+                            <p>Id: ${res.data.id} • ${res.data.furnace_lv_formatted}</p>
                         </div>
                     `;
                     updateRedeemButtonState();
@@ -6249,7 +6249,7 @@
                         <img src="${escapeAttribute(avatar)}" class="ar-member-avatar" alt="Avatar" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
                         <div class="ar-member-info">
                             <h5>${escapeHTML(nick)}</h5>
-                            <p>FID: ${escapeHTML(fid)} â€¢ Furnace Lv ${formattedFurnace}${addedAt ? ' â€¢ Added ' + addedAt : ''}</p>
+                            <p>Id: ${escapeHTML(fid)}} • Furnace Lv ${formattedFurnace}${addedAt ? ' • Added ' + addedAt : ''}</p>
                         </div>
                         <button class="ar-member-remove" onclick="removeAutoRedeemMember('${escapeAttribute(fid)}', '${escapeAttribute(nick)}')" title="Remove member">
                             <i data-lucide="x" style="width: 14px;"></i>
@@ -6266,7 +6266,7 @@
         }
 
         async function removeAutoRedeemMember(fid, nickname) {
-            if (!confirm(`Remove ${nickname} (FID: ${fid}) from auto-redeem?`)) return;
+            if (!confirm(`Remove ${nickname} (Id: ${fid}) from auto-redeem?`)) return;
 
             showLoading(true);
             try {
@@ -6359,7 +6359,7 @@
             document.getElementById('confirm-add-member-btn').disabled = true;
             document.getElementById('add-member-preview').innerHTML = `
                 <div style="color: var(--text-muted); font-size: 0.9rem; text-align: center; width: 100%;">
-                    Enter a FID and search to verify the player
+                    Enter an Id and search to verify the player
                 </div>`;
             document.getElementById('add-member-modal').style.display = 'flex';
             lucide.createIcons();
@@ -6378,7 +6378,7 @@
             const confirmBtn = document.getElementById('confirm-add-member-btn');
 
             if (!fid || fid.length !== 9 || !/^\d+$/.test(fid)) {
-                showNotification('Please enter a valid 9-digit FID', true);
+                showNotification('Please enter a valid 9-digit Id', true);
                 return;
             }
 
@@ -6402,7 +6402,7 @@
                              onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
                         <div class="player-meta">
                             <h4>${escapeHTML(res.data.nickname)}</h4>
-                            <p>FID: ${res.data.fid} â€¢ Furnace Lv ${formatFurnaceLevel(res.data.furnace_lv || 0)}</p>
+                            <p>Id: ${res.data.fid} • Furnace Lv ${formatFurnaceLevel(res.data.furnace_lv || 0)}</p>
                         </div>
                         <div style="margin-left: auto; color: #34d399;"><i data-lucide="check-circle" style="width: 22px;"></i></div>`;
                     confirmBtn.disabled = false;
@@ -6512,7 +6512,7 @@
             showLoading(true);
             try {
                 await fetchData(`/api/settings/translate/${guildId}`, { method: 'POST', body: JSON.stringify(data) });
-                showNotification('Pipeline saved!');
+                showNotification('Configuration saved!');
                 closeTranslateModal();
                 loadTranslateConfigs();
             } catch (e) {} finally { showLoading(false); }
@@ -7683,7 +7683,7 @@
         function openAddMonitorPlayerModal() {
             document.getElementById('add-monitor-player-modal').style.display = 'flex';
             document.getElementById('add-monitor-fid').value = '';
-            document.getElementById('add-monitor-preview').innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem; text-align: center; width: 100%;">Enter a FID and search to verify the player</div>';
+            document.getElementById('add-monitor-preview').innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem; text-align: center; width: 100%;">Enter an Id and search to verify the player</div>';
             document.getElementById('confirm-add-monitor-player-btn').disabled = true;
             lucide.createIcons();
         }
@@ -7696,7 +7696,7 @@
         async function lookupMonitorPlayer() {
             const fid = document.getElementById('add-monitor-fid').value;
             if (!fid || fid.length < 5) {
-                showNotification('Please enter a valid FID', true);
+                showNotification('Please enter a valid Id', true);
                 return;
             }
 
@@ -7716,7 +7716,7 @@
                             <img src="${data.avatar_image || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="player-avatar-large">
                             <div class="player-meta">
                                 <h4>${escapeHTML(data.nickname)}</h4>
-                                <p>FID: ${data.id} â€¢ Furnace Lv. ${formatFurnaceLevel(data.level)}</p>
+                                <p>Id: ${data.id} • Furnace Lv. ${formatFurnaceLevel(data.level)}</p>
                             </div>
                         </div>
                     `;
@@ -7898,6 +7898,10 @@
             if (tabBtn) tabBtn.classList.add('active');
             if (tabContent) tabContent.classList.add('active');
             
+            if (subtabId === 'overview') {
+                loadModStats();
+                loadModLog(10);
+            }
             if (subtabId === 'blacklist') loadBlacklist();
             if (subtabId === 'log-settings') loadModSettings();
             if (subtabId === 'automod') loadModSettings();
@@ -7964,6 +7968,7 @@
             const userId = document.getElementById('mod-action-userid').value;
             const reason = document.getElementById('mod-action-reason').value;
             const duration = document.getElementById('mod-action-duration').value;
+            const submitBtn = document.getElementById('mod-action-submit-btn');
             
             if (!userId) {
                 showNotification('User ID is required', true);
@@ -7973,16 +7978,30 @@
             const payload = { action, user_id: userId, reason };
             if (action === 'mute') payload.duration = parseInt(duration) || 10;
 
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i data-lucide="loader-2" style="width:15px;animation:spin 1s linear infinite;"></i> Submitting...';
+                lucide.createIcons();
+            }
+
             try {
                 await fetchData(`/api/moderation/${guildId}/action`, {
                     method: 'POST',
                     body: JSON.stringify(payload)
                 });
                 showNotification(`Action ${action} executed successfully!`);
+                document.getElementById('mod-action-userid').value = '';
+                document.getElementById('mod-action-reason').value = '';
                 closeModActionModal();
                 loadModLog();
+                loadModStats(); // refresh overview stats if visible
             } catch (e) {
                 showNotification(`Failed to execute ${action}`, true);
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit';
+                }
             }
         }
 

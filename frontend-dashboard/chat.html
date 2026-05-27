@@ -75,14 +75,39 @@
           <span data-room-identity>Guest access</span>
           <strong data-room-status>Loading room...</strong>
         </div>
+
+        <div class="chat-session-panel" aria-label="Chat sessions">
+          <div class="chat-panel-heading">
+            <span>Channels</span>
+            <b data-room-session-count>1</b>
+          </div>
+          <button class="chat-session-item active" type="button" data-room-global-session>
+            <span class="chat-session-icon">#</span>
+            <span>
+              <strong>Community Room</strong>
+              <small>Public WOS chat</small>
+            </span>
+          </button>
+          <div class="chat-session-list" data-room-session-list></div>
+        </div>
       </aside>
 
       <section class="chat-room-main">
         <div class="chat-room-topbar">
-          <div>
-            <strong>Community Room</strong>
-            <span>UTC and local time are shown on every message</span>
+          <div class="chat-active-room">
+            <span class="chat-active-avatar" data-room-active-avatar>#</span>
+            <div>
+              <strong data-room-title>Community Room</strong>
+              <span data-room-subtitle>UTC and local time are shown on every message</span>
+            </div>
           </div>
+          <button class="chat-room-refresh chat-whisper-clear" type="button" data-room-whisper-clear hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 6 6 18"></path>
+              <path d="m6 6 12 12"></path>
+            </svg>
+            Public room
+          </button>
           <button class="chat-room-refresh" type="button" data-room-refresh>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
@@ -170,6 +195,37 @@
           </div>
         </form>
       </section>
+
+      <aside class="chat-member-panel">
+        <div class="chat-panel-heading">
+          <span>Members</span>
+          <b data-room-member-count>0 online</b>
+        </div>
+        <label class="chat-member-search">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
+          <input type="search" placeholder="Search players" data-room-member-search>
+        </label>
+        <div class="chat-member-list" data-room-member-list></div>
+
+        <div class="chat-profile-card" data-room-profile hidden>
+          <button class="chat-profile-close" type="button" data-room-profile-close aria-label="Close profile">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 6 6 18"></path>
+              <path d="m6 6 12 12"></path>
+            </svg>
+          </button>
+          <div class="chat-profile-avatar" data-room-profile-avatar></div>
+          <strong data-room-profile-name>Player</strong>
+          <span data-room-profile-kind>Guest Account</span>
+          <div class="chat-profile-actions">
+            <button type="button" data-room-profile-whisper>Whisper</button>
+            <button type="button" data-room-profile-copy>Copy ID</button>
+          </div>
+        </div>
+      </aside>
     </section>
   </main>
 

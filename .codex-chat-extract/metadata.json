@@ -1,0 +1,11 @@
+{
+  "name": "Whiteout Survival",
+  "description": "Whiteout Survival - A real-time survival-themed web chat system featuring global/private chats, voice/video calls, 1000+ emojis, animated GIFs, message translations, replies, deletion, integrated Dice gaming, and a powerful Admin command deck.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

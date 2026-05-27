@@ -28,7 +28,24 @@
     reply: roomRoot.querySelector("[data-room-reply]"),
     replyName: roomRoot.querySelector("[data-room-reply-name]"),
     replyContent: roomRoot.querySelector("[data-room-reply-content]"),
-    replyClear: roomRoot.querySelector("[data-room-reply-clear]")
+    replyClear: roomRoot.querySelector("[data-room-reply-clear]"),
+    title: roomRoot.querySelector("[data-room-title]"),
+    subtitle: roomRoot.querySelector("[data-room-subtitle]"),
+    activeAvatar: roomRoot.querySelector("[data-room-active-avatar]"),
+    globalSession: roomRoot.querySelector("[data-room-global-session]"),
+    sessionList: roomRoot.querySelector("[data-room-session-list]"),
+    sessionCount: roomRoot.querySelector("[data-room-session-count]"),
+    whisperClear: roomRoot.querySelector("[data-room-whisper-clear]"),
+    memberList: roomRoot.querySelector("[data-room-member-list]"),
+    memberSearch: roomRoot.querySelector("[data-room-member-search]"),
+    memberCount: roomRoot.querySelector("[data-room-member-count]"),
+    profile: roomRoot.querySelector("[data-room-profile]"),
+    profileClose: roomRoot.querySelector("[data-room-profile-close]"),
+    profileAvatar: roomRoot.querySelector("[data-room-profile-avatar]"),
+    profileName: roomRoot.querySelector("[data-room-profile-name]"),
+    profileKind: roomRoot.querySelector("[data-room-profile-kind]"),
+    profileWhisper: roomRoot.querySelector("[data-room-profile-whisper]"),
+    profileCopy: roomRoot.querySelector("[data-room-profile-copy]")
   };
 
   const DISCORD_CLIENT_ID = "1399025185046134866";
@@ -64,6 +81,8 @@
   let searchQuery = "";
   let onlineUsers = [];
   let typingTimer = null;
+  let selectedProfileUser = null;
+  let memberSearchQuery = "";
 
   const getToken = () => localStorage.getItem("discord_access_token");
   const authHeaders = () => {
@@ -101,6 +120,17 @@
   const initials = (name) => {
     const parts = String(name || "Guest").trim().split(/\s+/).slice(0, 2);
     return parts.map((part) => part[0] || "").join("").toUpperCase() || "G";
+  };
+  const getMyId = () => currentUser ? String(currentUser.id) : getGuestId();
+  const normalizeUserId = (value) => String(value || "").trim();
+  const userDisplayName = (user) => user ? (user.name || user.global_name || user.username || "Guest Player") : "Guest Player";
+  const getUserById = (userId) => onlineUsers.find((user) => normalizeUserId(user.id || user.name) === normalizeUserId(userId));
+  const isCurrentUser = (user) => normalizeUserId(user && (user.id || user.name)) === normalizeUserId(getMyId());
+  const otherPartyId = (message) => {
+    const targetId = normalizeUserId(message.target_user_id);
+    if (!targetId) return "";
+    const authorId = normalizeUserId((message.author || {}).id || (message.author || {}).name);
+    return targetId === normalizeUserId(getMyId()) ? authorId : targetId;
   };
   const formatTime = (iso) => {
     const date = new Date(iso);
@@ -306,6 +336,7 @@
           playChime("message");
         }
         if (messagesCache.length > 200) messagesCache = messagesCache.slice(-200);
+        renderSessions();
         renderMessages();
         if (messagesCache.length) localStorage.setItem(STORAGE_KEYS.lastSeen, messagesCache[messagesCache.length - 1].created_at);
         break;
@@ -320,6 +351,7 @@
       }
       case "delete": {
         messagesCache = messagesCache.filter(m => m.id !== data.message_id);
+        renderSessions();
         const elMsg = el.messages.querySelector(`[data-message-id="${data.message_id}"]`);
         if (elMsg) {
           elMsg.classList.add("deleting");
@@ -330,6 +362,9 @@
       case "presence": {
         el.online.textContent = String(data.online_count || 0);
         onlineUsers = data.users || [];
+        renderActiveRoom();
+        renderSessions();
+        renderMembers();
         break;
       }
       case "typing": {
@@ -444,6 +479,158 @@
     setTimeout(() => document.addEventListener("click", dismiss), 10);
   };
 
+  const renderActiveRoom = () => {
+    if (!el.title || !el.subtitle || !el.activeAvatar) return;
+    const target = replyToUser ? getUserById(replyToUser) : null;
+    if (!replyToUser) {
+      el.title.textContent = "Community Room";
+      el.subtitle.textContent = "Public room with replies, reactions, files, voice, GIFs, and translation";
+      el.activeAvatar.textContent = "#";
+      el.activeAvatar.style.backgroundImage = "";
+      if (el.whisperClear) el.whisperClear.hidden = true;
+      if (el.globalSession) el.globalSession.classList.add("active");
+      return;
+    }
+
+    const name = userDisplayName(target) || "Private player";
+    el.title.textContent = `Whisper: ${name}`;
+    el.subtitle.textContent = "Private messages are visible only to you and this player";
+    el.activeAvatar.textContent = initials(name);
+    el.activeAvatar.style.backgroundImage = target && target.avatar_url ? `url("${target.avatar_url}")` : "";
+    if (el.whisperClear) el.whisperClear.hidden = false;
+    if (el.globalSession) el.globalSession.classList.remove("active");
+  };
+
+  const switchToGlobalRoom = () => {
+    replyToUser = null;
+    selectedProfileUser = null;
+    if (el.profile) el.profile.hidden = true;
+    renderActiveRoom();
+    renderSessions();
+    renderMembers();
+    renderMessages();
+    el.input.focus();
+  };
+
+  const startWhisper = (userId, keepReply = false) => {
+    const normalized = normalizeUserId(userId);
+    if (!normalized || normalized === normalizeUserId(getMyId())) return;
+    replyToUser = normalized;
+    if (!keepReply) replyTo = null;
+    if (!keepReply && el.reply) el.reply.hidden = true;
+    renderActiveRoom();
+    renderSessions();
+    renderMembers();
+    renderMessages();
+    el.input.focus();
+  };
+
+  const conversationPartners = () => {
+    const ids = new Set();
+    messagesCache.forEach((message) => {
+      const partner = otherPartyId(message);
+      if (partner) ids.add(partner);
+    });
+    onlineUsers.forEach((user) => {
+      const id = normalizeUserId(user.id || user.name);
+      if (id && !isCurrentUser(user)) ids.add(id);
+    });
+    return Array.from(ids);
+  };
+
+  const privateMessagesWith = (userId) => {
+    const normalized = normalizeUserId(userId);
+    return messagesCache.filter((message) => otherPartyId(message) === normalized);
+  };
+
+  const renderSessions = () => {
+    if (!el.sessionList) return;
+    const partners = conversationPartners();
+    el.sessionList.replaceChildren();
+    partners.forEach((userId) => {
+      const user = getUserById(userId);
+      const privateMessages = privateMessagesWith(userId);
+      const last = privateMessages[privateMessages.length - 1];
+      const name = userDisplayName(user) || (last && userDisplayName(last.author)) || "Private player";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `chat-session-item${normalizeUserId(replyToUser) === normalizeUserId(userId) ? " active" : ""}`;
+      const avatar = document.createElement("span");
+      avatar.className = "chat-session-icon";
+      if (user && user.avatar_url) {
+        avatar.style.backgroundImage = `url("${user.avatar_url}")`;
+      } else {
+        avatar.textContent = initials(name);
+      }
+      const body = document.createElement("span");
+      const strong = document.createElement("strong");
+      strong.textContent = name;
+      const small = document.createElement("small");
+      small.textContent = last ? (last.content || "Attachment") : "Start a private whisper";
+      body.append(strong, small);
+      button.append(avatar, body);
+      button.addEventListener("click", () => startWhisper(userId));
+      el.sessionList.appendChild(button);
+    });
+    if (el.sessionCount) el.sessionCount.textContent = String(partners.length + 1);
+    if (el.globalSession) el.globalSession.classList.toggle("active", !replyToUser);
+  };
+
+  const openProfile = (user) => {
+    if (!user || !el.profile) return;
+    selectedProfileUser = user;
+    const name = userDisplayName(user);
+    el.profile.hidden = false;
+    if (el.profileAvatar) {
+      el.profileAvatar.textContent = initials(name);
+      el.profileAvatar.style.backgroundImage = user.avatar_url ? `url("${user.avatar_url}")` : "";
+    }
+    if (el.profileName) el.profileName.textContent = name;
+    if (el.profileKind) el.profileKind.textContent = user.kind === "discord" ? "Verified Discord player" : "Guest account";
+    if (el.profileWhisper) el.profileWhisper.disabled = isCurrentUser(user);
+  };
+
+  const renderMembers = () => {
+    if (!el.memberList) return;
+    const query = memberSearchQuery.trim().toLowerCase();
+    const members = onlineUsers
+      .filter((user) => !query || userDisplayName(user).toLowerCase().includes(query))
+      .sort((a, b) => Number(isCurrentUser(b)) - Number(isCurrentUser(a)) || userDisplayName(a).localeCompare(userDisplayName(b)));
+
+    el.memberList.replaceChildren();
+    members.forEach((user) => {
+      const userId = normalizeUserId(user.id || user.name);
+      const name = userDisplayName(user);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `chat-member-item${normalizeUserId(replyToUser) === userId ? " active" : ""}`;
+      const avatar = document.createElement("span");
+      avatar.className = "chat-member-avatar";
+      if (user.avatar_url) {
+        avatar.style.backgroundImage = `url("${user.avatar_url}")`;
+      } else {
+        avatar.textContent = initials(name);
+      }
+      const body = document.createElement("span");
+      const strong = document.createElement("strong");
+      strong.textContent = `${name}${isCurrentUser(user) ? " (you)" : ""}`;
+      const small = document.createElement("small");
+      small.textContent = user.kind === "discord" ? "Discord player" : "Guest player";
+      body.append(strong, small);
+      button.append(avatar, body);
+      button.addEventListener("click", () => openProfile(user));
+      el.memberList.appendChild(button);
+    });
+
+    if (!members.length) {
+      const empty = document.createElement("p");
+      empty.className = "chat-member-empty";
+      empty.textContent = "No matching players online.";
+      el.memberList.appendChild(empty);
+    }
+    if (el.memberCount) el.memberCount.textContent = `${onlineUsers.length} online`;
+  };
+
   const startFallbackPolling = () => {
     if (!pollTimer) {
       refreshMessages();
@@ -482,7 +669,7 @@
   const setReply = (message, isPrivate = false) => {
     replyTo = message;
     if (isPrivate) {
-      replyToUser = (message.author || {}).id || (message.author || {}).name;
+      startWhisper((message.author || {}).id || (message.author || {}).name, true);
     }
     el.reply.hidden = false;
     el.replyName.textContent = (message.author || {}).name || "Player";
@@ -492,7 +679,6 @@
 
   const clearReply = () => {
     replyTo = null;
-    replyToUser = null;
     el.reply.hidden = true;
     el.replyName.textContent = "";
     el.replyContent.textContent = "";
@@ -566,6 +752,9 @@
     const avatar = document.createElement("div");
     avatar.className = "chat-avatar";
     const author = message.author || {};
+    if (normalizeUserId(author.id || author.name) === normalizeUserId(getMyId())) {
+      article.classList.add("is-self");
+    }
     if (author.avatar_url) {
       const image = document.createElement("img");
       image.src = author.avatar_url;
@@ -696,11 +885,22 @@
   };
 
   const renderMessages = () => {
+    const roomFiltered = replyToUser
+      ? messagesCache.filter((message) => otherPartyId(message) === normalizeUserId(replyToUser))
+      : messagesCache.filter((message) => !message.target_user_id);
     const filtered = searchQuery
-      ? messagesCache.filter(m => (m.content || "").toLowerCase().includes(searchQuery) || ((m.author || {}).name || "").toLowerCase().includes(searchQuery))
-      : messagesCache;
+      ? roomFiltered.filter(m => (m.content || "").toLowerCase().includes(searchQuery) || ((m.author || {}).name || "").toLowerCase().includes(searchQuery))
+      : roomFiltered;
     el.messages.replaceChildren();
     filtered.forEach((message) => el.messages.appendChild(renderMessage(message)));
+    if (!filtered.length) {
+      const empty = document.createElement("div");
+      empty.className = "chat-empty-state";
+      empty.innerHTML = replyToUser
+        ? "<strong>No whispers yet</strong><span>Send the first private message in this conversation.</span>"
+        : "<strong>No community messages yet</strong><span>Start the room with a message, file, GIF, or voice note.</span>";
+      el.messages.appendChild(empty);
+    }
     el.messages.scrollTop = el.messages.scrollHeight;
   };
 
@@ -713,6 +913,9 @@
       const payload = await response.json();
       messagesCache = payload.messages || [];
       el.online.textContent = String(payload.online_count || 0);
+      renderActiveRoom();
+      renderSessions();
+      renderMembers();
       renderMessages();
       if (messagesCache.length) {
         localStorage.setItem(STORAGE_KEYS.lastSeen, messagesCache[messagesCache.length - 1].created_at);
@@ -991,6 +1194,34 @@
     el.online.title = "Click to see online users";
     el.online.addEventListener("click", () => showOnlineUsersPopover(el.online));
   }
+  if (el.globalSession) el.globalSession.addEventListener("click", switchToGlobalRoom);
+  if (el.whisperClear) el.whisperClear.addEventListener("click", switchToGlobalRoom);
+  if (el.memberSearch) {
+    el.memberSearch.addEventListener("input", () => {
+      memberSearchQuery = el.memberSearch.value || "";
+      renderMembers();
+    });
+  }
+  if (el.profileClose) el.profileClose.addEventListener("click", () => {
+    selectedProfileUser = null;
+    if (el.profile) el.profile.hidden = true;
+  });
+  if (el.profileWhisper) el.profileWhisper.addEventListener("click", () => {
+    if (selectedProfileUser) startWhisper(selectedProfileUser.id || selectedProfileUser.name);
+  });
+  if (el.profileCopy) el.profileCopy.addEventListener("click", async () => {
+    if (!selectedProfileUser) return;
+    const id = normalizeUserId(selectedProfileUser.id || selectedProfileUser.name);
+    try {
+      await navigator.clipboard.writeText(id);
+      setStatus("Player ID copied");
+    } catch (error) {
+      setStatus(id);
+    }
+  });
+  renderActiveRoom();
+  renderSessions();
+  renderMembers();
 
   el.guest.addEventListener("click", () => {
     const name = setGuestName(el.name.value);

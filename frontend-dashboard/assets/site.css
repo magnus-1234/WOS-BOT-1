@@ -5184,6 +5184,10 @@ body,
   backdrop-filter: blur(12px);
 }
 
+.chat-call-overlay[hidden] {
+  display: none !important;
+}
+
 .chat-call-card {
   width: min(24rem, calc(100vw - 2rem));
   border: 1px solid rgba(45, 212, 191, 0.22);

@@ -1538,7 +1538,7 @@
       width: 3.6rem;
       height: 3.6rem;
       border: none;
-      border-radius: 999px;
+      border-radius: 50%;
       background: linear-gradient(135deg, #8de8ff 0%, #9a63f0 50%, #ff8bc8 100%);
       box-shadow:
         0 0 0 0 rgba(141, 232, 255, 0),
@@ -1568,7 +1568,7 @@
       content: '';
       position: absolute;
       inset: -3px;
-      border-radius: 999px;
+      border-radius: 50%;
       background: linear-gradient(135deg, #8de8ff, #9a63f0, #ff8bc8);
       opacity: 0;
       filter: blur(8px);
@@ -1635,7 +1635,7 @@
       content: '';
       position: absolute;
       inset: 0;
-      border-radius: 999px;
+      border-radius: 50%;
       border: 2px solid rgba(141, 232, 255, 0.6);
       animation: fabPulseRing 2.5s ease-out infinite;
     }
@@ -2709,16 +2709,20 @@
         <div class="sys-info-header">SYSTEM info</div>
         <div class="sys-info-divider">────────────────────────</div>
         <div class="sys-info-grid">
-          <div class="sys-row"><span class="sys-label">IP:</span><span class="sys-value sys-blue" id="sys-ip">FETCHING...</span></div>
-          <div class="sys-row"><span class="sys-label">REGION:</span><span class="sys-value sys-pink" id="sys-region">DETECTING...</span></div>
-          <div class="sys-row"><span class="sys-label">ISP:</span><span class="sys-value sys-blue" id="sys-isp">UNKNOWN</span></div>
-          <div class="sys-row"><span class="sys-label">DEVICE:</span><span class="sys-value sys-pink" id="sys-device">DETECTING...</span></div>
-          <div class="sys-row"><span class="sys-label">BROWSER:</span><span class="sys-value sys-pink" id="sys-browser">DETECTING...</span></div>
-          <div class="sys-row"><span class="sys-label">TIMEZONE:</span><span class="sys-value sys-blue" id="sys-timezone">CALCULATING...</span></div>
-          <div class="sys-row"><span class="sys-label">LATENCY:</span><span class="sys-value sys-blue" id="sys-latency">PINGING...</span></div>
-          <div class="sys-row"><span class="sys-label">SESSION:</span><span class="sys-value sys-neon">ACTIVE</span></div>
-          <div class="sys-row"><span class="sys-label">TLS:</span><span class="sys-value sys-blue">AES-256 SECURE</span></div>
-          <div class="sys-row"><span class="sys-label">VPN:</span><span class="sys-value sys-neon" id="sys-vpn">NOT DETECTED</span></div>
+          <div class="sys-info-col">
+            <div class="sys-row"><span class="sys-label">IP:</span><span class="sys-value sys-blue" id="sys-ip">FETCHING...</span></div>
+            <div class="sys-row"><span class="sys-label">REGION:</span><span class="sys-value sys-pink" id="sys-region">DETECTING...</span></div>
+            <div class="sys-row"><span class="sys-label">ISP:</span><span class="sys-value sys-blue" id="sys-isp">UNKNOWN</span></div>
+            <div class="sys-row"><span class="sys-label">DEVICE:</span><span class="sys-value sys-pink" id="sys-device">DETECTING...</span></div>
+            <div class="sys-row"><span class="sys-label">BROWSER:</span><span class="sys-value sys-pink" id="sys-browser">DETECTING...</span></div>
+          </div>
+          <div class="sys-info-col">
+            <div class="sys-row"><span class="sys-label">TIMEZONE:</span><span class="sys-value sys-blue" id="sys-timezone">CALCULATING...</span></div>
+            <div class="sys-row"><span class="sys-label">LATENCY:</span><span class="sys-value sys-blue" id="sys-latency">PINGING...</span></div>
+            <div class="sys-row"><span class="sys-label">SESSION:</span><span class="sys-value sys-neon">ACTIVE</span></div>
+            <div class="sys-row"><span class="sys-label">TLS:</span><span class="sys-value sys-blue">AES-256 SECURE</span></div>
+            <div class="sys-row"><span class="sys-label">VPN:</span><span class="sys-value sys-neon" id="sys-vpn">NOT DETECTED</span></div>
+          </div>
         </div>
         <div class="sys-info-divider">────────────────────────</div>
       </div>

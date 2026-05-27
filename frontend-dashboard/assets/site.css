@@ -5300,7 +5300,12 @@ body,
 /* ── SECOND OVERRIDES: FIX HOVERS, CHAT FAB, SYSTEM LOG ── */
 
 /* 1. Fix Add to Discord / Dashboard Buttons hover transparency */
-
+.button:hover,
+.ghost-link.dashboard-cta:hover {
+  background: #0055FF !important;
+  border-color: #0055FF !important;
+  color: #FFFFFF !important;
+}
 
 /* 2. Community Chat button should be circular */
 
@@ -5466,10 +5471,10 @@ body,
 }
 [data-theme="cyberpunk-cool"] .button:hover,
 [data-theme="cyberpunk-cool"] .ghost-link.dashboard-cta:hover {
-  background: #00FFFF !important;
-  border-color: #00FFFF !important;
-  color: #000000 !important;
-  box-shadow: 0 0 25px rgba(0, 255, 255, 0.8) !important;
+  background: #0055FF !important;
+  border-color: #0055FF !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 0 25px rgba(0, 85, 255, 0.8) !important;
   transform: translateY(-2px);
 }
 [data-theme="cyberpunk-cool"] .button.secondary {
@@ -5739,12 +5744,11 @@ body,
   background: #000000;
 }
 [data-theme="cyberpunk-cool"] .footer-logo-link {
-  opacity: 0.55;
-  filter: sepia(100%) hue-rotate(10deg) saturate(300%) brightness(1.2);
+  opacity: 0.7;
 }
 [data-theme="cyberpunk-cool"] .footer-logo-link:hover {
   opacity: 1;
-  filter: sepia(100%) hue-rotate(10deg) saturate(500%) brightness(1.5) drop-shadow(0 0 10px #00FFFF);
+  filter: drop-shadow(0 0 10px #00FFFF);
 }
 [data-theme="cyberpunk-cool"] .live-pill {
   color: #00FFFF;
@@ -5982,9 +5986,6 @@ body,
   row-gap: 0.25rem;
   width: 100%;
 }
-  [data-theme="cyberpunk-cool"] .sys-info-grid {
-    grid-template-columns: 1fr;
-  }
 [data-theme="cyberpunk-cool"] .sys-row {
   display: flex;
   justify-content: space-between;
@@ -6048,11 +6049,7 @@ body,
   color: #FFFFFF !important;
   box-shadow: 0 0 15px rgba(0, 255, 255, 0.4), inset 0 0 10px rgba(0, 255, 255, 0.15) !important;
 }
-[data-theme="cyberpunk-cool"] .ghost-link.dashboard-cta:hover,
-[data-theme="cyberpunk-cool"] .button:hover {
-  box-shadow: 0 0 25px rgba(0, 255, 255, 0.6), inset 0 0 15px rgba(0, 255, 255, 0.25) !important;
-  background: #0a0a0a !important;
-}
+
 [data-theme="cyberpunk-cool"] .feature-card,
 [data-theme="cyberpunk-cool"] .stats-grid article,
 [data-theme="cyberpunk-cool"] .showcase-card {
@@ -6131,7 +6128,7 @@ body,
   color: #fff !important;
   transform: scale(1.05) !important;
 }
-[data-theme="cyberpunk-cool"] .floating-chat-fab {
+[data-theme="cyberpunk-cool"] #floating-chat-fab {
   border-radius: 50% !important;
   clip-path: none !important; /* In case a button clip path was inherited */
   width: 60px !important;
@@ -6143,7 +6140,7 @@ body,
   align-items: center !important;
   justify-content: center !important;
 }
-[data-theme="cyberpunk-cool"] .floating-chat-fab:hover {
+[data-theme="cyberpunk-cool"] #floating-chat-fab:hover {
   background: linear-gradient(135deg, #00FFFF, #0088FF) !important;
   box-shadow: 0 0 25px rgba(0, 255, 255, 0.8) !important;
   border-color: #FF00FF !important;
@@ -6170,7 +6167,7 @@ body,
     linear-gradient(rgba(0, 255, 255, 0.25) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 0, 255, 0.25) 1px, transparent 1px) !important;
 }
-[data-theme="cyberpunk-cool"] .floating-chat-fab {
+[data-theme="cyberpunk-cool"] #floating-chat-fab {
   border-radius: 50% !important;
   width: 60px !important;
   height: 60px !important;
@@ -6183,7 +6180,7 @@ body,
   justify-content: center !important;
   clip-path: circle(50% at 50% 50%) !important; /* Force a perfect circle shape */
 }
-[data-theme="cyberpunk-cool"] .floating-chat-fab:hover {
+[data-theme="cyberpunk-cool"] #floating-chat-fab:hover {
   background: linear-gradient(135deg, #FF00FF, #00BFFF) !important;
   box-shadow: 0 0 25px rgba(255, 0, 255, 0.8) !important;
   border-color: #00FFFF !important;

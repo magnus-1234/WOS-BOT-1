@@ -3,7 +3,8 @@
 
 <head>
     <script>
-        let savedTheme = localStorage.getItem('theme') || 'high-contrast';
+        let savedTheme = localStorage.getItem('theme') || 'cyberpunk-cool';
+        document.documentElement.setAttribute('data-theme', savedTheme);
     if (savedTheme === 'viper') {
       savedTheme = 'high-contrast';
       localStorage.setItem('theme', 'high-contrast');

@@ -223,6 +223,29 @@ async def create_community_preset(request: Request, payload: CommunityPresetCrea
 
 # ─── Dynamic API Routes ───────────────────────────────────────────────────────
 
+@router.delete("/presets/{preset_id}")
+async def delete_community_preset(request: Request, preset_id: str):
+    """Delete a community preset. Only the author can delete it."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    user = await _get_discord_user(auth_header)
+    
+    col = _get_presets_collection()
+    if col is None:
+        raise HTTPException(status_code=503, detail="Storage not available")
+        
+    preset = col.find_one({"id": preset_id})
+    if not preset:
+        raise HTTPException(status_code=404, detail="Preset not found")
+        
+    if preset.get("created_by_id") != user.get("id"):
+        raise HTTPException(status_code=403, detail="You can only delete your own presets")
+        
+    col.delete_one({"id": preset_id})
+    return {"status": "success"}
+
 @router.get("/{guild_id}")
 async def get_reminders(request: Request, guild_id: str):
     auth_header = request.headers.get("Authorization")

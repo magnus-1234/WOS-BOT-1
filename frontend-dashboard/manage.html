@@ -393,10 +393,6 @@
             height: 12px;
             opacity: 1;
         }
-        
-        .nav-item.configured-ok .nav-lock-badge {
-            display: none;
-        }
 
         /* Main Container */
         .main-container {
@@ -1164,6 +1160,8 @@
             -webkit-mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
             cursor: grab;
             user-select: none;
+            touch-action: pan-y;
+            overscroll-behavior: contain;
         }
         .wheel-container:active {
             cursor: grabbing;
@@ -2043,6 +2041,29 @@
             background: rgba(255,255,255,0.08) !important;
         }
     </style>
+    <!-- Flatpickr for Date UI -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+    <style>
+        /* Make flatpickr input look like our inputs */
+        .flatpickr-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .flatpickr-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+        }
+    </style>
 </head>
 
 <body>
@@ -2051,7 +2072,7 @@
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-resizer" id="sidebar-resizer"></div>
         <div class="sidebar-brand">
-            <img src="/logo.gif" alt="Logo">
+            <img src="/logo.gif" alt="Logo" style="border-radius: 50%;">
             <h1>Whiteout Survival Bot</h1>
         </div>
 
@@ -2135,6 +2156,9 @@
             </button>
         </div>
     </aside>
+
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
     <!-- Main Container -->
     <div class="main-container">
@@ -2437,28 +2461,22 @@
                                         <div class="dc-embed" id="preview-embed" style="border-left-width: 4px; border-left-style: solid;">
                                             <div class="dc-embed-inner" style="padding-bottom: 8px;">
                                                 <div class="dc-embed-desc" id="preview-text" style="font-size: 0.875rem; line-height: 1.375rem; color: #dbdee1;">
-                                                    Hi <span class="dc-mention">@NewMember</span> Welcome to the <strong>Your Server</strong>ðŸ¥³
+                                                    Hi <span class="dc-mention">@NewMember</span> Welcome to the <strong>Your Server</strong>🥳
                                                 </div>
                                             </div>
-                                            <div class="dc-embed-img-wrap" id="preview-img-wrap" style="position: relative; margin: 0 16px 16px 16px; border-radius: 4px; overflow: hidden; background: #e53e3e; aspect-ratio: 1000/300; container-type: size;">
+                                            <div class="dc-embed-img-wrap" id="preview-img-wrap" style="position: relative; margin: 0 16px 16px 16px; border-radius: 4px; overflow: hidden; background: linear-gradient(to bottom, #bca4df, #8b5cf6); aspect-ratio: 1000/300; container-type: size;">
                                                 <img id="preview-embed-image" class="dc-embed-image" src="" alt="" style="display:none; width: 100%; height: 100%; object-fit: cover;">
-                                                <!-- Overlay mimicking bot's PIL image: 1000x300px canvas
-                                                     Border: x=40, y=30, 240x240 | Avatar: x=50, y=40, 220x220
-                                                     Text:   x=300, y=centered
-                                                -->
                                                 <div id="preview-img-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
-                                                    <!-- White border circle: x=40→3.8%, y=30→9.5%, size=240→24.5% of width -->
-                                                    <div style="position:absolute; left:3.8%; top:9.5%; width:24.5%; aspect-ratio:1; background:white; border-radius:50%;"></div>
-                                                    <!-- Avatar: x=50→4.8%, y=40→12.8%, size=220→22.5% of width -->
-                                                    <div style="position:absolute; left:4.8%; top:12.8%; width:22.5%; aspect-ratio:1; border-radius:50%; overflow:hidden;">
+                                                    <!-- White border circle: x=40, y=30, size=240 -->
+                                                    <div style="position:absolute; left:4%; top:10%; width:24%; aspect-ratio:1; background:white; border-radius:50%;"></div>
+                                                    <!-- Avatar: x=50, y=40, size=220 -->
+                                                    <div style="position:absolute; left:5%; top:13.33%; width:22%; aspect-ratio:1; border-radius:50%; overflow:hidden;">
                                                         <img id="preview-user-avatar" src="/logo.gif" style="width:100%; height:100%; object-fit:cover;">
                                                     </div>
-                                                    <!-- Text block: x=300→30% left, vertically centered -->
-                                                    <div style="position:absolute; left:30%; top:0; height:100%; width:68%; display:flex; flex-direction:column; justify-content:center; gap:4px; color:white; font-family:'Varela Round',sans-serif; text-shadow: 2px 2px 0 #111, -2px -2px 0 #111, 2px -2px 0 #111, -2px 2px 0 #111, 3px 3px 6px rgba(0,0,0,0.9);">
-                                                        <!-- Line 1: embed_title (bigger font ~48px on 300px canvas = ~16% height) -->
-                                                        <div id="preview-title-overlay" style="font-size: clamp(12px, 15cqh, 44px); font-weight:800; line-height:1.1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Welcome NewMember</div>
-                                                        <!-- Line 2: embed_subtitle (slightly smaller ~42px) -->
-                                                        <div id="preview-subtitle-overlay" style="font-size: clamp(10px, 12cqh, 36px); font-weight:800; line-height:1.1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">you are the 42nd member!</div>
+                                                    <!-- Text block: x=300 -->
+                                                    <div style="position:absolute; left:30%; top:0; height:100%; width:68%; display:flex; flex-direction:column; justify-content:center; gap:8px; color:white; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif; text-shadow: -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0px 2px 4px rgba(0,0,0,0.6);">
+                                                        <div id="preview-title-overlay" style="font-size: clamp(14px, 16cqh, 48px); font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Welcome NewMember</div>
+                                                        <div id="preview-subtitle-overlay" style="font-size: clamp(12px, 14cqh, 42px); font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">you are the 42nd member!</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -4731,6 +4749,10 @@
             }
             if (tabName === 'roles') {
                 switchRoleSubtab('auto');
+            }
+            if (tabName === 'reminders') {
+                loadReminders();
+                loadCommunityPresets();
             }
             lucide.createIcons();
         }
@@ -7042,6 +7064,17 @@
                 if (presetId) applyReminderPreset(presetId);
             }
             document.getElementById('reminder-modal').style.display = 'flex';
+            
+            // Initialize flatpickr if not already initialized
+            const dateInput = document.getElementById('reminder-date');
+            if (!dateInput._flatpickr) {
+                flatpickr(dateInput, {
+                    dateFormat: "Y-m-d",
+                    minDate: "today",
+                    defaultDate: "today",
+                    disableMobile: "true" // Use flatpickr on mobile instead of native
+                });
+            }
             updateReminderPreview();
             lucide.createIcons();
         }

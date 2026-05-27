@@ -679,9 +679,12 @@
 
   const clearReply = () => {
     replyTo = null;
+    if (!el.whisperClear) replyToUser = null;
     el.reply.hidden = true;
     el.replyName.textContent = "";
     el.replyContent.textContent = "";
+    renderActiveRoom();
+    renderSessions();
   };
 
   const uploadBlob = async (blob, filename) => {

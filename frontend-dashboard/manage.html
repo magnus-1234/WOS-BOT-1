@@ -123,12 +123,12 @@
       --bg-dark: #000000;
       --sidebar-bg: #050505;
       --card-bg: rgba(10, 10, 15, 0.85);
-      --glass-border: rgba(0, 255, 255, 0.1);
+      --glass-border: rgba(37, 99, 235, 0.2);
       --text-main: #f9fafb;
       --text-muted: #6b7280;
-      --primary: #00ffff;
-      --primary-hover: #00cccc;
-      --gradient-brand: linear-gradient(135deg, #00ffff 0%, #ff00ff 100%);
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --gradient-brand: linear-gradient(135deg, #2563eb 0%, #ff00ff 100%);
     }
 
     @keyframes cartoonBgShift {
@@ -2031,6 +2031,17 @@
             .escalation-step { flex-wrap: wrap; }
             .escalation-step select { min-width: 100%; }
         }
+        /* Monitor Activity Filter Buttons */
+        .monitor-filter-btn { transition: all 0.2s ease; }
+        .monitor-filter-btn.active {
+            background: var(--primary) !important;
+            color: #fff !important;
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 10px rgba(139,92,246,0.3);
+        }
+        .monitor-filter-btn:hover:not(.active) {
+            background: rgba(255,255,255,0.08) !important;
+        }
     </style>
 </head>
 
@@ -2334,7 +2345,7 @@
                             <!-- Embed Title (Line 1 on image) -->
                             <div class="form-group">
                                 <label>ðŸ–Šï¸ Image Title (Line 1)</label>
-                                <input type="text" id="embed-title" placeholder="Welcome {username}" oninput="updatePreview()">
+                                <input type="text" id="embed-title" placeholder="Welcome {username} to {server}" oninput="updatePreview()">
                                 <div class="var-chips">
                                     <span class="var-chip" onclick="insertVar('embed-title','{username}')">{username}</span>
                                     <span class="var-chip" onclick="insertVar('embed-title','{server}')">{server}</span>
@@ -2344,8 +2355,9 @@
                             <!-- Embed Sub-text (Line 2 on image) -->
                             <div class="form-group">
                                 <label>ðŸ–Šï¸ Image Subtitle (Line 2)</label>
-                                <input type="text" id="embed-subtitle" placeholder="to {server}" oninput="updatePreview()">
+                                <input type="text" id="embed-subtitle" placeholder="you are the {member_count} member!" oninput="updatePreview()">
                                 <div class="var-chips">
+                                    <span class="var-chip" onclick="insertVar('embed-subtitle','{member_count}')">{member_count}</span>
                                     <span class="var-chip" onclick="insertVar('embed-subtitle','{server}')">{server}</span>
                                     <span class="var-chip" onclick="insertVar('embed-subtitle','{username}')">{username}</span>
                                 </div>
@@ -2428,19 +2440,25 @@
                                                     Hi <span class="dc-mention">@NewMember</span> Welcome to the <strong>Your Server</strong>ðŸ¥³
                                                 </div>
                                             </div>
-                                            <div class="dc-embed-img-wrap" id="preview-img-wrap" style="position: relative; margin: 0 16px 16px 16px; border-radius: 4px; overflow: hidden; background: #e53e3e; aspect-ratio: 1000/300;">
+                                            <div class="dc-embed-img-wrap" id="preview-img-wrap" style="position: relative; margin: 0 16px 16px 16px; border-radius: 4px; overflow: hidden; background: #e53e3e; aspect-ratio: 1000/300; container-type: size;">
                                                 <img id="preview-embed-image" class="dc-embed-image" src="" alt="" style="display:none; width: 100%; height: 100%; object-fit: cover;">
-                                                <!-- Overlay mimicking the bot's PIL generated text/avatar -->
+                                                <!-- Overlay mimicking bot's PIL image: 1000x300px canvas
+                                                     Border: x=40, y=30, 240x240 | Avatar: x=50, y=40, 220x220
+                                                     Text:   x=300, y=centered
+                                                -->
                                                 <div id="preview-img-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
-                                                    <!-- Mock Avatar (x=60, y=55) -->
-                                                    <div style="position:absolute; left:6%; top:18%; width:19%; aspect-ratio:1; background:white; border-radius:50%; display:flex; align-items:center; justify-content:center;">
-                                                        <img src="/logo.gif" style="width:95%; height:95%; border-radius:50%; object-fit:cover;">
+                                                    <!-- White border circle: x=40→3.8%, y=30→9.5%, size=240→24.5% of width -->
+                                                    <div style="position:absolute; left:3.8%; top:9.5%; width:24.5%; aspect-ratio:1; background:white; border-radius:50%;"></div>
+                                                    <!-- Avatar: x=50→4.8%, y=40→12.8%, size=220→22.5% of width -->
+                                                    <div style="position:absolute; left:4.8%; top:12.8%; width:22.5%; aspect-ratio:1; border-radius:50%; overflow:hidden;">
+                                                        <img id="preview-user-avatar" src="/logo.gif" style="width:100%; height:100%; object-fit:cover;">
                                                     </div>
-                                                    <!-- Text Block (x=280) -->
-                                                    <div style="position:absolute; left:28%; top:20%; color:white; font-family:'Courier New', monospace; text-shadow: 2px 2px 0 #141414, -2px -2px 0 #141414, 2px -2px 0 #141414, -2px 2px 0 #141414, 4px 4px 5px rgba(0,0,0,0.8);">
-                                                        <div id="preview-title-overlay" style="font-size: clamp(14px, 3.5vw, 22px); font-weight:800; margin-bottom: 5%;">Welcome NewMember</div>
-                                                        <div id="preview-subtitle-overlay" style="font-size: clamp(18px, 4.5vw, 30px); font-weight:800; margin-bottom: 7%;">to Your Server</div>
-                                                        <div style="font-size: clamp(10px, 2vw, 14px); font-weight:400;">you are the 42nd member!</div>
+                                                    <!-- Text block: x=300→30% left, vertically centered -->
+                                                    <div style="position:absolute; left:30%; top:0; height:100%; width:68%; display:flex; flex-direction:column; justify-content:center; gap:4px; color:white; font-family:'Varela Round',sans-serif; text-shadow: 2px 2px 0 #111, -2px -2px 0 #111, 2px -2px 0 #111, -2px 2px 0 #111, 3px 3px 6px rgba(0,0,0,0.9);">
+                                                        <!-- Line 1: embed_title (bigger font ~48px on 300px canvas = ~16% height) -->
+                                                        <div id="preview-title-overlay" style="font-size: clamp(12px, 15cqh, 44px); font-weight:800; line-height:1.1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Welcome NewMember</div>
+                                                        <!-- Line 2: embed_subtitle (slightly smaller ~42px) -->
+                                                        <div id="preview-subtitle-overlay" style="font-size: clamp(10px, 12cqh, 36px); font-weight:800; line-height:1.1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">you are the 42nd member!</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -2530,6 +2548,20 @@
                             <h3><i data-lucide="history" style="width:18px;height:18px;color:var(--primary);"></i> Recent Activity</h3>
                             <button onclick="loadMonitorHistory()" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;">
                                 <i data-lucide="refresh-cw" style="width: 12px;"></i> Refresh
+                            </button>
+                        </div>
+                        <div id="monitor-history-filters" style="display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;">
+                            <button class="btn btn-secondary monitor-filter-btn active" data-filter="all" onclick="filterMonitorHistory('all', this)" style="padding: 4px 12px; font-size: 0.78rem; border-radius: 20px; display: flex; align-items: center; gap: 5px;">
+                                <i data-lucide="layers" style="width: 12px; height: 12px;"></i> All
+                            </button>
+                            <button class="btn btn-secondary monitor-filter-btn" data-filter="name" onclick="filterMonitorHistory('name', this)" style="padding: 4px 12px; font-size: 0.78rem; border-radius: 20px; display: flex; align-items: center; gap: 5px;">
+                                <i data-lucide="user-check" style="width: 12px; height: 12px;"></i> Names
+                            </button>
+                            <button class="btn btn-secondary monitor-filter-btn" data-filter="furnace" onclick="filterMonitorHistory('furnace', this)" style="padding: 4px 12px; font-size: 0.78rem; border-radius: 20px; display: flex; align-items: center; gap: 5px;">
+                                <i data-lucide="flame" style="width: 12px; height: 12px;"></i> Furnace Lvl
+                            </button>
+                            <button class="btn btn-secondary monitor-filter-btn" data-filter="avatar" onclick="filterMonitorHistory('avatar', this)" style="padding: 4px 12px; font-size: 0.78rem; border-radius: 20px; display: flex; align-items: center; gap: 5px;">
+                                <i data-lucide="image" style="width: 12px; height: 12px;"></i> PFP
                             </button>
                         </div>
                         <div id="monitor-history-list" style="max-height: 400px; overflow-y: auto; display: grid; gap: 10px;">
@@ -5268,9 +5300,9 @@
             const welcomeText = document.getElementById('welcome-text').value || 'Hi {mention} Welcome to the {server}ðŸ¥³';
             document.getElementById('preview-text').innerHTML = applyVars(welcomeText);
 
-            // Embed title + subtitle (drawn on image placeholder or overlay)
-            const titleVal = document.getElementById('embed-title').value || 'Welcome {username}';
-            const subtitleVal = document.getElementById('embed-subtitle').value || 'to {server}';
+            // Embed title + subtitle (drawn on image overlay - matches bot PIL rendering)
+            const titleVal = document.getElementById('embed-title').value || 'Welcome {username} to {server}';
+            const subtitleVal = document.getElementById('embed-subtitle').value || 'you are the {member_count} member!';
             
             const resolvedTitle = applyVarsPlain(titleVal);
             const resolvedSubtitle = applyVarsPlain(subtitleVal);
@@ -5397,8 +5429,8 @@
         // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         function resetWelcomeForm() {
             document.getElementById('welcome-text').value    = 'Hi {mention} Welcome to the {server}ðŸ¥³';
-            document.getElementById('embed-title').value     = 'Welcome {username}';
-            document.getElementById('embed-subtitle').value  = 'to {server}';
+            document.getElementById('embed-title').value     = 'Welcome {username} to {server}';
+            document.getElementById('embed-subtitle').value  = 'you are the {member_count} member!';
             document.getElementById('footer-text').value     = 'Member joined â€¢ {date}';
             document.getElementById('embed-color').value     = '#e53e3e';
             document.getElementById('embed-color-hex').value = '#e53e3e';
@@ -5423,8 +5455,8 @@
                 document.getElementById('welcome-channel').value       = s.channel_id   || '';
                 document.getElementById('welcome-bg').value            = s.bg_image_url || '';
                 document.getElementById('welcome-text').value          = s.welcome_text  || 'Hi {mention} Welcome to the {server}ðŸ¥³';
-                document.getElementById('embed-title').value           = s.embed_title   || 'Welcome {username}';
-                document.getElementById('embed-subtitle').value        = s.embed_subtitle|| 'to {server}';
+                document.getElementById('embed-title').value           = s.embed_title   || 'Welcome {username} to {server}';
+                document.getElementById('embed-subtitle').value        = s.embed_subtitle|| 'you are the {member_count} member!';
                 document.getElementById('footer-text').value           = s.footer_text   || 'Member joined â€¢ {date}';
 
                 const color = s.embed_color || '#e53e3e';
@@ -6203,7 +6235,7 @@
 
                 list.innerHTML = '';
                 members.forEach(m => {
-                    const fid = m.fid || m._id || 'Unknown';
+                    const fid = m.id || m.fid || m._id || 'Unknown';
                     const nick = m.nickname || 'Unknown Player';
                     const furnace = m.furnace_lv || 0;
                     const formattedFurnace = formatFurnaceLevel(furnace);
@@ -7468,52 +7500,84 @@
         }
 
 
+        let _monitorHistoryData = []; // Store for filtering
         async function loadMonitorHistory() {
             const list = document.getElementById('monitor-history-list');
             if (!list) return;
             list.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted);">Loading activity...</div>';
             try {
                 const history = await fetchData(`/api/alliance-monitor/history/${guildId}`);
-                if (history.length === 0) {
+                _monitorHistoryData = history || [];
+                if (_monitorHistoryData.length === 0) {
                     list.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted);">No recent changes detected.</div>';
                     return;
                 }
                 
-                list.innerHTML = '';
-                history.forEach(event => {
-                    const div = document.createElement('div');
-                    div.style.padding = '12px';
-                    div.style.background = 'rgba(255,255,255,0.03)';
-                    div.style.borderRadius = '8px';
-                    div.style.display = 'flex';
-                    div.style.alignItems = 'center';
-                    div.style.gap = '12px';
-                    
-                    let icon = 'activity';
-                    let iconColor = 'var(--primary)';
-                    if (event.type === 'furnace') { icon = 'flame'; iconColor = '#f59e0b'; }
-                    else if (event.type === 'name') { icon = 'user-check'; iconColor = '#10b981'; }
-                    else if (event.type === 'avatar') { icon = 'image'; iconColor = '#3b82f6'; }
-                    
-                    const time = new Date(event.timestamp).toLocaleString();
-                    
-                    div.innerHTML = `
-                        <div style="background: rgba(255,255,255,0.05); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                            <i data-lucide="${icon}" style="width: 16px; color: ${iconColor};"></i>
-                        </div>
-                        <div style="flex: 1; min-width: 0;">
-                            <div style="font-weight: 600; font-size: 0.9rem; color: #fff;">${escapeHTML(event.nickname)}</div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">${escapeHTML(event.value_text)}</div>
-                        </div>
-                        <div style="font-size: 0.7rem; color: var(--text-muted); white-space: nowrap;">${time}</div>
-                    `;
-                    list.appendChild(div);
-                });
-                lucide.createIcons();
+                // Reset filter to All
+                document.querySelectorAll('.monitor-filter-btn').forEach(b => b.classList.remove('active'));
+                const allBtn = document.querySelector('.monitor-filter-btn[data-filter="all"]');
+                if (allBtn) allBtn.classList.add('active');
+                
+                renderMonitorHistory(_monitorHistoryData);
             } catch (e) {
                 list.innerHTML = '<div style="text-align: center; padding: 20px; color: #ef4444;">Failed to load activity history.</div>';
             }
         }
+
+        function renderMonitorHistory(events) {
+            const list = document.getElementById('monitor-history-list');
+            if (!list) return;
+            if (events.length === 0) {
+                list.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted);">No matching activity found.</div>';
+                return;
+            }
+            list.innerHTML = '';
+            events.forEach(event => {
+                const div = document.createElement('div');
+                div.style.padding = '12px';
+                div.style.background = 'rgba(255,255,255,0.03)';
+                div.style.borderRadius = '8px';
+                div.style.display = 'flex';
+                div.style.alignItems = 'center';
+                div.style.gap = '12px';
+                div.dataset.eventType = event.type || 'unknown';
+                
+                let icon = 'activity';
+                let iconColor = 'var(--primary)';
+                if (event.type === 'furnace') { icon = 'flame'; iconColor = '#f59e0b'; }
+                else if (event.type === 'name') { icon = 'user-check'; iconColor = '#10b981'; }
+                else if (event.type === 'avatar') { icon = 'image'; iconColor = '#3b82f6'; }
+                
+                const time = new Date(event.timestamp).toLocaleString();
+                
+                div.innerHTML = `
+                    <div style="background: rgba(255,255,255,0.05); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i data-lucide="${icon}" style="width: 16px; color: ${iconColor};"></i>
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 600; font-size: 0.9rem; color: #fff;">${escapeHTML(event.nickname)}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">${escapeHTML(event.value_text)}</div>
+                    </div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted); white-space: nowrap;">${time}</div>
+                `;
+                list.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        function filterMonitorHistory(filterType, btnEl) {
+            // Update active state on buttons
+            document.querySelectorAll('.monitor-filter-btn').forEach(b => b.classList.remove('active'));
+            if (btnEl) btnEl.classList.add('active');
+            
+            if (filterType === 'all') {
+                renderMonitorHistory(_monitorHistoryData);
+            } else {
+                const filtered = _monitorHistoryData.filter(e => e.type === filterType);
+                renderMonitorHistory(filtered);
+            }
+        }
+
 
         async function loadMonitoredMembers() {
             const list = document.getElementById('monitor-members-list');

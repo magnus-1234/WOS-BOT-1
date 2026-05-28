@@ -4300,7 +4300,10 @@
                                 <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 6px;">Preset Template Title</label>
                                 <div style="position: relative;">
                                     <i data-lucide="tag" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: rgba(139, 92, 246, 0.6);"></i>
-                                    <input type="text" id="reminder-preset-title" placeholder="e.g. Bear Trap Standard Schedule" style="padding-left: 42px; background: #16191f; border-color: rgba(139, 92, 246, 0.2); width: 100%;">
+                                    <div style="display:flex; gap:8px; align-items:center;">
+                                        <input type="text" id="reminder-preset-title" placeholder="e.g. Bear Trap Standard Schedule" style="padding-left: 42px; background: #16191f; border-color: rgba(139, 92, 246, 0.2); width: 100%;" oninput="presetTitleConfirmed=false">
+                                        <button type="button" class="btn btn-primary" style="height:42px; padding:0 16px; flex-shrink:0;" onclick="confirmReminderPresetTitle(event)">OK</button>
+                                    </div>
                                 </div>
                                 <div class="form-hint" style="color: rgba(167, 139, 250, 0.7); display: flex; align-items: center; gap: 4px; margin-top: 8px;">
                                     <i data-lucide="sparkles" style="width: 12px; height: 12px;"></i>
@@ -6728,6 +6731,7 @@
             const chk = document.getElementById('reminder-save-as-preset');
             if (chk) {
                 chk.checked = !chk.checked;
+                presetTitleConfirmed = false;
                 handleSavePresetChange(chk);
             }
         }
@@ -6761,12 +6765,29 @@
             const titleInput = document.getElementById('reminder-preset-title');
             if (!chk) return;
             chk.checked = true;
+            presetTitleConfirmed = false;
             handleSavePresetChange(chk);
             if (titleInput) {
                 const message = document.getElementById('reminder-message')?.value.trim();
                 if (message && !titleInput.value.trim()) titleInput.value = message;
                 titleInput.focus();
             }
+        }
+
+        function confirmReminderPresetTitle(e) {
+            if (e) e.stopPropagation();
+            const chk = document.getElementById('reminder-save-as-preset');
+            const titleInput = document.getElementById('reminder-preset-title');
+            if (!chk || !titleInput) return;
+            const title = titleInput.value.trim();
+            if (!title) {
+                showNotification('Enter a preset name first', true);
+                titleInput.focus();
+                return;
+            }
+            chk.checked = true;
+            presetTitleConfirmed = true;
+            showNotification('Preset name confirmed. Create the reminder to publish it.');
         }
 
         
@@ -6782,6 +6803,7 @@
         let remindersMap = {};
         let remindersData = [];
         let selectedReminderPreset = null;
+        let presetTitleConfirmed = false;
 
         
         let BOOKMARKED_PRESETS = new Set();
@@ -7085,9 +7107,8 @@
             const preset = REMINDER_PRESETS.find(p => p.id === presetId);
             if (!preset) return;
             selectedReminderPreset = presetId;
-            const presetFallback = getReminderAssetFallback(preset);
-            const imageUrl = preset.image_url || presetFallback || '';
-            const thumbnailUrl = preset.thumbnail_url || preset.image_url || presetFallback || '';
+            const imageUrl = preset.image_url || '';
+            const thumbnailUrl = preset.thumbnail_url || '';
             document.getElementById('reminder-message').value = preset.message || '';
             document.getElementById('reminder-body').value = preset.body || '';
             document.getElementById('reminder-recurrence').value = preset.recurrence_type || 'none';
@@ -7102,6 +7123,12 @@
             applyReminderScheduleFields(preset);
             toggleCustomInterval();
             toggleDowPicker();
+            if (!preset.target_time) {
+                document.getElementById('reminder-date').value = '';
+            }
+            if (!preset.channel_id) {
+                document.getElementById('reminder-channel').value = '';
+            }
             updateReminderPreview();
             
             if (!options.silent) {
@@ -7207,6 +7234,7 @@
                 // Reset preset fields
                 document.getElementById('reminder-save-as-preset').checked = false;
                 document.getElementById('reminder-preset-title').value = '';
+                presetTitleConfirmed = false;
                 if (savePresetBox) savePresetBox.style.display = 'block';
                 handleSavePresetChange(document.getElementById('reminder-save-as-preset'));
             } else {
@@ -7247,6 +7275,7 @@
                 // Reset preset fields
                 document.getElementById('reminder-save-as-preset').checked = false;
                 document.getElementById('reminder-preset-title').value = '';
+                presetTitleConfirmed = false;
                 if (savePresetBox) savePresetBox.style.display = 'block';
                 handleSavePresetChange(document.getElementById('reminder-save-as-preset'));
                 
@@ -7263,6 +7292,7 @@
                     const presetTitle = document.getElementById('reminder-preset-title');
                     if (savePreset) savePreset.checked = true;
                     if (presetTitle) presetTitle.value = preset?.title || '';
+                    presetTitleConfirmed = true;
                     handleSavePresetChange(savePreset);
                 }
             }
@@ -7314,13 +7344,12 @@
 
             const thumbImg = document.getElementById('reminder-preview-thumbnail');
             if (thumbImg) {
-                const resolvedThumbnail = getReminderThumbnail({ thumbnail_url: thumbnail, message: message });
-                if (resolvedThumbnail && resolvedThumbnail !== 'logo.png') {
-                    thumbImg.src = resolvedThumbnail;
+                if (thumbnail) {
+                    thumbImg.src = thumbnail;
                     thumbImg.style.display = 'block';
                     thumbImg.setAttribute('data-message', message);
                     thumbImg.setAttribute('data-thumbnail', thumbnail);
-                    thumbImg.onerror = () => { handleThumbnailError(thumbImg); };
+                    thumbImg.onerror = () => { thumbImg.style.display = 'none'; };
                 } else {
                     thumbImg.style.display = 'none';
                 }
@@ -7373,7 +7402,7 @@
         }
 
         async function updateCommunityPresetFromReminder(id) {
-            const data = getReminderFormData({ requireSchedule: false, requireChannel: false });
+            const data = getReminderFormData({ requireSchedule: false, requireChannel: false, skipPresetConfirmation: true });
             if (!data) return;
             const preset = REMINDER_PRESETS.find(p => p.id === id);
             const title = data.preset_title || preset?.title || data.message || 'Untitled Preset';
@@ -7448,6 +7477,7 @@
         function getReminderFormData(options = {}) {
             const requireSchedule = options.requireSchedule !== false;
             const requireChannel = options.requireChannel !== false;
+            const skipPresetConfirmation = options.skipPresetConfirmation === true;
             const message = document.getElementById('reminder-message').value.trim();
             const date    = document.getElementById('reminder-date').value;
             const hour    = getWheelValue('wheel-hour');
@@ -7483,6 +7513,17 @@
             if (requireSchedule && recurrence_type === 'specific_days' && (!recurrence_days || recurrence_days.length === 0)) {
                 showNotification('Please select at least one day of the week', true);
                 return null;
+            }
+            if (save_as_preset && !skipPresetConfirmation) {
+                if (!preset_title) {
+                    showNotification('Enter a preset name and click OK first', true);
+                    document.getElementById('reminder-preset-title').focus();
+                    return null;
+                }
+                if (!presetTitleConfirmed) {
+                    showNotification('Click OK beside the preset name before creating the reminder', true);
+                    return null;
+                }
             }
 
             let target_time = null;

@@ -5215,6 +5215,11 @@ body,
   background: rgba(15, 23, 42, 0.76);
   padding: 0.8rem 1rem;
   text-align: center;
+  transform-origin: center;
+}
+
+.chat-dice-card.is-rolling {
+  animation: diceRollPop 0.72s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .chat-dice-card span {
@@ -5229,6 +5234,23 @@ body,
   color: #ffffff;
   font-family: var(--font-display);
   font-size: 2rem;
+}
+
+@keyframes diceRollPop {
+  0% {
+    opacity: 0;
+    transform: rotate(-18deg) scale(0.72);
+  }
+  45% {
+    opacity: 1;
+    transform: rotate(14deg) scale(1.08);
+  }
+  72% {
+    transform: rotate(-6deg) scale(0.98);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
 }
 
 .chat-message-muted {
@@ -7314,9 +7336,9 @@ body {
 .fchat-announcement-compose {
   display: grid;
   gap: 0.5rem;
-  border: 1px solid rgba(250, 204, 21, 0.32);
-  border-radius: 1rem;
-  background: rgba(250, 204, 21, 0.08);
+  border: 1px solid rgba(250, 204, 21, 0.24);
+  border-radius: 0.85rem;
+  background: linear-gradient(180deg, rgba(250, 204, 21, 0.1), rgba(15, 23, 42, 0.42));
   padding: 0.75rem;
 }
 
@@ -7339,9 +7361,9 @@ body {
 .chat-announcement-compose input,
 .fchat-announcement-compose input {
   min-width: 0;
-  border: 1px solid rgba(148, 163, 184, 0.26);
-  border-radius: 0.8rem;
-  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 0.7rem;
+  background: rgba(3, 7, 18, 0.46);
   color: var(--text-primary);
   padding: 0.62rem 0.72rem;
   font: inherit;
@@ -7350,12 +7372,13 @@ body {
 .chat-announcement-compose button,
 .fchat-announcement-compose button {
   border: 0;
-  border-radius: 0.8rem;
-  background: linear-gradient(135deg, #facc15, #fb923c);
+  border-radius: 0.7rem;
+  background: linear-gradient(135deg, #facc15, #f59e0b);
   color: #2f2104;
   cursor: pointer;
   font-weight: 900;
   padding: 0.64rem 0.85rem;
+  box-shadow: 0 12px 24px -18px rgba(250, 204, 21, 0.9);
 }
 
 .chat-room-side,
@@ -7394,7 +7417,10 @@ body {
 .chat-room-refresh,
 .chat-translate-button,
 .chat-reply-button,
-.chat-report-button {
+.chat-report-button,
+.chat-admin-broadcast button,
+.chat-admin-danger {
+  border-radius: 0.68rem !important;
   transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease !important;
 }
 
@@ -7404,6 +7430,7 @@ body {
 .chat-translate-button:hover,
 .chat-reply-button:hover,
 .chat-report-button:hover {
+  transform: translateY(-1px);
   box-shadow: 0 14px 34px -26px rgba(125, 211, 252, 0.8);
 }
 
@@ -7465,6 +7492,11 @@ body {
   font-weight: 800;
   line-height: 1.35;
   white-space: pre-wrap;
+}
+
+.chat-ban-button {
+  border-color: rgba(248, 113, 113, 0.36) !important;
+  color: #fecaca !important;
 }
 
 .chat-announcement-delete {

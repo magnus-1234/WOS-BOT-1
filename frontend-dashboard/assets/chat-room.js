@@ -57,6 +57,9 @@
     adminBadge: roomRoot.querySelector("[data-room-admin-badge]"),
     adminCode: roomRoot.querySelector("[data-room-admin-code]"),
     adminClaim: roomRoot.querySelector("[data-room-admin-claim]"),
+    banInput: roomRoot.querySelector("[data-room-ban-input]"),
+    ban: roomRoot.querySelector("[data-room-ban]"),
+    unban: roomRoot.querySelector("[data-room-unban]"),
     blizzard: roomRoot.querySelector("[data-room-blizzard]"),
     announcement: roomRoot.querySelector("[data-room-announcement]"),
     announcementInput: roomRoot.querySelector("[data-room-announcement-input]"),
@@ -118,6 +121,7 @@
   let typingTimer = null;
   let selectedProfileUser = null;
   let memberSearchQuery = "";
+  let bannedUserIds = [];
   const MAGNUS_ADMIN_USER_ID = "850786361572720661";
   let isAdmin = false;
   let isBlizzardActive = false;
@@ -230,6 +234,7 @@
   const getUserById = (userId) => onlineUsers.find((user) => normalizeUserId(user.id || user.name) === normalizeUserId(userId));
   const isCurrentUser = (user) => normalizeUserId(user && (user.id || user.name)) === normalizeUserId(getMyId());
   const isBotId = () => false;
+  const isBannedUser = (userId) => bannedUserIds.includes(normalizeUserId(userId));
   const otherPartyId = (message) => {
     const targetId = normalizeUserId(message.target_user_id);
     if (!targetId) return "";
@@ -599,8 +604,14 @@
       case "room_state": {
         isBlizzardActive = !!data.is_blizzard_active;
         isAdmin = Boolean(data.is_admin) && isMagnusAdminUser();
+        bannedUserIds = (data.banned_user_ids || []).map(normalizeUserId);
         setAnnouncement(data.announcement, data.announcement_author, data.announcement_updated_at);
         updateAdminView();
+        break;
+      }
+      case "admin:banlist": {
+        bannedUserIds = (data.banned_user_ids || []).map(normalizeUserId);
+        renderMembers();
         break;
       }
       case "admin:announcement": {
@@ -1147,7 +1158,7 @@
       const diceMatch = message.content.match(/rolled a survival die:\s*([1-6])/i);
       if (diceMatch) {
         const dice = document.createElement("div");
-        dice.className = "chat-dice-card";
+        dice.className = "chat-dice-card is-rolling";
         dice.innerHTML = `<span>Survival Dice</span><strong>${diceMatch[1]}</strong>`;
         bubble.appendChild(dice);
       } else {
@@ -1203,7 +1214,8 @@
     actions.appendChild(report);
     
     const myId = currentUser ? currentUser.id : getGuestId();
-    if (author.id === myId) {
+    const authorId = normalizeUserId(author.id || author.name);
+    if (author.id === myId || isAdmin) {
       const deleteBtn = document.createElement("button");
       deleteBtn.className = "chat-report-button";
       deleteBtn.type = "button";
@@ -1211,6 +1223,15 @@
       deleteBtn.title = "Delete Message";
       deleteBtn.addEventListener("click", () => deleteMessage(message.id));
       actions.appendChild(deleteBtn);
+    }
+    if (isAdmin && authorId && authorId !== normalizeUserId(getMyId()) && author.kind !== "bot") {
+      const banBtn = document.createElement("button");
+      banBtn.className = "chat-report-button chat-ban-button";
+      banBtn.type = "button";
+      banBtn.textContent = isBannedUser(authorId) ? "Unban" : "Ban";
+      banBtn.title = isBannedUser(authorId) ? "Unban player" : "Ban player";
+      banBtn.addEventListener("click", () => moderateUser(authorId, !isBannedUser(authorId)));
+      actions.appendChild(banBtn);
     }
     
     bubble.appendChild(actions);
@@ -1387,6 +1408,17 @@
     const rolled = Math.floor(Math.random() * 6) + 1;
     el.input.value = `🎲 rolled a survival die: ${rolled}`;
     sendMessage();
+  };
+
+  const moderateUser = (userId, shouldBan) => {
+    const cleanId = normalizeUserId(userId || (el.banInput && el.banInput.value));
+    if (!isAdmin || !cleanId) return;
+    if (cleanId === normalizeUserId(getMyId())) {
+      setStatus("You cannot ban yourself", true);
+      return;
+    }
+    sendWs({ type: shouldBan ? "admin:ban" : "admin:unban", user_id: cleanId });
+    if (el.banInput) el.banInput.value = "";
   };
   
   const deleteMessage = async (messageId) => {
@@ -1702,6 +1734,8 @@
     if (!isAdmin) return;
     if (confirm("Clear all community chat logs?")) sendWs({ type: "admin:clear" });
   });
+  if (el.ban) el.ban.addEventListener("click", () => moderateUser(null, true));
+  if (el.unban) el.unban.addEventListener("click", () => moderateUser(null, false));
   if (el.dice) el.dice.addEventListener("click", sendDice);
   if (el.voiceCall) el.voiceCall.addEventListener("click", () => startCall(false));
   if (el.videoCall) el.videoCall.addEventListener("click", () => startCall(true));

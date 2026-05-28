@@ -35,6 +35,7 @@ def _default_room_state() -> Dict[str, Any]:
         "announcement": None,
         "announcement_author": None,
         "announcement_updated_at": None,
+        "banned_user_ids": [],
     }
 
 
@@ -85,6 +86,9 @@ class ConnectionManager:
     async def register_user(self, websocket: WebSocket, user_info: Dict[str, Any]):
         if websocket in self.active_connections:
             user_id = str(user_info.get("id") or "").strip()
+            if user_id and user_id in set(self.room_state.get("banned_user_ids") or []):
+                await websocket.send_json({"type": "admin:error", "message": "This player is banned from community chat."})
+                return
             self.active_connections[websocket].update({
                 "id": user_id,
                 "name": user_info.get("name", "Guest Player"),
@@ -229,6 +233,22 @@ async def websocket_endpoint(websocket: WebSocket):
                     continue
                 announcement = _clean_text(data.get("announcement") or "", 180)
                 await manager.update_announcement(announcement or None, manager.active_connections.get(websocket), publish_to_chat=True)
+            elif event_type in {"admin:ban", "admin:unban"}:
+                if not _is_chat_admin(manager.active_connections.get(websocket)):
+                    await websocket.send_json({"type": "admin:error", "message": "Admin access required."})
+                    continue
+                target_id = _clean_text(str(data.get("user_id") or ""), 80)
+                if not target_id:
+                    await websocket.send_json({"type": "admin:error", "message": "Player ID is required."})
+                    continue
+                banned = set(manager.room_state.get("banned_user_ids") or [])
+                if event_type == "admin:ban":
+                    banned.add(target_id)
+                else:
+                    banned.discard(target_id)
+                manager.room_state["banned_user_ids"] = sorted(banned)
+                _write_room_state(manager.room_state)
+                await manager.broadcast({"type": "admin:banlist", "banned_user_ids": manager.room_state["banned_user_ids"]})
             elif event_type == "admin:clear":
                 if not _is_chat_admin(manager.active_connections.get(websocket)):
                     await websocket.send_json({"type": "admin:error", "message": "Admin access required."})
@@ -673,13 +693,13 @@ def _fallback_gifs(query: str, limit: int) -> List[Dict[str, str]]:
     gifs = [
         {
             "id": "fallback-snow",
-            "title": "Snow celebration",
+            "title": "Snow Celebration",
             "url": "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif",
             "preview_url": "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif",
         },
         {
             "id": "fallback-fire",
-            "title": "Camp fire",
+            "title": "Camp Fire",
             "url": "https://media.giphy.com/media/l0HlQ7LRalQqdWfao/giphy.gif",
             "preview_url": "https://media.giphy.com/media/l0HlQ7LRalQqdWfao/giphy.gif",
         },
@@ -689,13 +709,68 @@ def _fallback_gifs(query: str, limit: int) -> List[Dict[str, str]]:
             "url": "https://media.giphy.com/media/111ebonMs90YLu/giphy.gif",
             "preview_url": "https://media.giphy.com/media/111ebonMs90YLu/giphy.gif",
         },
+        {
+            "id": "fallback-yes",
+            "title": "Yes",
+            "url": "https://media.giphy.com/media/3o6UB3VhArvomJHtdK/giphy.gif",
+            "preview_url": "https://media.giphy.com/media/3o6UB3VhArvomJHtdK/giphy.gif",
+        },
+        {
+            "id": "fallback-party",
+            "title": "Party",
+            "url": "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif",
+            "preview_url": "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif",
+        },
+        {
+            "id": "fallback-wow",
+            "title": "Wow",
+            "url": "https://media.giphy.com/media/5VKbvrjxpVJCM/giphy.gif",
+            "preview_url": "https://media.giphy.com/media/5VKbvrjxpVJCM/giphy.gif",
+        },
+        {
+            "id": "fallback-thanks",
+            "title": "Thanks",
+            "url": "https://media.giphy.com/media/3oEdva9BUHPIs2SkGk/giphy.gif",
+            "preview_url": "https://media.giphy.com/media/3oEdva9BUHPIs2SkGk/giphy.gif",
+        },
+        {
+            "id": "fallback-hello",
+            "title": "Hello",
+            "url": "https://media.giphy.com/media/xT9IgG50Fb7Mi0prBC/giphy.gif",
+            "preview_url": "https://media.giphy.com/media/xT9IgG50Fb7Mi0prBC/giphy.gif",
+        },
+        {
+            "id": "fallback-work",
+            "title": "Work",
+            "url": "https://media.giphy.com/media/13HgwGsXF0aiGY/giphy.gif",
+            "preview_url": "https://media.giphy.com/media/13HgwGsXF0aiGY/giphy.gif",
+        },
+        {
+            "id": "fallback-alert",
+            "title": "Alert",
+            "url": "https://media.giphy.com/media/3o7TKtnuHOHHUjR38Y/giphy.gif",
+            "preview_url": "https://media.giphy.com/media/3o7TKtnuHOHHUjR38Y/giphy.gif",
+        },
+        {
+            "id": "fallback-cold",
+            "title": "Cold",
+            "url": "https://media.giphy.com/media/l0HlPwMAzh13pcZ20/giphy.gif",
+            "preview_url": "https://media.giphy.com/media/l0HlPwMAzh13pcZ20/giphy.gif",
+        },
+        {
+            "id": "fallback-laugh",
+            "title": "Laugh",
+            "url": "https://media.giphy.com/media/10JhviFuU2gWD6/giphy.gif",
+            "preview_url": "https://media.giphy.com/media/10JhviFuU2gWD6/giphy.gif",
+        },
     ]
     safe_query = (query or "").lower()
-    if "fire" in safe_query:
-        gifs = [gifs[1], gifs[0], gifs[2]]
-    elif "win" in safe_query or "victory" in safe_query:
-        gifs = [gifs[2], gifs[0], gifs[1]]
-    return gifs[:limit]
+    scored = []
+    for index, gif in enumerate(gifs):
+        title = gif["title"].lower()
+        score = 0 if not safe_query or safe_query in title else 1
+        scored.append((score, index, gif))
+    return [gif for _, _, gif in sorted(scored)][:limit]
 
 
 async def _translate_with_deepl_sdk(api_key: str, text: str) -> Optional[Dict[str, str]]:
@@ -893,6 +968,8 @@ async def create_message(payload: ChatMessageCreate, request: Request):
         raise HTTPException(status_code=400, detail="Message text or a file is required.")
 
     author = await _resolve_chat_actor(request, payload.display_name, payload.guest_id, payload.avatar_url)
+    if str(author.get("id") or "") in set(manager.room_state.get("banned_user_ids") or []):
+        raise HTTPException(status_code=403, detail="This player is banned from community chat.")
     source = author.get("kind", "guest")
     reply_to = _reply_snapshot(await _find_message(payload.reply_to_id)) if payload.reply_to_id else None
 

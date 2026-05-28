@@ -402,7 +402,7 @@
       margin-bottom: 18px;
     }
     .search { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 260px; }
-    input, select {
+    input, select, textarea {
       width: 100%;
       min-height: 40px;
       border: 1px solid var(--line);
@@ -412,7 +412,8 @@
       background: #0c1118;
       outline: none;
     }
-    input:focus, select:focus { border-color: rgba(79,140,255,.65); }
+    textarea { min-height: 92px; resize: vertical; line-height: 1.45; }
+    input:focus, select:focus, textarea:focus { border-color: rgba(79,140,255,.65); }
     .grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 18px; }
     .section { padding: 18px; }
     .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
@@ -448,6 +449,7 @@
     .row-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
     .split { display: grid; gap: 18px; }
     .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .form-grid.one { grid-template-columns: 1fr; }
     label { display: grid; gap: 7px; color: var(--muted); font-size: .83rem; font-weight: 700; }
     .checks { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
     .check { display: inline-flex; align-items: center; gap: 8px; color: var(--text); font-weight: 700; }
@@ -465,6 +467,19 @@
     }
     .muted { color: var(--muted); font-size: .86rem; }
     .empty { padding: 24px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; }
+    .chat-admin-grid { display: grid; gap: 12px; }
+    .chat-message-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: start;
+      padding: 12px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .chat-message-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+    .chat-message-text { color: var(--text); line-height: 1.45; word-break: break-word; }
     .toast {
       position: fixed;
       right: 20px;
@@ -629,6 +644,43 @@
           <div class="table" id="registration-limit-list" style="margin-top:14px;"></div>
         </div>
 
+        <div class="panel section" id="community-chat-admin">
+          <div class="section-head">
+            <h2>Community Chat Control</h2>
+            <span class="muted" id="chat-admin-status">Loading...</span>
+          </div>
+          <div class="chat-admin-grid">
+            <div class="form-grid one">
+              <label>Megaphone announcement
+                <textarea id="chat-announcement" maxlength="180" placeholder="Send a highlighted yellow announcement to global chat and the front page once"></textarea>
+              </label>
+            </div>
+            <div class="actions">
+              <button class="btn primary" onclick="saveChatAnnouncement()"><i data-lucide="megaphone"></i> Send Announcement</button>
+              <button class="btn" onclick="clearChatAnnouncement()"><i data-lucide="eraser"></i> Clear Strip</button>
+              <button class="btn" id="chat-freeze-btn" onclick="toggleChatFreeze()"><i data-lucide="snowflake"></i> Toggle Pause</button>
+            </div>
+            <div class="form-grid">
+              <label>Player or Discord ID
+                <input id="chat-ban-user-id" inputmode="text" placeholder="User ID to ban or unban">
+              </label>
+              <label>Moderation
+                <select id="chat-ban-action">
+                  <option value="ban">Ban from community chat</option>
+                  <option value="unban">Unban from community chat</option>
+                </select>
+              </label>
+            </div>
+            <div class="actions">
+              <button class="btn danger" onclick="saveChatBan()"><i data-lucide="ban"></i> Apply Moderation</button>
+              <button class="btn" onclick="loadChatAdmin()"><i data-lucide="refresh-cw"></i> Refresh Chat</button>
+              <button class="btn danger" onclick="clearChatMessages()"><i data-lucide="trash-2"></i> Clear All Messages</button>
+            </div>
+            <div class="stats" style="padding:0;" id="chat-admin-stats"></div>
+            <div class="table" id="chat-message-list"></div>
+          </div>
+        </div>
+
         <div class="panel section">
           <div class="section-head">
             <h2>Administrators</h2>
@@ -659,7 +711,7 @@
   <script>
     const API_BASE = '';
     const token = localStorage.getItem('discord_access_token');
-    let state = { servers: [], admins: [], pending: [], registrationLimits: [], stats: {}, settingsCatalog: [] };
+    let state = { servers: [], admins: [], pending: [], registrationLimits: [], stats: {}, settingsCatalog: [], chatAdmin: null };
     let selectedGuildId = null;
 
     function authHeaders(json = true) {
@@ -723,6 +775,7 @@
         renderPending();
         renderRegistrationLimits();
         renderAdmins();
+        loadChatAdmin(false);
       } catch (err) {
         toast(err.message, true);
       } finally {
@@ -973,6 +1026,172 @@
         await api(`/api/admin/registration-limits/${userId}`, { method: 'DELETE' });
         toast('Registration limit reset');
         await refreshAll();
+      } catch (err) {
+        toast(err.message, true);
+      }
+    }
+
+    function formatChatTime(value) {
+      if (!value) return '';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return '';
+      return date.toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    }
+
+    async function loadChatAdmin(showErrors = true) {
+      const status = document.getElementById('chat-admin-status');
+      try {
+        status.textContent = 'Loading...';
+        const data = await api('/api/chat/admin/state');
+        state.chatAdmin = data;
+        renderChatAdmin();
+      } catch (err) {
+        status.textContent = 'Unavailable';
+        document.getElementById('chat-message-list').innerHTML = '<div class="empty">Community chat controls are unavailable for this session.</div>';
+        if (showErrors) toast(err.message, true);
+      } finally {
+        lucide.createIcons();
+      }
+    }
+
+    function renderChatAdmin() {
+      const data = state.chatAdmin || {};
+      const room = data.room_state || {};
+      const messages = data.messages || [];
+      const banned = room.banned_user_ids || [];
+      const activeAnnouncement = room.announcement || '';
+      document.getElementById('chat-admin-status').textContent = `${Number(data.online_count || 0).toLocaleString()} online`;
+      document.getElementById('chat-announcement').value = activeAnnouncement;
+      document.getElementById('chat-freeze-btn').classList.toggle('danger', !!room.is_blizzard_active);
+      document.getElementById('chat-admin-stats').innerHTML = [
+        [data.online_count || 0, 'Online users'],
+        [banned.length || 0, 'Banned users'],
+        [room.is_blizzard_active ? 'Paused' : 'Live', 'Message posting'],
+        [activeAnnouncement ? 'Active' : 'None', 'Megaphone strip']
+      ].map(([num, label]) => `<div class="stat"><b>${escapeHTML(num)}</b><span>${escapeHTML(label)}</span></div>`).join('');
+      renderChatMessages(messages);
+    }
+
+    function renderChatMessages(messages) {
+      const list = document.getElementById('chat-message-list');
+      if (!messages.length) {
+        list.innerHTML = '<div class="empty">No community chat messages found.</div>';
+        return;
+      }
+      list.innerHTML = messages.slice().reverse().map(message => {
+        const author = message.author || {};
+        const authorId = author.id || '';
+        const authorName = author.name || author.username || authorId || 'Player';
+        const source = message.source === 'announcement' ? 'Announcement' : (author.kind || message.source || 'chat');
+        const canBan = authorId && !['announcement', 'wos_bot'].includes(authorId);
+        return `
+          <div class="chat-message-row">
+            <div>
+              <div class="chat-message-meta">
+                <span class="pill">${escapeHTML(authorName)}</span>
+                <span class="pill">${escapeHTML(authorId || 'no id')}</span>
+                <span class="pill">${escapeHTML(source)}</span>
+                <span class="muted">${escapeHTML(formatChatTime(message.created_at))}</span>
+              </div>
+              <div class="chat-message-text">${escapeHTML(message.content || '[attachment]')}</div>
+            </div>
+            <div class="row-actions">
+              ${canBan ? `<button class="btn small danger" onclick="banChatAuthor('${escapeHTML(authorId)}')"><i data-lucide="ban"></i> Ban</button>` : ''}
+              <button class="btn small danger" onclick="deleteChatMessage('${escapeHTML(message.id)}')"><i data-lucide="trash-2"></i> Delete</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function saveChatAnnouncement() {
+      const announcement = document.getElementById('chat-announcement').value.trim();
+      if (!announcement) {
+        toast('Announcement text is required', true);
+        return;
+      }
+      try {
+        await api('/api/chat/admin/announcement', {
+          method: 'POST',
+          body: JSON.stringify({ announcement })
+        });
+        toast('Announcement sent');
+        await loadChatAdmin(false);
+      } catch (err) {
+        toast(err.message, true);
+      }
+    }
+
+    async function clearChatAnnouncement() {
+      try {
+        await api('/api/chat/admin/announcement', {
+          method: 'POST',
+          body: JSON.stringify({ announcement: '' })
+        });
+        toast('Megaphone strip cleared');
+        await loadChatAdmin(false);
+      } catch (err) {
+        toast(err.message, true);
+      }
+    }
+
+    async function toggleChatFreeze() {
+      const isFrozen = !!(state.chatAdmin && state.chatAdmin.room_state && state.chatAdmin.room_state.is_blizzard_active);
+      try {
+        await api('/api/chat/admin/blizzard', {
+          method: 'POST',
+          body: JSON.stringify({ is_frozen: !isFrozen })
+        });
+        toast(!isFrozen ? 'Community chat paused' : 'Community chat resumed');
+        await loadChatAdmin(false);
+      } catch (err) {
+        toast(err.message, true);
+      }
+    }
+
+    async function saveChatBan() {
+      const userId = document.getElementById('chat-ban-user-id').value.trim();
+      const action = document.getElementById('chat-ban-action').value;
+      if (!userId) {
+        toast('Enter a user ID', true);
+        return;
+      }
+      try {
+        await api(`/api/chat/admin/${action}`, {
+          method: 'POST',
+          body: JSON.stringify({ user_id: userId })
+        });
+        document.getElementById('chat-ban-user-id').value = '';
+        toast(action === 'ban' ? 'User banned from community chat' : 'User unbanned');
+        await loadChatAdmin(false);
+      } catch (err) {
+        toast(err.message, true);
+      }
+    }
+
+    function banChatAuthor(userId) {
+      document.getElementById('chat-ban-user-id').value = userId;
+      document.getElementById('chat-ban-action').value = 'ban';
+      saveChatBan();
+    }
+
+    async function deleteChatMessage(messageId) {
+      if (!confirm('Delete this community chat message?')) return;
+      try {
+        await api(`/api/chat/messages/${encodeURIComponent(messageId)}`, { method: 'DELETE' });
+        toast('Message deleted');
+        await loadChatAdmin(false);
+      } catch (err) {
+        toast(err.message, true);
+      }
+    }
+
+    async function clearChatMessages() {
+      if (!confirm('Clear all community chat messages?')) return;
+      try {
+        await api('/api/chat/admin/clear', { method: 'POST' });
+        toast('Community chat cleared');
+        await loadChatAdmin(false);
       } catch (err) {
         toast(err.message, true);
       }

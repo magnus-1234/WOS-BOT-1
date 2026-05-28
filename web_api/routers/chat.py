@@ -15,6 +15,11 @@ from src.api.wos_api import fetch_player_info
 from src.bot.admin_utils import format_furnace_level
 
 try:
+    from web_api.routers.admin import _is_global_admin_id as _is_dashboard_global_admin_id
+except Exception:
+    _is_dashboard_global_admin_id = None
+
+try:
     from db.mongo_adapters import _get_db_main_async, mongo_enabled
 except ImportError:
     _get_db_main_async = None
@@ -410,6 +415,18 @@ class AnnouncementRequest(BaseModel):
     avatar_url: Optional[str] = Field(default=None, max_length=500)
 
 
+class ChatAdminAnnouncementRequest(BaseModel):
+    announcement: str = Field(default="", max_length=180)
+
+
+class ChatAdminBlizzardRequest(BaseModel):
+    is_frozen: bool = False
+
+
+class ChatAdminUserRequest(BaseModel):
+    user_id: str = Field(..., max_length=80)
+
+
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -575,6 +592,16 @@ async def _resolve_chat_actor(request: Request, display_name: Optional[str], gue
     }
 
 
+async def _require_chat_admin(request: Request) -> Dict[str, Any]:
+    author = await _resolve_chat_actor(request, None, None)
+    if _is_chat_admin(author):
+        return author
+    user_id = str(author.get("id") or "").strip()
+    if _is_dashboard_global_admin_id and user_id.isdigit() and await _is_dashboard_global_admin_id(int(user_id)):
+        return author
+    raise HTTPException(status_code=403, detail="Chat admin access required.")
+
+
 @router.post("/announcement")
 async def post_announcement(payload: AnnouncementRequest, request: Request):
     announcement = _clean_text(payload.announcement or "", 180)
@@ -589,6 +616,74 @@ async def post_announcement(payload: AnnouncementRequest, request: Request):
         "announcement_author": manager.room_state["announcement_author"],
         "announcement_updated_at": manager.room_state["announcement_updated_at"],
     }
+
+
+@router.get("/admin/state")
+async def get_chat_admin_state(request: Request):
+    await _require_chat_admin(request)
+    users = await _online_users()
+    messages = (await list_messages(request, limit=80)).get("messages", [])
+    return {
+        "room_state": manager.room_state,
+        "online_count": len(users),
+        "online_users": users,
+        "messages": messages,
+    }
+
+
+@router.post("/admin/announcement")
+async def set_chat_admin_announcement(payload: ChatAdminAnnouncementRequest, request: Request):
+    author = await _require_chat_admin(request)
+    announcement = _clean_text(payload.announcement or "", 180)
+    await manager.update_announcement(announcement or None, author, publish_to_chat=bool(announcement))
+    return {
+        "announcement": manager.room_state["announcement"],
+        "announcement_author": manager.room_state["announcement_author"],
+        "announcement_updated_at": manager.room_state["announcement_updated_at"],
+    }
+
+
+@router.post("/admin/blizzard")
+async def set_chat_admin_blizzard(payload: ChatAdminBlizzardRequest, request: Request):
+    await _require_chat_admin(request)
+    manager.room_state["is_blizzard_active"] = bool(payload.is_frozen)
+    _write_room_state(manager.room_state)
+    await manager.broadcast({"type": "room_state", **manager.room_state})
+    return {"room_state": manager.room_state}
+
+
+@router.post("/admin/ban")
+async def ban_chat_user(payload: ChatAdminUserRequest, request: Request):
+    await _require_chat_admin(request)
+    user_id = _clean_text(payload.user_id, 80)
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Player ID is required.")
+    banned = set(manager.room_state.get("banned_user_ids") or [])
+    banned.add(user_id)
+    manager.room_state["banned_user_ids"] = sorted(banned)
+    _write_room_state(manager.room_state)
+    await manager.broadcast({"type": "admin:banlist", "banned_user_ids": manager.room_state["banned_user_ids"]})
+    return {"banned_user_ids": manager.room_state["banned_user_ids"]}
+
+
+@router.post("/admin/unban")
+async def unban_chat_user(payload: ChatAdminUserRequest, request: Request):
+    await _require_chat_admin(request)
+    user_id = _clean_text(payload.user_id, 80)
+    banned = set(manager.room_state.get("banned_user_ids") or [])
+    banned.discard(user_id)
+    manager.room_state["banned_user_ids"] = sorted(banned)
+    _write_room_state(manager.room_state)
+    await manager.broadcast({"type": "admin:banlist", "banned_user_ids": manager.room_state["banned_user_ids"]})
+    return {"banned_user_ids": manager.room_state["banned_user_ids"]}
+
+
+@router.post("/admin/clear")
+async def clear_chat_admin_messages(request: Request):
+    await _require_chat_admin(request)
+    await _clear_all_messages()
+    await manager.broadcast({"type": "clear"})
+    return {"status": "cleared"}
 
 
 async def _create_announcement_message(announcement: str, author: Dict[str, Any]) -> Dict[str, Any]:

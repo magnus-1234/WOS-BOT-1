@@ -291,6 +291,36 @@ class BirthdaysAdapter:
             return {}
 
     @staticmethod
+    async def load_guild_async(guild_id) -> dict:
+        try:
+            db = await _get_db_main_async()
+            gid = int(guild_id)
+            result = {}
+            query = {
+                '$or': [
+                    {'guild_id': gid},
+                    {'_id': {'$regex': f'^{gid}_'}}
+                ]
+            }
+            async for d in db[BirthdaysAdapter.COLL].find(query):
+                raw_user_id = d.get('user_id')
+                if raw_user_id is None:
+                    raw_id = str(d.get('_id', ''))
+                    raw_user_id = raw_id.split('_', 1)[1] if raw_id.startswith(f'{gid}_') else None
+                if raw_user_id is None:
+                    continue
+                user_id = str(raw_user_id)
+                result[f'{gid}_{user_id}'] = {
+                    'day': int(d.get('day')),
+                    'month': int(d.get('month')),
+                    'player_id': d.get('player_id')
+                }
+            return result
+        except Exception as e:
+            logger.error(f'Failed to load birthdays for guild {guild_id} from Mongo: {e}')
+            return {}
+
+    @staticmethod
     async def get_async(guild_id, user_id) -> dict:
         try:
             db = await _get_db_main_async()

@@ -169,8 +169,16 @@ async def get_birthday_records(guild_id: int, request: Request):
     bot = getattr(request.app.state, "bot", None)
     guild = bot.get_guild(guild_id) if bot else None
 
-    # Load all birthdays
-    all_bdays = await BirthdaysAdapter.load_all_async()
+    # Load only records explicitly scoped to this guild. Legacy global records
+    # are intentionally excluded so they do not appear in every server.
+    if hasattr(BirthdaysAdapter, "load_guild_async"):
+        all_bdays = await BirthdaysAdapter.load_guild_async(guild_id)
+    else:
+        all_bdays = {
+            key: data
+            for key, data in (await BirthdaysAdapter.load_all_async()).items()
+            if key.startswith(f"{guild_id}_")
+        }
     records = []
 
     import calendar

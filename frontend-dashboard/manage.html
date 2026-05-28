@@ -7236,6 +7236,7 @@
                 toggleDowPicker();
 
                 document.getElementById('reminder-body').value = '';
+                document.getElementById('reminder-channel').value = '';
                 document.getElementById('reminder-mention').value = 'everyone';
                 document.getElementById('reminder-image').value = '';
                 document.getElementById('reminder-thumbnail').value = '';
@@ -7252,6 +7253,12 @@
                 if (presetId) applyReminderPreset(presetId, { silent: editPreset });
                 if (editPreset) {
                     const preset = REMINDER_PRESETS.find(p => p.id === presetId);
+                    if (!preset?.target_time) {
+                        document.getElementById('reminder-date').value = '';
+                    }
+                    if (!preset?.channel_id) {
+                        document.getElementById('reminder-channel').value = '';
+                    }
                     const savePreset = document.getElementById('reminder-save-as-preset');
                     const presetTitle = document.getElementById('reminder-preset-title');
                     if (savePreset) savePreset.checked = true;

@@ -22,8 +22,10 @@
   }
 
   document.querySelectorAll("[data-feature-grid]").forEach((grid) => {
-    grid.innerHTML = data.features.map(([iconName, title, description]) => `
-      <article class="feature-card">
+    grid.setAttribute("data-hover-slide", "");
+    grid.dataset.hoverSlideSpeed = "5.4";
+    grid.innerHTML = data.features.map(([iconName, title, description], index) => `
+      <article class="feature-card feature-card-3d" data-scroll-reveal style="--feature-delay: ${index * 0.04}s;">
         <div class="feature-icon">${icon(iconName)}</div>
         <h3>${title}</h3>
         <p>${description}</p>
@@ -1062,6 +1064,21 @@
   /* ── Theme Toggle ──────────────────────────────────────────────────────── */
   const themeToggle = document.getElementById("theme-toggle");
   if (themeToggle) {
+    const themeLabels = {
+      cartoon: "Cartoon Theme",
+      dark: "Dark Theme",
+      light: "Light Theme",
+      "high-contrast": "High Contrast Theme",
+      hacker: "Hacker Theme",
+      aurora: "Aurora Theme",
+      "cyberpunk-cool": "Main Theme"
+    };
+    const setThemeLabel = (theme) => {
+      const label = themeLabels[theme] || themeLabels["cyberpunk-cool"];
+      themeToggle.setAttribute("aria-label", `Current theme: ${label}. Change theme`);
+      themeToggle.title = label;
+    };
+
     // Ensure the HTML attribute matches whatever the inline script set at load
     const initTheme = localStorage.getItem("theme") || "cyberpunk-cool";
     if (initTheme !== "dark") {
@@ -1069,6 +1086,7 @@
     } else {
       document.documentElement.removeAttribute("data-theme");
     }
+    setThemeLabel(initTheme);
 
     const themes = ['cartoon', 'dark', 'light', 'high-contrast', 'hacker', 'aurora', 'cyberpunk-cool'];
 
@@ -1084,6 +1102,112 @@
       } else {
         document.documentElement.setAttribute("data-theme", nextTheme);
       }
+      setThemeLabel(nextTheme);
     });
+  }
+
+  const hoverSlideRails = document.querySelectorAll("[data-hover-slide]");
+  hoverSlideRails.forEach((rail) => {
+    let frameId = 0;
+    let velocity = 0;
+
+    const stopSlide = () => {
+      velocity = 0;
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+        frameId = 0;
+      }
+    };
+
+    const step = () => {
+      if (Math.abs(velocity) < 0.05) {
+        stopSlide();
+        return;
+      }
+      rail.scrollLeft += velocity;
+      frameId = requestAnimationFrame(step);
+    };
+
+    rail.addEventListener("pointermove", (event) => {
+      if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+      const rect = rail.getBoundingClientRect();
+      const position = (event.clientX - rect.left) / rect.width;
+      const edgeZone = 0.38;
+      const maxSpeed = Number(rail.dataset.hoverSlideSpeed || 4.5);
+
+      if (position < edgeZone) {
+        velocity = -maxSpeed * ((edgeZone - position) / edgeZone);
+      } else if (position > 1 - edgeZone) {
+        velocity = maxSpeed * ((position - (1 - edgeZone)) / edgeZone);
+      } else {
+        velocity *= 0.82;
+      }
+
+      if (!frameId) frameId = requestAnimationFrame(step);
+    });
+
+    rail.addEventListener("pointerleave", stopSlide);
+    rail.addEventListener("wheel", stopSlide, { passive: true });
+  });
+
+  const previewSection = document.getElementById("preview");
+  const updatePreviewMotion = () => {
+    if (!previewSection) return;
+    const sectionRect = previewSection.getBoundingClientRect();
+    const sectionSpan = Math.max(1, sectionRect.height + window.innerHeight);
+    const sectionProgress = Math.min(1, Math.max(0, (window.innerHeight - sectionRect.top) / sectionSpan));
+    previewSection.style.setProperty("--preview-flow", sectionProgress.toFixed(4));
+
+    previewSection.querySelectorAll(".showcase-card").forEach((card) => {
+      const rect = card.getBoundingClientRect();
+      const midpoint = rect.top + rect.height / 2;
+      const distance = Math.abs(midpoint - window.innerHeight / 2);
+      const progress = Math.max(0, 1 - distance / (window.innerHeight * 0.72));
+      card.style.setProperty("--card-focus", progress.toFixed(4));
+    });
+  };
+
+  if (previewSection) {
+    updatePreviewMotion();
+    window.addEventListener("scroll", updatePreviewMotion, { passive: true });
+    window.addEventListener("resize", updatePreviewMotion);
+  }
+
+  const revealItems = document.querySelectorAll(".feature-card-3d, .showcase-card, .preview-slide-card");
+  if (revealItems.length) {
+    document.documentElement.classList.add("reveal-ready");
+    revealItems.forEach((item, index) => {
+      item.style.setProperty("--reveal-delay", `${Math.min(index % 12, 8) * 0.08}s`);
+      item.setAttribute("data-scroll-reveal", "");
+    });
+
+    const revealVisibleItems = () => {
+      const triggerLine = window.innerHeight * 0.86;
+      revealItems.forEach((item) => {
+        if (item.classList.contains("is-visible")) return;
+        const rect = item.getBoundingClientRect();
+        if (rect.top < triggerLine && rect.bottom > 0) {
+          item.classList.add("is-visible");
+        }
+      });
+    };
+
+    if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            revealObserver.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.18, rootMargin: "0px 0px -10% 0px" });
+
+      revealItems.forEach((item) => revealObserver.observe(item));
+      revealVisibleItems();
+      window.addEventListener("scroll", revealVisibleItems, { passive: true });
+      window.addEventListener("resize", revealVisibleItems);
+    } else {
+      revealItems.forEach((item) => item.classList.add("is-visible"));
+    }
   }
 })();

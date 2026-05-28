@@ -118,6 +118,43 @@
   let mutedUserIds = JSON.parse(localStorage.getItem(STORAGE_KEYS.muted) || "[]");
   let currentCall = null;
 
+  function initThemeToggle() {
+    const themeToggle = document.getElementById("theme-toggle");
+    if (!themeToggle) return;
+
+    const themes = ["cartoon", "dark", "light", "high-contrast", "hacker", "aurora", "cyberpunk-cool"];
+    const themeLabels = {
+      cartoon: "Cartoon Theme",
+      dark: "Dark Theme",
+      light: "Light Theme",
+      "high-contrast": "High Contrast Theme",
+      hacker: "Hacker Theme",
+      aurora: "Aurora Theme",
+      "cyberpunk-cool": "Main Theme"
+    };
+
+    const applyTheme = (theme) => {
+      const nextTheme = theme === "viper" ? "cyberpunk-cool" : theme;
+      localStorage.setItem("theme", nextTheme);
+      if (nextTheme === "dark") {
+        document.documentElement.removeAttribute("data-theme");
+      } else {
+        document.documentElement.setAttribute("data-theme", nextTheme);
+      }
+      const label = themeLabels[nextTheme] || themeLabels["cyberpunk-cool"];
+      themeToggle.setAttribute("aria-label", `Current theme: ${label}. Change theme`);
+      themeToggle.title = label;
+    };
+
+    applyTheme(localStorage.getItem("theme") || "cyberpunk-cool");
+    themeToggle.addEventListener("click", () => {
+      const currentTheme = localStorage.getItem("theme") || "cyberpunk-cool";
+      const currentIndex = themes.indexOf(currentTheme);
+      const nextTheme = themes[((currentIndex === -1 ? 0 : currentIndex) + 1) % themes.length];
+      applyTheme(nextTheme);
+    });
+  }
+
   const getToken = () => localStorage.getItem("discord_access_token");
   const authHeaders = () => {
     const token = getToken();
@@ -1417,6 +1454,8 @@
     activeGifSource = e.target.dataset.source;
     searchTenor();
   });
+
+  initThemeToggle();
 
   if (el.discord) el.discord.href = buildDiscordAuthUrl();
   el.name.value = (getWosProfile() && getWosProfile().id) || "";

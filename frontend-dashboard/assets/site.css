@@ -51,6 +51,18 @@ html {
   scroll-behavior: smooth;
 }
 
+@keyframes softRiseIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 @keyframes pageFadeIn {
   from {
     opacity: 0;
@@ -67,6 +79,49 @@ main {
   animation: pageFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+.feature-card,
+.showcase-card,
+.stats-grid article,
+.cta-card,
+.module-card,
+.command-card,
+.chat-room-side,
+.chat-room-main,
+.chat-member-panel,
+.chat-message {
+  animation: softRiseIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition:
+    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.32s ease,
+    background-color 0.32s ease,
+    box-shadow 0.32s ease,
+    opacity 0.32s ease;
+}
+
+.feature-card:hover,
+.showcase-card:hover,
+.stats-grid article:hover,
+.module-card:hover,
+.command-card:hover {
+  transform: translateY(-4px);
+}
+
+.button,
+.ghost-link,
+.theme-toggle,
+button,
+input,
+textarea,
+select {
+  transition:
+    transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.22s ease,
+    background-color 0.22s ease,
+    color 0.22s ease,
+    box-shadow 0.22s ease,
+    opacity 0.22s ease;
+}
+
 body {
   margin: 0;
   background:
@@ -78,6 +133,17 @@ body {
   font-family: var(--font-body);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
 
 a {
@@ -6406,4 +6472,610 @@ body,
   border-color: rgba(148, 163, 184, 0.16) !important;
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.94)) !important;
   box-shadow: 0 24px 70px -52px rgba(0, 0, 0, 0.95) !important;
+}
+
+[data-theme="cyberpunk-cool"] .chat-room-brand b,
+[data-theme="cyberpunk-cool"] .chat-room-user strong,
+[data-theme="cyberpunk-cool"] .global-chat-header b,
+[data-theme="cyberpunk-cool"] .chat-author,
+[data-theme="cyberpunk-cool"] .chat-room-topbar strong {
+  color: #f8fafc !important;
+  text-shadow: none !important;
+}
+
+[data-theme="cyberpunk-cool"] .chat-room-brand h1,
+[data-theme="cyberpunk-cool"] .chat-room-brand p,
+[data-theme="cyberpunk-cool"] .chat-room-user span,
+[data-theme="cyberpunk-cool"] .chat-room-topbar span,
+[data-theme="cyberpunk-cool"] .chat-content,
+[data-theme="cyberpunk-cool"] .chat-meta,
+[data-theme="cyberpunk-cool"] .chat-member-empty {
+  text-shadow: none !important;
+}
+
+[data-theme="cyberpunk-cool"] .chat-room-topbar,
+[data-theme="cyberpunk-cool"] .room-composer,
+[data-theme="cyberpunk-cool"] .room-reply-bar,
+[data-theme="cyberpunk-cool"] .chat-room-user,
+[data-theme="cyberpunk-cool"] .chat-admin-card,
+[data-theme="cyberpunk-cool"] .chat-profile-card,
+[data-theme="cyberpunk-cool"] .chat-member-search,
+[data-theme="cyberpunk-cool"] .chat-session-item,
+[data-theme="cyberpunk-cool"] .chat-member-item {
+  border-color: rgba(148, 163, 184, 0.14) !important;
+  background: rgba(15, 23, 42, 0.58) !important;
+  box-shadow: none !important;
+}
+
+[data-theme="cyberpunk-cool"] .chat-bubble,
+[data-theme="cyberpunk-cool"] .chat-room-messages .chat-bubble {
+  border-color: rgba(148, 163, 184, 0.16) !important;
+  background: rgba(30, 41, 59, 0.74) !important;
+  box-shadow: 0 18px 48px -34px rgba(0, 0, 0, 0.78) !important;
+}
+
+[data-theme="cyberpunk-cool"] .chat-message.is-self .chat-bubble {
+  border-color: rgba(71, 85, 105, 0.55) !important;
+  background: rgba(51, 65, 85, 0.88) !important;
+}
+
+[data-theme="cyberpunk-cool"] .chat-avatar,
+[data-theme="cyberpunk-cool"] .chat-active-avatar,
+[data-theme="cyberpunk-cool"] .chat-member-avatar,
+[data-theme="cyberpunk-cool"] .chat-session-icon,
+[data-theme="cyberpunk-cool"] .chat-profile-avatar {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: linear-gradient(145deg, rgba(51, 65, 85, 0.96), rgba(15, 23, 42, 0.96)) !important;
+  color: #e5e7eb !important;
+  box-shadow: none !important;
+}
+
+[data-theme="cyberpunk-cool"] .chat-icon-button,
+[data-theme="cyberpunk-cool"] .chat-room-refresh,
+[data-theme="cyberpunk-cool"] .chat-send-button,
+[data-theme="cyberpunk-cool"] .room-login button,
+[data-theme="cyberpunk-cool"] .room-login a,
+[data-theme="cyberpunk-cool"] .chat-admin-toggle,
+[data-theme="cyberpunk-cool"] .chat-admin-danger,
+[data-theme="cyberpunk-cool"] .chat-translate-button,
+[data-theme="cyberpunk-cool"] .chat-reply-button,
+[data-theme="cyberpunk-cool"] .chat-report-button {
+  border-color: rgba(148, 163, 184, 0.2) !important;
+  background: rgba(30, 41, 59, 0.78) !important;
+  color: #f8fafc !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+
+[data-theme="cyberpunk-cool"] .chat-icon-button:hover,
+[data-theme="cyberpunk-cool"] .chat-room-refresh:hover,
+[data-theme="cyberpunk-cool"] .chat-send-button:hover,
+[data-theme="cyberpunk-cool"] .room-login button:hover,
+[data-theme="cyberpunk-cool"] .room-login a:hover,
+[data-theme="cyberpunk-cool"] .chat-admin-toggle:hover,
+[data-theme="cyberpunk-cool"] .chat-translate-button:hover,
+[data-theme="cyberpunk-cool"] .chat-reply-button:hover,
+[data-theme="cyberpunk-cool"] .chat-report-button:hover {
+  border-color: rgba(203, 213, 225, 0.28) !important;
+  background: rgba(51, 65, 85, 0.92) !important;
+  transform: translateY(-1px);
+}
+
+[data-theme="cyberpunk-cool"] .global-chat-form textarea,
+[data-theme="cyberpunk-cool"] .room-composer textarea,
+[data-theme="cyberpunk-cool"] .room-login input,
+[data-theme="cyberpunk-cool"] .chat-member-search input,
+[data-theme="cyberpunk-cool"] .chat-search-input {
+  border-color: rgba(148, 163, 184, 0.18) !important;
+  background: rgba(2, 6, 23, 0.68) !important;
+  color: #f8fafc !important;
+  box-shadow: none !important;
+}
+
+[data-theme="cyberpunk-cool"] .chat-room-messages,
+[data-theme="cyberpunk-cool"] .global-chat-messages {
+  scrollbar-color: rgba(148, 163, 184, 0.36) transparent !important;
+}
+
+[data-theme="cyberpunk-cool"] .chat-loading span {
+  background: rgba(203, 213, 225, 0.72) !important;
+  box-shadow: none !important;
+}
+
+/* NASA-inspired dark editorial color system */
+:root {
+  --mission-red: #fc3d21;
+  --mission-blue: #005ea8;
+  --mission-navy: #0b3d91;
+  --mission-gold: #ffd166;
+  --mission-cyan: #78e8ff;
+  --mission-white: #ffffff;
+}
+
+body {
+  background:
+    radial-gradient(circle at 82% 10%, rgba(0, 94, 168, 0.18), transparent 28rem),
+    radial-gradient(circle at 12% 18%, rgba(252, 61, 33, 0.12), transparent 24rem),
+    radial-gradient(circle at 58% 54%, rgba(255, 209, 102, 0.055), transparent 26rem),
+    linear-gradient(to bottom, #02040a 0%, #050914 42rem, var(--background) 100%),
+    var(--background);
+}
+
+[data-theme="cyberpunk-cool"] body {
+  background:
+    radial-gradient(circle at 82% 10%, rgba(255, 255, 255, 0.16), transparent 26rem),
+    radial-gradient(circle at 12% 18%, rgba(252, 61, 33, 0.16), transparent 24rem),
+    radial-gradient(circle at 62% 56%, rgba(0, 94, 168, 0.16), transparent 30rem),
+    linear-gradient(to bottom, #f8fafc 0%, #e9edf4 18rem, #080b12 18.1rem, #02040a 100%) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="cyberpunk-cool"] .site-header {
+  border-bottom-color: rgba(8, 11, 18, 0.1) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(246, 248, 252, 0.88)),
+    rgba(255, 255, 255, 0.9) !important;
+  box-shadow:
+    0 18px 46px -34px rgba(8, 11, 18, 0.35),
+    inset 0 -1px 0 rgba(8, 11, 18, 0.08) !important;
+}
+
+[data-theme="cyberpunk-cool"] .brand,
+[data-theme="cyberpunk-cool"] .primary-nav a,
+[data-theme="cyberpunk-cool"] .ghost-link {
+  color: #0b1020 !important;
+  text-shadow: none !important;
+}
+
+[data-theme="cyberpunk-cool"] .primary-nav {
+  border-color: rgba(8, 11, 18, 0.12) !important;
+  background: rgba(8, 11, 18, 0.045) !important;
+}
+
+[data-theme="cyberpunk-cool"] .primary-nav a:hover,
+[data-theme="cyberpunk-cool"] .primary-nav a.active,
+[data-theme="cyberpunk-cool"] .ghost-link:hover {
+  border-color: rgba(252, 61, 33, 0.28) !important;
+  background: rgba(252, 61, 33, 0.08) !important;
+  color: #0b1020 !important;
+}
+
+[data-theme="cyberpunk-cool"] .ghost-link.dashboard-cta,
+[data-theme="cyberpunk-cool"] a.ghost-link.dashboard-cta {
+  border-color: rgba(252, 61, 33, 0.72) !important;
+  border-radius: 999px !important;
+  clip-path: none !important;
+  background-color: #fc3d21 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  font-family: var(--font-body) !important;
+  box-shadow: 0 16px 34px -24px rgba(252, 61, 33, 0.85) !important;
+}
+
+.section-heading p,
+.section-kicker,
+.page-hero p {
+  color: var(--mission-red);
+  text-shadow: 0 0 18px rgba(252, 61, 33, 0.32);
+}
+
+[data-theme="cyberpunk-cool"] .section-heading p,
+[data-theme="cyberpunk-cool"] .section-kicker,
+[data-theme="cyberpunk-cool"] .page-hero p {
+  color: var(--mission-red) !important;
+  text-shadow: 0 0 18px rgba(252, 61, 33, 0.34) !important;
+}
+
+[data-theme="cyberpunk-cool"] .section-heading h2,
+[data-theme="cyberpunk-cool"] .page-hero h1,
+[data-theme="cyberpunk-cool"] .hero h1 {
+  color: #ffffff !important;
+}
+
+[data-theme="cyberpunk-cool"] .section.container:nth-of-type(2),
+[data-theme="cyberpunk-cool"] #preview {
+  position: relative;
+}
+
+[data-theme="cyberpunk-cool"] .section.container:nth-of-type(2)::before,
+[data-theme="cyberpunk-cool"] #preview::after {
+  content: "";
+  position: absolute;
+  inset: 1.5rem 1rem;
+  z-index: -1;
+  border-radius: 0.9rem;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.04) 42%, rgba(252, 61, 33, 0.08)),
+    rgba(255, 255, 255, 0.02);
+  pointer-events: none;
+}
+
+.section-heading h2,
+.page-hero h1 {
+  color: var(--mission-white);
+}
+
+/* Feature cards: smooth 2D slideshow rail */
+.feature-grid:has(.feature-card-3d) {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(18rem, 24rem);
+  grid-template-columns: none;
+  gap: 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.4rem 0.2rem 1.2rem;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(141, 232, 255, 0.45) transparent;
+}
+
+.feature-card-3d {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  scroll-snap-align: start;
+  transform: translateY(0);
+  animation: feature-card-rise 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--feature-delay, 0s);
+  box-shadow:
+    0 20px 34px -30px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.feature-card-3d:nth-child(4n + 1) {
+  border-color: rgba(252, 61, 33, 0.38);
+}
+
+.feature-card-3d:nth-child(4n + 2) {
+  border-color: rgba(0, 94, 168, 0.42);
+}
+
+.feature-card-3d:nth-child(4n + 3) {
+  border-color: rgba(255, 209, 102, 0.34);
+}
+
+.feature-card-3d:nth-child(4n) {
+  border-color: rgba(120, 232, 255, 0.34);
+}
+
+[data-theme="cyberpunk-cool"] .feature-card-3d:nth-child(4n + 1) {
+  border-color: rgba(252, 61, 33, 0.5) !important;
+}
+
+[data-theme="cyberpunk-cool"] .feature-card-3d:nth-child(4n + 2) {
+  border-color: rgba(0, 94, 168, 0.56) !important;
+}
+
+[data-theme="cyberpunk-cool"] .feature-card-3d:nth-child(4n + 3) {
+  border-color: rgba(255, 209, 102, 0.48) !important;
+}
+
+[data-theme="cyberpunk-cool"] .feature-card-3d:nth-child(4n) {
+  border-color: rgba(120, 232, 255, 0.48) !important;
+}
+
+.feature-card-3d::before,
+.feature-card-3d::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.feature-card-3d::before {
+  z-index: 0;
+  background:
+    linear-gradient(90deg, rgba(252, 61, 33, 0.18), transparent 28%),
+    radial-gradient(circle at 88% 18%, rgba(0, 94, 168, 0.22), transparent 32%),
+    radial-gradient(circle at 16% 100%, rgba(255, 209, 102, 0.09), transparent 28%);
+  opacity: 0.82;
+}
+
+.feature-card-3d::after {
+  z-index: 1;
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg, transparent, rgba(141, 232, 255, 0.18), transparent);
+  opacity: 0;
+  transform: translateX(-70%);
+  transition: opacity 0.25s ease, transform 0.65s ease;
+}
+
+.feature-card-3d:hover {
+  transform: translateY(-0.35rem);
+  box-shadow:
+    0 26px 46px -30px rgba(0, 0, 0, 0.95),
+    0 0 32px -18px rgba(141, 232, 255, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.feature-card-3d:hover::after {
+  opacity: 1;
+  transform: translateX(70%);
+}
+
+.feature-card-3d h3,
+.feature-card-3d p,
+.feature-card-3d .feature-icon {
+  position: relative;
+  z-index: 3;
+}
+
+.feature-card-3d h3 {
+  color: var(--mission-white);
+  font-size: 1.08rem;
+}
+
+.feature-card-3d p {
+  color: rgba(229, 237, 244, 0.78);
+}
+
+.feature-card-3d:nth-child(4n + 1) .feature-icon {
+  color: var(--mission-red);
+  border-color: rgba(252, 61, 33, 0.5);
+}
+
+.feature-card-3d:nth-child(4n + 2) .feature-icon {
+  color: var(--mission-blue);
+  border-color: rgba(0, 94, 168, 0.52);
+}
+
+.feature-card-3d:nth-child(4n + 3) .feature-icon {
+  color: var(--mission-gold);
+  border-color: rgba(255, 209, 102, 0.48);
+}
+
+.feature-card-3d:nth-child(4n) .feature-icon {
+  color: var(--mission-cyan);
+  border-color: rgba(120, 232, 255, 0.48);
+}
+
+@keyframes feature-card-rise {
+  from {
+    opacity: 0;
+    transform: translateX(1.25rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+[data-theme="cyberpunk-cool"] .feature-card-3d {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(236, 241, 248, 0.88)),
+    rgba(255, 255, 255, 0.92) !important;
+  color: #101522 !important;
+  box-shadow:
+    0 22px 44px -34px rgba(8, 11, 18, 0.48),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+[data-theme="cyberpunk-cool"] .feature-card-3d h3 {
+  color: #0b1020 !important;
+}
+
+[data-theme="cyberpunk-cool"] .feature-card-3d p {
+  color: rgba(11, 16, 32, 0.68) !important;
+}
+
+[data-theme="cyberpunk-cool"] .feature-card-3d .feature-icon {
+  background: #ffffff !important;
+  box-shadow: 0 14px 28px -24px rgba(8, 11, 18, 0.55) !important;
+}
+
+/* Clean editorial public sections: remove cyberpunk scan/glitch outside the hero direction. */
+[data-theme="cyberpunk-cool"] body::before,
+[data-theme="cyberpunk-cool"] body::after {
+  display: none !important;
+  animation: none !important;
+}
+
+[data-theme="cyberpunk-cool"] .feature-showcase-section,
+[data-theme="cyberpunk-cool"] #preview {
+  color: #0b1020;
+}
+
+[data-theme="cyberpunk-cool"] .feature-showcase-section {
+  overflow: hidden;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(135deg, rgba(12, 18, 30, 0.96), rgba(18, 21, 30, 0.9) 46%, rgba(44, 19, 22, 0.86)),
+    #070b12;
+}
+
+[data-theme="cyberpunk-cool"] #preview {
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(236, 241, 248, 0.9) 42%, rgba(9, 13, 22, 0.96) 42.1%),
+    #080c14;
+}
+
+[data-theme="cyberpunk-cool"] .feature-showcase-section .section-heading,
+[data-theme="cyberpunk-cool"] #preview .section-heading {
+  margin-bottom: clamp(2.25rem, 5vw, 4rem);
+  max-width: 78rem;
+}
+
+[data-theme="cyberpunk-cool"] .feature-showcase-section .section-heading p,
+[data-theme="cyberpunk-cool"] #preview .section-heading p {
+  color: #fc3d21 !important;
+  font-size: clamp(0.9rem, 1.1vw, 1.05rem);
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-shadow: none !important;
+}
+
+[data-theme="cyberpunk-cool"] .feature-showcase-section .section-heading h2,
+[data-theme="cyberpunk-cool"] #preview .section-heading h2 {
+  max-width: 58rem;
+  color: #ffffff !important;
+  font-family: "Newsreader", var(--font-display);
+  font-size: clamp(2.9rem, 6.1vw, 5.75rem);
+  font-weight: 650;
+  line-height: 0.98;
+  letter-spacing: 0;
+  text-shadow: 0 18px 58px rgba(0, 0, 0, 0.32);
+  text-wrap: balance;
+}
+
+[data-theme="cyberpunk-cool"] #preview .section-heading h2 {
+  color: #0b1020 !important;
+  text-shadow: none;
+}
+
+[data-theme="cyberpunk-cool"] .feature-showcase-section .section-heading h2::first-letter,
+[data-theme="cyberpunk-cool"] #preview .section-heading h2::first-letter {
+  color: #fc3d21;
+}
+
+[data-theme="cyberpunk-cool"] .feature-showcase-section .section-heading h2 span,
+[data-theme="cyberpunk-cool"] #preview .section-heading h2 span {
+  color: #fc3d21;
+  font-style: italic;
+}
+
+[data-theme="cyberpunk-cool"] .feature-showcase-section::before,
+[data-theme="cyberpunk-cool"] #preview::after {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(252, 61, 33, 0.13), transparent 22rem),
+    radial-gradient(circle at 78% 12%, rgba(255, 255, 255, 0.1), transparent 24rem),
+    transparent !important;
+  box-shadow: none;
+}
+
+[data-theme="cyberpunk-cool"] .feature-showcase-section .feature-grid,
+[data-theme="cyberpunk-cool"] #preview .preview-slide-rail {
+  scrollbar-color: rgba(252, 61, 33, 0.45) transparent;
+}
+
+[data-theme="cyberpunk-cool"] .feature-showcase-section .feature-card-3d,
+[data-theme="cyberpunk-cool"] #preview .preview-slide-card {
+  border-radius: 0.75rem !important;
+  clip-path: none !important;
+  text-transform: none !important;
+}
+
+[data-theme="cyberpunk-cool"] .feature-showcase-section .feature-card-3d:hover,
+[data-theme="cyberpunk-cool"] #preview .preview-slide-card:hover,
+[data-theme="cyberpunk-cool"] #preview .showcase-card:hover {
+  transform: translateY(-0.25rem) !important;
+  box-shadow:
+    0 26px 54px -38px rgba(0, 0, 0, 0.62),
+    0 0 0 1px rgba(252, 61, 33, 0.18) !important;
+}
+
+[data-theme="cyberpunk-cool"] #preview .showcase-card {
+  clip-path: none !important;
+  text-transform: none !important;
+}
+
+@media (max-width: 760px) {
+  [data-theme="cyberpunk-cool"] .feature-showcase-section .section-heading h2,
+  [data-theme="cyberpunk-cool"] #preview .section-heading h2 {
+    font-size: clamp(2.8rem, 15vw, 4.4rem);
+  }
+}
+
+[data-theme="cyberpunk-cool"] #floating-chat-fab {
+  border: 1px solid rgba(11, 16, 32, 0.14) !important;
+  border-radius: 999px !important;
+  background:
+    linear-gradient(180deg, #ffffff, #edf1f7) !important;
+  box-shadow:
+    0 18px 42px -28px rgba(0, 0, 0, 0.55),
+    0 0 0 5px rgba(252, 61, 33, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+  clip-path: none !important;
+}
+
+[data-theme="cyberpunk-cool"] #floating-chat-fab::before {
+  background: linear-gradient(135deg, rgba(252, 61, 33, 0.45), rgba(0, 94, 168, 0.22)) !important;
+  opacity: 0.65 !important;
+  filter: blur(10px) !important;
+}
+
+[data-theme="cyberpunk-cool"] #floating-chat-fab::after {
+  background: #fc3d21 !important;
+  box-shadow: 0 0 0 4px rgba(252, 61, 33, 0.13) !important;
+}
+
+[data-theme="cyberpunk-cool"] #floating-chat-fab svg {
+  color: #0b1020 !important;
+  stroke-width: 2.4;
+}
+
+[data-theme="cyberpunk-cool"] #floating-chat-fab:hover {
+  background:
+    linear-gradient(180deg, #fc3d21, #d92f19) !important;
+  box-shadow:
+    0 22px 48px -28px rgba(252, 61, 33, 0.8),
+    0 0 0 6px rgba(252, 61, 33, 0.13) !important;
+  transform: translateY(-3px) scale(1.04) !important;
+}
+
+[data-theme="cyberpunk-cool"] #floating-chat-fab:hover svg {
+  color: #ffffff !important;
+}
+
+.reveal-ready [data-scroll-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 2.25rem, 0);
+  filter: blur(8px);
+  transition:
+    opacity 0.42s ease var(--reveal-delay, 0s),
+    transform 0.52s cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0s),
+    filter 0.42s ease var(--reveal-delay, 0s),
+    border-color 0.22s ease,
+    background 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+.reveal-ready .feature-card-3d {
+  animation: none;
+}
+
+.reveal-ready [data-scroll-reveal].is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  filter: blur(0);
+}
+
+.reveal-ready .feature-card-3d.is-visible:hover {
+  transform: translateY(-0.35rem);
+}
+
+.reveal-ready .showcase-card.is-visible:hover {
+  transform: translateY(-0.3rem);
+}
+
+@media (max-width: 900px) {
+  .feature-card-3d,
+  .feature-card-3d:hover,
+  .reveal-ready .showcase-card.is-visible,
+  .reveal-ready .showcase-card.is-visible:hover {
+    transform: translateY(0) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-card-3d {
+    animation: none;
+    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .feature-card-3d,
+  .feature-card-3d:hover,
+  .reveal-ready [data-scroll-reveal],
+  .reveal-ready [data-scroll-reveal].is-visible,
+  .reveal-ready .showcase-card.is-visible:hover {
+    opacity: 1;
+    filter: none;
+    transform: none !important;
+  }
 }

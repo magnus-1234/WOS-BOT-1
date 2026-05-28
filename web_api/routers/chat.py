@@ -66,6 +66,7 @@ class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[WebSocket, Dict[str, Any]] = {}
         self.room_state: Dict[str, Any] = _read_room_state()
+        self._last_chat_announcement: Optional[str] = None
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -179,7 +180,7 @@ class ConnectionManager:
     async def broadcast_room_state(self):
         await self.broadcast({"type": "room_state", **self.room_state})
 
-    async def update_announcement(self, announcement: Optional[str], author: Optional[Dict[str, Any]] = None):
+    async def update_announcement(self, announcement: Optional[str], author: Optional[Dict[str, Any]] = None, publish_to_chat: bool = False):
         self.room_state["announcement"] = announcement or None
         self.room_state["announcement_author"] = (author or {}).get("name") if announcement else None
         self.room_state["announcement_updated_at"] = _utc_now_iso() if announcement else None
@@ -190,6 +191,11 @@ class ConnectionManager:
             "announcement_author": self.room_state["announcement_author"],
             "announcement_updated_at": self.room_state["announcement_updated_at"],
         })
+        if publish_to_chat and announcement:
+            dedupe_key = f"{announcement}|{(author or {}).get('id')}|{self.room_state['announcement_updated_at']}"
+            if dedupe_key != self._last_chat_announcement:
+                self._last_chat_announcement = dedupe_key
+                await _create_announcement_message(announcement, author or {})
 
 
 manager = ConnectionManager()
@@ -222,7 +228,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     await websocket.send_json({"type": "admin:error", "message": "Admin access required."})
                     continue
                 announcement = _clean_text(data.get("announcement") or "", 180)
-                await manager.update_announcement(announcement or None, manager.active_connections.get(websocket))
+                await manager.update_announcement(announcement or None, manager.active_connections.get(websocket), publish_to_chat=True)
             elif event_type == "admin:clear":
                 if not _is_chat_admin(manager.active_connections.get(websocket)):
                     await websocket.send_json({"type": "admin:error", "message": "Admin access required."})
@@ -399,6 +405,7 @@ def _public_message(doc: Dict[str, Any]) -> Dict[str, Any]:
         "timezone": doc.get("timezone"),
         "client_time": doc.get("client_time"),
         "source": doc.get("source", "guest"),
+        "announcement_author": doc.get("announcement_author"),
     }
 
 
@@ -518,12 +525,49 @@ async def post_announcement(payload: AnnouncementRequest, request: Request):
     if not announcement and not _is_chat_admin(author):
         raise HTTPException(status_code=400, detail="Announcement text is required.")
 
-    await manager.update_announcement(announcement or None, author)
+    await manager.update_announcement(announcement or None, author, publish_to_chat=True)
     return {
         "announcement": manager.room_state["announcement"],
         "announcement_author": manager.room_state["announcement_author"],
         "announcement_updated_at": manager.room_state["announcement_updated_at"],
     }
+
+
+async def _create_announcement_message(announcement: str, author: Dict[str, Any]) -> Dict[str, Any]:
+    doc = {
+        "_id": uuid.uuid4().hex,
+        "content": announcement,
+        "author": {
+            "id": "announcement",
+            "name": "Announcement",
+            "username": "announcement",
+            "avatar_url": None,
+            "kind": "system",
+        },
+        "attachments": [],
+        "reply_to": None,
+        "target_user_id": None,
+        "reactions": [],
+        "report_count": 0,
+        "timezone": "",
+        "client_time": "",
+        "created_at": _utc_now_iso(),
+        "source": "announcement",
+        "announcement_author": author.get("name"),
+        "ip_hint": None,
+    }
+
+    collection = await _get_collection()
+    if collection is not None:
+        await collection.insert_one(doc)
+    else:
+        messages = _read_fallback_messages()
+        messages.append(doc)
+        _write_fallback_messages(messages)
+
+    public_msg = _public_message(doc)
+    await manager.broadcast_message({"type": "message", "message": public_msg})
+    return public_msg
 
 
 async def _online_count() -> int:

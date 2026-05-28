@@ -270,13 +270,14 @@
     if (!message) return;
     const track = document.createElement("div");
     track.className = "chat-announcement-track";
-    for (let index = 0; index < 2; index += 1) {
-      const span = document.createElement("span");
-      span.textContent = message;
-      if (index === 1) span.setAttribute("aria-hidden", "true");
-      track.appendChild(span);
-    }
+    const span = document.createElement("span");
+    span.textContent = message;
+    track.appendChild(span);
     el.announcement.appendChild(track);
+    track.addEventListener("animationend", () => {
+      el.announcement.hidden = true;
+      el.announcement.replaceChildren();
+    }, { once: true });
   };
   const updateAdminView = () => {
     syncAdminAccess();
@@ -515,7 +516,7 @@
         clearInterval(wsHeartbeatTimer);
         wsHeartbeatTimer = null;
       }
-      setStatus("Reconnecting in the background...", true);
+      setStatus("Live updates paused. Messages still refresh.", false);
       startFallbackPolling();
       scheduleReconnect();
     });
@@ -1057,6 +1058,10 @@
     const article = document.createElement("article");
     article.className = "chat-message";
     article.dataset.messageId = message.id;
+    const isAnnouncement = message.source === "announcement";
+    if (isAnnouncement) {
+      article.classList.add("chat-message-announcement");
+    }
 
     const avatar = document.createElement("div");
     avatar.className = "chat-avatar";
@@ -1079,7 +1084,7 @@
     top.className = "chat-bubble-top";
     const name = document.createElement("div");
     name.className = "chat-author";
-    name.textContent = author.name || "Guest Player";
+    name.textContent = isAnnouncement ? "Announcement" : (author.name || "Guest Player");
     const time = document.createElement("time");
     time.className = "chat-meta";
     time.dateTime = message.created_at || "";
@@ -1108,7 +1113,18 @@
 
     if (message.content) {
       const diceMatch = message.content.match(/rolled a survival die:\s*([1-6])/i);
-      if (diceMatch) {
+      if (isAnnouncement) {
+        const content = document.createElement("p");
+        content.className = "chat-content";
+        content.textContent = message.content;
+        bubble.appendChild(content);
+        if (message.announcement_author) {
+          const byline = document.createElement("span");
+          byline.className = "chat-announcement-byline";
+          byline.textContent = `Posted by ${message.announcement_author}`;
+          bubble.appendChild(byline);
+        }
+      } else if (diceMatch) {
         const dice = document.createElement("div");
         dice.className = "chat-dice-card";
         dice.innerHTML = `<span>Survival Dice</span><strong>${diceMatch[1]}</strong>`;

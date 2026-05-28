@@ -129,12 +129,13 @@
       bar = document.createElement("div");
       bar.className = "site-announcement-ticker";
       bar.setAttribute("data-site-announcement", "");
-      bar.innerHTML = '<div class="site-announcement-track"><span></span><span aria-hidden="true"></span></div>';
       document.body.prepend(bar);
     }
-    bar.querySelectorAll("span").forEach((span) => {
-      span.textContent = message;
-    });
+    bar.innerHTML = '<div class="site-announcement-track"><span></span></div>';
+    bar.querySelector("span").textContent = message;
+    bar.querySelector(".site-announcement-track").addEventListener("animationend", () => {
+      bar.remove();
+    }, { once: true });
   };
 
   fetch("/api/chat/room-state", { headers: { Accept: "application/json" }, cache: "no-store" })

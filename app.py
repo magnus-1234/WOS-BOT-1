@@ -2123,7 +2123,7 @@ def save_birthdays(data: dict) -> bool:
                 # upsert per-user
                 for uid, val in (data or {}).items():
                     try:
-                        BirthdaysAdapter.set(str(uid), int(val.get('day')), int(val.get('month')))
+                        BirthdaysAdapter.set("oneserver", int(uid), int(val.get('day')), int(val.get('month')), val.get('player_id'))
                     except Exception:
                         continue
                 return True
@@ -2136,17 +2136,14 @@ def save_birthdays(data: dict) -> bool:
         logger.error(f"Failed to save birthdays file: {e}")
         return False
 
-def set_birthday(user_id: int, day: int, month: int, player_id: Optional[str] = None) -> None:
+def set_birthday(user_id: int, day: int, month: int, player_id: Optional[str] = None, guild_id: Optional[int] = None) -> None:
     # Use adapter when available
     if mongo_enabled() and BirthdaysAdapter is not None:
         try:
-            # Try to save with player_id (new signature)
-            BirthdaysAdapter.set(str(user_id), int(day), int(month), player_id)
+            BirthdaysAdapter.set(guild_id or "oneserver", int(user_id), int(day), int(month), player_id)
             return
         except TypeError:
-            # Fallback for old MongoDB adapter that doesn't support player_id
-            logger.warning(f"MongoDB adapter doesn't support player_id yet, saving without it")
-            BirthdaysAdapter.set(str(user_id), int(day), int(month))
+            BirthdaysAdapter.set(guild_id or "oneserver", int(user_id), int(day), int(month))
             return
         except Exception:
             pass
@@ -2154,20 +2151,22 @@ def set_birthday(user_id: int, day: int, month: int, player_id: Optional[str] = 
     birthday_data = {"day": int(day), "month": int(month)}
     if player_id:
         birthday_data["player_id"] = player_id
-    data[str(user_id)] = birthday_data
+    key = f"{guild_id}_{user_id}" if guild_id else f"oneserver_{user_id}"
+    data[key] = birthday_data
     save_birthdays(data)
 
-def remove_birthday(user_id: int) -> bool:
+def remove_birthday(user_id: int, guild_id: Optional[int] = None) -> bool:
     # Adapter removal when available
     if mongo_enabled() and BirthdaysAdapter is not None:
         try:
-            return BirthdaysAdapter.remove(str(user_id))
+            return BirthdaysAdapter.remove(guild_id or "oneserver", int(user_id))
         except Exception:
             pass
     data = load_birthdays()
-    if str(user_id) in data:
+    key = f"{guild_id}_{user_id}" if guild_id else f"oneserver_{user_id}"
+    if key in data:
         try:
-            del data[str(user_id)]
+            del data[key]
             save_birthdays(data)
             return True
         except Exception as e:
@@ -2175,14 +2174,15 @@ def remove_birthday(user_id: int) -> bool:
             return False
     return False
 
-def get_birthday(user_id: int):
+def get_birthday(user_id: int, guild_id: Optional[int] = None):
     if mongo_enabled() and BirthdaysAdapter is not None:
         try:
-            return BirthdaysAdapter.get(str(user_id))
+            return BirthdaysAdapter.get(guild_id or "oneserver", int(user_id))
         except Exception:
             pass
     data = load_birthdays()
-    return data.get(str(user_id))
+    key = f"{guild_id}_{user_id}" if guild_id else f"oneserver_{user_id}"
+    return data.get(key)
 
 
 class BirthdayModal(discord.ui.Modal, title="Add / Update Birthday"):
@@ -2236,7 +2236,8 @@ class BirthdayModal(discord.ui.Modal, title="Add / Update Birthday"):
                     return
 
             # Check previous entry to determine if this is new or an update
-            prev = get_birthday(user_id)
+            guild_id = interaction.guild_id if interaction.guild_id else None
+            prev = get_birthday(user_id, guild_id)
 
             # If submitting for self and an entry already exists, require removal first
             if prev and self.target_user is None:
@@ -2247,7 +2248,7 @@ class BirthdayModal(discord.ui.Modal, title="Add / Update Birthday"):
                 return
 
             # Otherwise save (this allows overwriting when target_user is set — e.g., admin use)
-            set_birthday(user_id, d, m, pid)
+            set_birthday(user_id, d, m, pid, guild_id)
 
             # Build a human-friendly date string, e.g. "Feitan's birthday is on 1st November"
             try:
@@ -2360,7 +2361,7 @@ class BirthdayView(discord.ui.View):
     async def add_update(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
             # Prevent users from creating multiple entries: if they already have one, instruct to remove first
-            existing = get_birthday(interaction.user.id)
+            existing = get_birthday(interaction.user.id, interaction.guild_id if interaction.guild_id else None)
             if existing:
                 await interaction.response.send_message(
                     "You already have a birthday saved. To change it, first click 'Remove my entry' to delete your existing entry, then click 'Add/Update birthday' to submit a new one.",
@@ -2377,7 +2378,7 @@ class BirthdayView(discord.ui.View):
     @discord.ui.button(label="Remove my entry", style=discord.ButtonStyle.danger, custom_id="birthday_remove")
     async def remove_entry(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
-            removed = remove_birthday(interaction.user.id)
+            removed = remove_birthday(interaction.user.id, interaction.guild_id if interaction.guild_id else None)
             if removed:
                 await interaction.response.send_message("Your birthday entry was removed.", ephemeral=True)
 
@@ -2424,7 +2425,7 @@ async def birthday(interaction: discord.Interaction):
     """Sends an embed explaining the birthday system with buttons to add/update or remove your birthday."""
     try:
         embed_text = (
-            "Never miss a clan member's birthday again!\n\n"
+            "Never miss alliance member's birthday again!\n\n"
             "📅 **Add Your Birthday**\n"
             "Click \"Add Birthday\" and select your birth date.\n\n"
             "🎂 **Celebrate Together**\n"

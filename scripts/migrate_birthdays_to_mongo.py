@@ -43,7 +43,8 @@ def main(dry_run: bool = True):
         except Exception:
             print(f"Skipping invalid entry for {uid}: {val}")
             continue
-        ok = BirthdaysAdapter.set(str(uid), day, month)
+        player_id = val.get('player_id')
+        ok = BirthdaysAdapter.set("oneserver", int(uid), day, month, player_id)
         if ok:
             count += 1
 

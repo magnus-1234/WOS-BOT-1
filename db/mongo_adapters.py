@@ -178,6 +178,22 @@ class UserTimezonesAdapter:
 
 class BirthdaysAdapter:
     COLL = 'birthdays'
+    BACKUP_GUILD_ID = 'oneserver'
+
+    @staticmethod
+    def _normalize_guild_id(guild_id):
+        if guild_id is None or guild_id == "":
+            return None
+        if str(guild_id) == BirthdaysAdapter.BACKUP_GUILD_ID:
+            return BirthdaysAdapter.BACKUP_GUILD_ID
+        return int(guild_id)
+
+    @staticmethod
+    def _doc_id(guild_id, user_id) -> str:
+        normalized_guild_id = BirthdaysAdapter._normalize_guild_id(guild_id)
+        if normalized_guild_id is None:
+            normalized_guild_id = BirthdaysAdapter.BACKUP_GUILD_ID
+        return f"{normalized_guild_id}_{user_id}"
 
     @staticmethod
     def load_all() -> dict:
@@ -206,16 +222,19 @@ class BirthdaysAdapter:
     def get(guild_id, user_id) -> dict:
         try:
             db = _get_db_main()
+            normalized_guild_id = BirthdaysAdapter._normalize_guild_id(guild_id)
             query = {'user_id': int(user_id)}
-            if guild_id:
-                query['guild_id'] = int(guild_id)
+            if normalized_guild_id is not None:
+                query['guild_id'] = normalized_guild_id
             else:
-                query = {'_id': str(user_id)}
+                query['guild_id'] = BirthdaysAdapter.BACKUP_GUILD_ID
             
             d = db[BirthdaysAdapter.COLL].find_one(query)
             if not d:
-                if guild_id:
-                    d = db[BirthdaysAdapter.COLL].find_one({'_id': f"{guild_id}_{user_id}"})
+                if normalized_guild_id is not None:
+                    d = db[BirthdaysAdapter.COLL].find_one({'_id': f"{normalized_guild_id}_{user_id}"})
+                else:
+                    d = db[BirthdaysAdapter.COLL].find_one({'_id': f"{BirthdaysAdapter.BACKUP_GUILD_ID}_{user_id}"})
                 if not d:
                     return None
             
@@ -235,11 +254,11 @@ class BirthdaysAdapter:
                 'user_id': int(user_id),
                 'updated_at': datetime.utcnow().isoformat()
             }
-            if guild_id:
-                data['guild_id'] = int(guild_id)
-                doc_id = f"{guild_id}_{user_id}"
-            else:
-                doc_id = str(user_id)
+            normalized_guild_id = BirthdaysAdapter._normalize_guild_id(guild_id)
+            if normalized_guild_id is None:
+                normalized_guild_id = BirthdaysAdapter.BACKUP_GUILD_ID
+            data['guild_id'] = normalized_guild_id
+            doc_id = f"{normalized_guild_id}_{user_id}"
 
             if player_id:
                 data['player_id'] = str(player_id)
@@ -258,10 +277,10 @@ class BirthdaysAdapter:
     def remove(guild_id, user_id) -> bool:
         try:
             db = _get_db_main()
-            if guild_id:
-                query = {'_id': f"{guild_id}_{user_id}"}
-            else:
-                query = {'_id': str(user_id)}
+            normalized_guild_id = BirthdaysAdapter._normalize_guild_id(guild_id)
+            if normalized_guild_id is None:
+                normalized_guild_id = BirthdaysAdapter.BACKUP_GUILD_ID
+            query = {'_id': f"{normalized_guild_id}_{user_id}"}
             res = db[BirthdaysAdapter.COLL].delete_one(query)
             return res.deleted_count > 0
         except Exception as e:
@@ -324,16 +343,19 @@ class BirthdaysAdapter:
     async def get_async(guild_id, user_id) -> dict:
         try:
             db = await _get_db_main_async()
+            normalized_guild_id = BirthdaysAdapter._normalize_guild_id(guild_id)
             query = {'user_id': int(user_id)}
-            if guild_id:
-                query['guild_id'] = int(guild_id)
+            if normalized_guild_id is not None:
+                query['guild_id'] = normalized_guild_id
             else:
-                query = {'_id': str(user_id)}
+                query['guild_id'] = BirthdaysAdapter.BACKUP_GUILD_ID
             
             d = await db[BirthdaysAdapter.COLL].find_one(query)
             if not d:
-                if guild_id:
-                    d = await db[BirthdaysAdapter.COLL].find_one({'_id': f"{guild_id}_{user_id}"})
+                if normalized_guild_id is not None:
+                    d = await db[BirthdaysAdapter.COLL].find_one({'_id': f"{normalized_guild_id}_{user_id}"})
+                else:
+                    d = await db[BirthdaysAdapter.COLL].find_one({'_id': f"{BirthdaysAdapter.BACKUP_GUILD_ID}_{user_id}"})
                 if not d:
                     return None
             
@@ -353,11 +375,11 @@ class BirthdaysAdapter:
                 'user_id': int(user_id),
                 'updated_at': datetime.utcnow().isoformat()
             }
-            if guild_id:
-                data['guild_id'] = int(guild_id)
-                doc_id = f"{guild_id}_{user_id}"
-            else:
-                doc_id = str(user_id)
+            normalized_guild_id = BirthdaysAdapter._normalize_guild_id(guild_id)
+            if normalized_guild_id is None:
+                normalized_guild_id = BirthdaysAdapter.BACKUP_GUILD_ID
+            data['guild_id'] = normalized_guild_id
+            doc_id = f"{normalized_guild_id}_{user_id}"
 
             if player_id:
                 data['player_id'] = str(player_id)
@@ -376,15 +398,85 @@ class BirthdaysAdapter:
     async def remove_async(guild_id, user_id) -> bool:
         try:
             db = await _get_db_main_async()
-            if guild_id:
-                query = {'_id': f"{guild_id}_{user_id}"}
-            else:
-                query = {'_id': str(user_id)}
+            normalized_guild_id = BirthdaysAdapter._normalize_guild_id(guild_id)
+            if normalized_guild_id is None:
+                normalized_guild_id = BirthdaysAdapter.BACKUP_GUILD_ID
+            query = {'_id': f"{normalized_guild_id}_{user_id}"}
             res = await db[BirthdaysAdapter.COLL].delete_one(query)
             return res.deleted_count > 0
         except Exception as e:
             logger.error(f'Failed to remove birthday (async) for {user_id}: {e}')
             return False
+
+    @staticmethod
+    def migrate_unscoped_to_backup() -> int:
+        try:
+            db = _get_db_main()
+            migrated = 0
+            docs = db[BirthdaysAdapter.COLL].find({
+                '$or': [
+                    {'guild_id': {'$exists': False}},
+                    {'guild_id': None},
+                    {'guild_id': ''}
+                ]
+            })
+            for d in docs:
+                raw_id = str(d.get('_id', ''))
+                if '_' in raw_id:
+                    continue
+                user_id = d.get('user_id') or raw_id
+                try:
+                    user_id = int(user_id)
+                except (TypeError, ValueError):
+                    continue
+                new_doc = dict(d)
+                new_doc['_id'] = BirthdaysAdapter._doc_id(BirthdaysAdapter.BACKUP_GUILD_ID, user_id)
+                new_doc['guild_id'] = BirthdaysAdapter.BACKUP_GUILD_ID
+                new_doc['user_id'] = user_id
+                new_doc['updated_at'] = datetime.utcnow().isoformat()
+                db[BirthdaysAdapter.COLL].replace_one({'_id': new_doc['_id']}, new_doc, upsert=True)
+                if raw_id != new_doc['_id']:
+                    db[BirthdaysAdapter.COLL].delete_one({'_id': d.get('_id')})
+                migrated += 1
+            return migrated
+        except Exception as e:
+            logger.error(f'Failed to migrate unscoped birthdays to backup namespace: {e}')
+            return 0
+
+    @staticmethod
+    async def migrate_unscoped_to_backup_async() -> int:
+        try:
+            db = await _get_db_main_async()
+            migrated = 0
+            cursor = db[BirthdaysAdapter.COLL].find({
+                '$or': [
+                    {'guild_id': {'$exists': False}},
+                    {'guild_id': None},
+                    {'guild_id': ''}
+                ]
+            })
+            async for d in cursor:
+                raw_id = str(d.get('_id', ''))
+                if '_' in raw_id:
+                    continue
+                user_id = d.get('user_id') or raw_id
+                try:
+                    user_id = int(user_id)
+                except (TypeError, ValueError):
+                    continue
+                new_doc = dict(d)
+                new_doc['_id'] = BirthdaysAdapter._doc_id(BirthdaysAdapter.BACKUP_GUILD_ID, user_id)
+                new_doc['guild_id'] = BirthdaysAdapter.BACKUP_GUILD_ID
+                new_doc['user_id'] = user_id
+                new_doc['updated_at'] = datetime.utcnow().isoformat()
+                await db[BirthdaysAdapter.COLL].replace_one({'_id': new_doc['_id']}, new_doc, upsert=True)
+                if raw_id != new_doc['_id']:
+                    await db[BirthdaysAdapter.COLL].delete_one({'_id': d.get('_id')})
+                migrated += 1
+            return migrated
+        except Exception as e:
+            logger.error(f'Failed to migrate unscoped birthdays to backup namespace (async): {e}')
+            return 0
 
 
 class BirthdayChannelAdapter:

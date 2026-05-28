@@ -309,10 +309,7 @@ async def delete_birthday_record(guild_id: int, user_id: int, request: Request):
 
     success = await BirthdaysAdapter.remove_async(guild_id, user_id)
     if not success:
-        # Fallback delete
-        success = await BirthdaysAdapter.remove_async(None, user_id)
-        if not success:
-            raise HTTPException(status_code=404, detail="Birthday record not found.")
+        raise HTTPException(status_code=404, detail="Birthday record not found.")
 
     bot = getattr(request.app.state, "bot", None)
     if bot:

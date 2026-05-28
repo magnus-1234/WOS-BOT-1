@@ -1197,7 +1197,7 @@ class BirthdayDashboardView(discord.ui.View):
         """Set your own birthday"""
         try:
             # Check if user already has a birthday
-            existing = self.birthday_system.get_birthday(button_interaction.user.id)
+            existing = self.birthday_system.get_birthday(button_interaction.guild_id, button_interaction.user.id)
             if existing:
                 await button_interaction.response.send_message(
                     "❌ You already have a birthday set. Use **Remove Birthday** first to change it.",
@@ -1394,12 +1394,12 @@ class BirthdayDashboardView(discord.ui.View):
     async def remove_birthday_button(self, button_interaction: discord.Interaction, button: discord.ui.Button):
         """Remove your birthday"""
         try:
-            birthday = self.birthday_system.get_birthday(button_interaction.user.id)
+            birthday = self.birthday_system.get_birthday(button_interaction.guild_id, button_interaction.user.id)
             if not birthday:
                 await button_interaction.response.send_message("❌ You don't have a birthday set!", ephemeral=True)
                 return
             
-            success = self.birthday_system.remove_birthday(button_interaction.user.id)
+            success = self.birthday_system.remove_birthday(button_interaction.guild_id, button_interaction.user.id)
             if success:
                 self.birthday_system.load_birthdays()  # Refresh cache
                 await button_interaction.response.send_message("✅ Birthday removed!", ephemeral=True)
@@ -1420,8 +1420,12 @@ class BirthdayDashboardView(discord.ui.View):
             now = datetime.utcnow()
             upcoming = []
             
-            for user_id_str, birthday_data in self.birthday_system.birthdays_cache.items():
+            guild_prefix = f"{button_interaction.guild_id}_"
+            for record_key, birthday_data in self.birthday_system.birthdays_cache.items():
                 try:
+                    if "_" not in record_key or not record_key.startswith(guild_prefix):
+                        continue
+                    user_id_str = record_key.split("_", 1)[1]
                     day = birthday_data.get('day')
                     month = birthday_data.get('month')
                     
@@ -1465,7 +1469,7 @@ class BirthdayDashboardView(discord.ui.View):
     async def my_birthday_button(self, button_interaction: discord.Interaction, button: discord.ui.Button):
         """Check your own birthday"""
         try:
-            birthday = self.birthday_system.get_birthday(button_interaction.user.id)
+            birthday = self.birthday_system.get_birthday(button_interaction.guild_id, button_interaction.user.id)
             
             if birthday:
                 import calendar

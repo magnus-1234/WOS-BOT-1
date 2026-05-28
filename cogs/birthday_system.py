@@ -494,6 +494,7 @@ class BirthdayWishView(discord.ui.View):
 
 class BirthdaySystem(commands.Cog):
     """Birthday management system with automatic birthday wishes"""
+    BACKUP_GUILD_ID = "oneserver"
 
 
     def __init__(self, bot: commands.Bot):
@@ -664,7 +665,7 @@ class BirthdaySystem(commands.Cog):
                 pid = player_id
             else:
                 # Old signature: add_birthday(user_id, day, month, player_id)
-                guild_id = None
+                guild_id = self.BACKUP_GUILD_ID
                 user_id = arg1
                 day = arg2
                 month = arg3
@@ -710,7 +711,7 @@ class BirthdaySystem(commands.Cog):
         """
         try:
             if arg2 is None:
-                guild_id = None
+                guild_id = self.BACKUP_GUILD_ID
                 user_id = arg1
             else:
                 guild_id = arg1
@@ -747,7 +748,7 @@ class BirthdaySystem(commands.Cog):
         - get_birthday(guild_id, user_id)
         """
         if arg2 is None:
-            guild_id = None
+            guild_id = self.BACKUP_GUILD_ID
             user_id = arg1
         else:
             guild_id = arg1
@@ -812,7 +813,7 @@ class BirthdaySystem(commands.Cog):
                         if success:
                             migrated_count += 1
                 else:
-                    success = await BirthdaysAdapter.set_async(None, user_id, day, month, player_id)
+                    success = await BirthdaysAdapter.set_async(self.BACKUP_GUILD_ID, user_id, day, month, player_id)
                     if success:
                         migrated_count += 1
 
@@ -839,7 +840,15 @@ class BirthdaySystem(commands.Cog):
             self._check_task_started = True
             
         # Trigger MongoDB migration in the background
+        if mongo_enabled() and BirthdaysAdapter and hasattr(BirthdaysAdapter, "migrate_unscoped_to_backup_async"):
+            asyncio.create_task(self._migrate_unscoped_birthdays_to_backup())
         asyncio.create_task(self.migrate_json_to_mongodb())
+
+    async def _migrate_unscoped_birthdays_to_backup(self):
+        migrated_count = await BirthdaysAdapter.migrate_unscoped_to_backup_async()
+        if migrated_count:
+            logger.info(f"📦 Moved {migrated_count} unscoped birthday records to oneserver backup namespace")
+            self.load_birthdays()
 
     @tasks.loop(time=time(hour=0, minute=0))  # Run at 0:00 UTC daily
     async def check_birthdays(self):
@@ -883,9 +892,9 @@ class BirthdaySystem(commands.Cog):
                                 is_match = True
                                 user_id_str = u_id_str
                     else:
-                        user_id_str = key
-                        if guild.get_member(int(user_id_str)):
-                            is_match = True
+                        # Legacy unscoped birthdays are kept only as backup data.
+                        # They must not be announced across every mutual server.
+                        continue
                             
                     if is_match:
                         try:
@@ -965,8 +974,6 @@ class BirthdaySystem(commands.Cog):
                 key = f"{guild.id}_{user_id}"
                 if key in self.birthdays_cache:
                     is_registered = True
-                elif str(user_id) in self.birthdays_cache:
-                    is_registered = True
                     
                 if is_registered:
                     member = guild.get_member(user_id)
@@ -1018,7 +1025,8 @@ class BirthdaySystem(commands.Cog):
                 # Try to get WOS avatar if player_id is available
                 wos_avatar_url = None
                 user_id_str = str(users[0].id)
-                birthday_data = self.birthdays_cache.get(user_id_str, {})
+                guild_key = f"{channel.guild.id}_{user_id_str}" if channel.guild else user_id_str
+                birthday_data = self.birthdays_cache.get(guild_key, {})
                 player_id = birthday_data.get('player_id')
                 
                 logger.info(f"🔍 Birthday data for user {users[0].id}: {birthday_data}")
@@ -1099,7 +1107,11 @@ class BirthdaySystem(commands.Cog):
             
             # Find users with birthdays today
             birthday_users = []
-            for user_id_str, birthday_data in self.birthdays_cache.items():
+            guild_prefix = f"{channel.guild.id}_" if channel.guild else ""
+            for record_key, birthday_data in self.birthdays_cache.items():
+                if not guild_prefix or not record_key.startswith(guild_prefix):
+                    continue
+                user_id_str = record_key.split("_", 1)[1]
                 if birthday_data.get('day') == today_day and birthday_data.get('month') == today_month:
                     try:
                         user_id = int(user_id_str)

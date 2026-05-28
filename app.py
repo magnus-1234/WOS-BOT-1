@@ -2424,16 +2424,19 @@ async def birthday(interaction: discord.Interaction):
     """Sends an embed explaining the birthday system with buttons to add/update or remove your birthday."""
     try:
         embed_text = (
-            "**🎉 Let's never miss a birthday again!**\n\n"
-            
-            "🎂 Click “Add Birthday”\n\n"
-            "📅 Choose day & month\n\n"
-            "🥳 Your day gets celebrated – party vibes guaranteed!\n\n"
-            "🔄 Update? Just click the button again\n\n"
-            "✨ More entries = more fun & more party vibes! 🎉🎈"
+            "Never miss a clan member's birthday again!\n\n"
+            "📅 **Add Your Birthday**\n"
+            "Click \"Add Birthday\" and select your birth date.\n\n"
+            "🎂 **Celebrate Together**\n"
+            "Get your special day recognized and join the party vibes with the community.\n\n"
+            "🔄 **Need to Update It?**\n"
+            "Simply click the button again anytime to edit your entry.\n\n"
+            "🗑️ **Want to Remove Your Birthday?**\n"
+            "Use the \"Remove My Entry\" button whenever you like.\n\n"
+            "✨ More members added = more celebrations, more fun, and a stronger community! 🎉"
         )
 
-        embed = discord.Embed(title="Birthday Manager", description=embed_text, color=0xff69b4)
+        embed = discord.Embed(title="Birthday Manager 🎉", description=embed_text, color=0xff69b4)
         embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/1435569370389807144/1496492127494996119/image_34e5650b.png?ex=69ea1466&is=69e8c2e6&hm=d6fa1fe93d7c505e34d5c746c5e36f42d9e076c5dd7aab13a4f0683b1bb1dcde")
 
         view = BirthdayView()

@@ -2179,6 +2179,10 @@
                 </button>
             </div>
             <div class="top-bar-right">
+                <button id="quick-setup-btn" class="btn btn-primary" onclick="openQuickSetupModal()" title="Quick Setup">
+                    <i data-lucide="wand-sparkles" style="width:15px;"></i>
+                    <span>Quick Setup</span>
+                </button>
                 <button id="theme-toggle" class="theme-toggle" aria-label="Current theme: Main Theme. Change theme" title="Main Theme">
                     <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -4441,6 +4445,71 @@
         </div>
     </div>
 
+    <div id="quick-setup-modal" class="modal" style="z-index:320;">
+        <div class="modal-content" style="max-width:560px;">
+            <div class="modal-header">
+                <h3 style="display:flex;align-items:center;gap:10px;">
+                    <div class="ar-icon-box purple" style="width:32px;height:32px;">
+                        <i data-lucide="wand-sparkles" style="width:16px;"></i>
+                    </div>
+                    Quick Setup
+                </h3>
+                <button onclick="closeQuickSetupModal()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="qs-status-box" style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:10px;padding:14px;display:grid;gap:10px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <i data-lucide="party-popper" style="width:17px;color:#10b981;"></i>
+                        <span style="font-size:0.9rem;">Welcome channel</span>
+                        <strong id="qs-welcome-status" style="margin-left:auto;font-size:0.82rem;color:var(--text-muted);">Checking</strong>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <i data-lucide="cake" style="width:17px;color:#f59e0b;"></i>
+                        <span style="font-size:0.9rem;">Birthday channel</span>
+                        <strong id="qs-birthday-status" style="margin-left:auto;font-size:0.82rem;color:var(--text-muted);">Checking</strong>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <i data-lucide="shield-check" style="width:17px;color:var(--primary);"></i>
+                        <span style="font-size:0.9rem;">Server registration</span>
+                        <strong id="qs-registration-status" style="margin-left:auto;font-size:0.82rem;color:var(--text-muted);">Checking</strong>
+                    </div>
+                </div>
+
+                <div id="qs-message" style="color:var(--text-muted);font-size:0.88rem;line-height:1.5;"></div>
+
+                <div id="qs-registration-fields" style="display:grid;gap:14px;">
+                    <div class="form-group">
+                        <label>Alliance Name</label>
+                        <input type="text" id="qs-alliance-name" placeholder="e.g. Dragon Knights" maxlength="100">
+                    </div>
+                    <div class="form-group">
+                        <label>State</label>
+                        <input type="number" id="qs-state" placeholder="e.g. 123" min="1" max="99999" inputmode="numeric">
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div class="form-group">
+                            <label>Access Code</label>
+                            <input type="password" id="qs-access-code" placeholder="Choose a code" maxlength="64">
+                        </div>
+                        <div class="form-group">
+                            <label>Confirm Code</label>
+                            <input type="password" id="qs-access-code-confirm" placeholder="Re-enter code" maxlength="64">
+                        </div>
+                    </div>
+                </div>
+                <div id="qs-error" style="color:#ef4444;font-size:0.82rem;display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeQuickSetupModal()" class="btn btn-secondary">Cancel</button>
+                <button onclick="submitQuickSetup()" class="btn btn-primary" id="qs-submit-btn">
+                    <i data-lucide="check" style="width:15px;"></i> OK
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
          REGISTRATION WIZARD MODAL (for servers with no config yet)
          Step 1 â†’ Alliance Name  |  Step 2 â†’ Set Access Code  |  Step 3 â†’ Pending
@@ -4693,6 +4762,185 @@
             } catch(e) {}
         }
         _loadDiscordUser();
+
+        let _quickSetupStatus = null;
+
+        function _setQuickSetupStatusText(id, text, color) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = text;
+            el.style.color = color || 'var(--text-muted)';
+        }
+
+        function _quickSetupNeedsRegistration(status) {
+            if (!status) return true;
+            if (status.registration_status === 'approved' || status.registration_status === 'pending') return false;
+            const userReg = status.user_registration || {};
+            const currentUserRegGuild = userReg.guild_id && String(userReg.guild_id) === String(guildId);
+            return !(userReg.limit_reached && !currentUserRegGuild);
+        }
+
+        function _renderQuickSetupStatus(status) {
+            _quickSetupStatus = status || {};
+            const features = _quickSetupStatus.features || {};
+            const userReg = _quickSetupStatus.user_registration || {};
+            const regStatus = _quickSetupStatus.registration_status || 'none';
+            const fields = document.getElementById('qs-registration-fields');
+            const msg = document.getElementById('qs-message');
+            const submitBtn = document.getElementById('qs-submit-btn');
+
+            _setQuickSetupStatusText('qs-welcome-status', features.welcome_configured ? 'Ready' : 'Will create', features.welcome_configured ? '#34d399' : '#fbbf24');
+            _setQuickSetupStatusText('qs-birthday-status', features.birthday_configured ? 'Ready' : 'Will create', features.birthday_configured ? '#34d399' : '#fbbf24');
+
+            if (regStatus === 'approved') {
+                _setQuickSetupStatusText('qs-registration-status', 'Already registered', '#34d399');
+            } else if (regStatus === 'pending') {
+                _setQuickSetupStatusText('qs-registration-status', 'Pending review', '#fbbf24');
+            } else if (userReg.limit_reached && String(userReg.guild_id) !== String(guildId)) {
+                _setQuickSetupStatusText('qs-registration-status', 'One server already registered', '#f87171');
+            } else {
+                _setQuickSetupStatusText('qs-registration-status', 'Needs review', '#fbbf24');
+            }
+
+            const needsRegistration = _quickSetupNeedsRegistration(_quickSetupStatus);
+            fields.style.display = needsRegistration ? 'grid' : 'none';
+
+            if (_quickSetupStatus.all_configured) {
+                msg.textContent = 'Already configured. Welcome, birthday, and approved server registration are ready for this server.';
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i data-lucide="check-check" style="width:15px;"></i> Already Configured';
+            } else if (regStatus === 'approved') {
+                msg.textContent = 'This server is already registered. Quick Setup will only make sure welcome and birthday are configured.';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i data-lucide="check" style="width:15px;"></i> OK';
+            } else if (regStatus === 'pending') {
+                msg.textContent = 'Registration is already pending review. Welcome and birthday will work while you wait for approval.';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i data-lucide="check" style="width:15px;"></i> OK';
+            } else if (userReg.limit_reached && String(userReg.guild_id) !== String(guildId)) {
+                msg.textContent = `One server is already registered for your account${userReg.guild_name ? `: ${userReg.guild_name}` : ''}. Quick Setup will still provide welcome and birthday here.`;
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i data-lucide="check" style="width:15px;"></i> OK';
+            } else {
+                msg.textContent = 'Quick Setup will create welcome and birthday channels now, then submit this server registration for admin review. Other locked features unlock after approval.';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i data-lucide="send" style="width:15px;"></i> OK';
+            }
+            lucide.createIcons();
+        }
+
+        async function openQuickSetupModal() {
+            await _loadDiscordUser();
+            document.getElementById('qs-error').style.display = 'none';
+            document.getElementById('quick-setup-modal').style.display = 'flex';
+            _setQuickSetupStatusText('qs-welcome-status', 'Checking', 'var(--text-muted)');
+            _setQuickSetupStatusText('qs-birthday-status', 'Checking', 'var(--text-muted)');
+            _setQuickSetupStatusText('qs-registration-status', 'Checking', 'var(--text-muted)');
+            document.getElementById('qs-message').textContent = 'Checking current setup...';
+            document.getElementById('qs-submit-btn').disabled = true;
+            document.getElementById('qs-submit-btn').innerHTML = 'Checking...';
+
+            try {
+                const res = await fetch(`/api/register/quick-setup/status?guild_id=${guildId}&discord_user_id=${_discordUserId || '0'}`);
+                if (!res.ok) throw new Error('Failed to load Quick Setup status.');
+                const status = await res.json();
+                _renderQuickSetupStatus(status);
+            } catch (e) {
+                document.getElementById('qs-message').textContent = '';
+                const err = document.getElementById('qs-error');
+                err.textContent = e.message || 'Could not load Quick Setup.';
+                err.style.display = 'block';
+                document.getElementById('qs-submit-btn').disabled = true;
+            }
+            lucide.createIcons();
+        }
+
+        function closeQuickSetupModal() {
+            document.getElementById('quick-setup-modal').style.display = 'none';
+        }
+
+        async function submitQuickSetup() {
+            const err = document.getElementById('qs-error');
+            const btn = document.getElementById('qs-submit-btn');
+            err.style.display = 'none';
+
+            const needsRegistration = _quickSetupNeedsRegistration(_quickSetupStatus);
+            const allianceName = document.getElementById('qs-alliance-name').value.trim();
+            const state = document.getElementById('qs-state').value.trim();
+            const code = document.getElementById('qs-access-code').value;
+            const confirm = document.getElementById('qs-access-code-confirm').value;
+
+            if (needsRegistration) {
+                if (!allianceName || allianceName.length < 2) {
+                    err.textContent = 'Please enter your alliance name.';
+                    err.style.display = 'block';
+                    return;
+                }
+                if (!state || isNaN(parseInt(state))) {
+                    err.textContent = 'Please enter a valid state number.';
+                    err.style.display = 'block';
+                    return;
+                }
+                if (!code || code.length < 4) {
+                    err.textContent = 'Access code must be at least 4 characters.';
+                    err.style.display = 'block';
+                    return;
+                }
+                if (code !== confirm) {
+                    err.textContent = 'Access codes do not match.';
+                    err.style.display = 'block';
+                    return;
+                }
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Setting up...';
+            try {
+                const res = await fetch('/api/register/quick-setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        guild_id: guildId,
+                        guild_name: _regServerName || guildId,
+                        alliance_name: needsRegistration ? allianceName : null,
+                        state: needsRegistration ? parseInt(state) : null,
+                        access_code: needsRegistration ? code : null,
+                        discord_user_id: _discordUserId || '0',
+                        discord_username: _discordUsername || 'Unknown'
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Quick Setup failed.');
+
+                _renderQuickSetupStatus({
+                    registration_status: data.registration_status,
+                    registration: data.registration,
+                    features: data.features,
+                    user_registration: (_quickSetupStatus && _quickSetupStatus.user_registration) || {},
+                    all_configured: data.all_configured
+                });
+
+                await loadChannels();
+                await loadWelcomeSettings();
+                await loadBirthdaySettings();
+                await loadGuildStats();
+                await updateNavLockStatus();
+
+                if (data.registration_submitted) {
+                    showNotification('Quick Setup complete. Registration is pending review.');
+                } else if (data.all_configured) {
+                    showNotification('Quick Setup is already configured.');
+                } else {
+                    showNotification('Welcome and birthday setup complete.');
+                }
+            } catch (e) {
+                err.textContent = e.message || 'Quick Setup failed.';
+                err.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                _renderQuickSetupStatus(_quickSetupStatus);
+            }
+        }
 
         function logout() {
             localStorage.removeItem('discord_access_token');

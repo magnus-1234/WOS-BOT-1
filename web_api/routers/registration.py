@@ -11,16 +11,20 @@ import httpx
 
 try:
     from db.mongo_adapters import (
+        BirthdayChannelAdapter,
         PendingConfigAdapter,
         RegistrationUserLimitsAdapter,
         ServerAllianceAdapter,
+        WelcomeChannelAdapter,
         mongo_enabled,
     )
 except ImportError:
     mongo_enabled = lambda: False
+    BirthdayChannelAdapter = None
     PendingConfigAdapter = None
     RegistrationUserLimitsAdapter = None
     ServerAllianceAdapter = None
+    WelcomeChannelAdapter = None
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/register", tags=["Registration"])
@@ -46,6 +50,87 @@ class ReviewRequest(BaseModel):
     admin_user_id: str
 
 
+class QuickSetupRequest(BaseModel):
+    guild_id: str
+    guild_name: str
+    alliance_name: Optional[str] = Field(default=None, max_length=100)
+    access_code: Optional[str] = Field(default=None, max_length=64)
+    state: Optional[int] = Field(default=None, ge=1)
+    discord_user_id: str = "0"
+    discord_username: str = "Unknown"
+
+
+async def _get_registration_status(guild_id: int):
+    doc = await PendingConfigAdapter.get_by_guild_async(guild_id)
+
+    if doc and doc.get("status") == "approved":
+        return "approved", doc
+
+    if ServerAllianceAdapter:
+        stored_password = await ServerAllianceAdapter.get_password_async(guild_id)
+        if stored_password:
+            alliance_id = await ServerAllianceAdapter.get_alliance_async(guild_id)
+            return "approved", {
+                "guild_id": guild_id,
+                "alliance_name": f"Configured Alliance (ID: {alliance_id})" if alliance_id else "Configured Alliance",
+                "status": "approved",
+                "legacy_config": True,
+            }
+
+    if not doc:
+        return "none", None
+    return doc.get("status", "none"), doc
+
+
+def _safe_registration_doc(doc):
+    if not doc:
+        return None
+    safe = {
+        "guild_id": doc.get("guild_id"),
+        "guild_name": doc.get("guild_name"),
+        "alliance_name": doc.get("alliance_name"),
+        "state": doc.get("state"),
+        "status": doc.get("status"),
+        "submitted_at": doc.get("submitted_at"),
+        "discord_username": doc.get("discord_username"),
+    }
+    if doc.get("legacy_config"):
+        safe["legacy_config"] = True
+    return safe
+
+
+async def _quick_setup_feature_status(guild_id: int):
+    welcome = await WelcomeChannelAdapter.get_async(guild_id) if WelcomeChannelAdapter else None
+    birthday_channel_id = await BirthdayChannelAdapter.get_async(guild_id) if BirthdayChannelAdapter else None
+    return {
+        "welcome_configured": bool(welcome and welcome.get("enabled") and welcome.get("channel_id")),
+        "welcome_channel_id": str(welcome.get("channel_id")) if welcome and welcome.get("channel_id") else "",
+        "birthday_configured": bool(birthday_channel_id),
+        "birthday_channel_id": str(birthday_channel_id) if birthday_channel_id else "",
+    }
+
+
+async def _ensure_text_channel(guild, preferred_name: str):
+    normalized = preferred_name.lower().replace(" ", "-")
+    for channel in guild.text_channels:
+        if channel.name.lower() == normalized:
+            return channel, False
+
+    bot_member = guild.me
+    perms = bot_member.guild_permissions if bot_member else None
+    if not perms or not perms.manage_channels:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Bot needs Manage Channels permission to create #{normalized}."
+        )
+
+    channel = await guild.create_text_channel(
+        normalized,
+        reason="Dashboard Quick Setup"
+    )
+    return channel, True
+
+
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
 @router.get("/status")
@@ -57,9 +142,9 @@ async def check_registration_status(guild_id: str):
     if not mongo_enabled() or not PendingConfigAdapter:
         raise HTTPException(status_code=500, detail="Database not available")
 
-    doc = await PendingConfigAdapter.get_by_guild_async(int(guild_id))
+    status, doc = await _get_registration_status(int(guild_id))
     
-    if doc and doc.get("status") == "approved":
+    if status == "approved" and doc and not doc.get("legacy_config"):
         safe_doc = {
             "guild_id": doc.get("guild_id"),
             "guild_name": doc.get("guild_name"),
@@ -71,21 +156,8 @@ async def check_registration_status(guild_id: str):
         }
         return {"status": "approved", "data": safe_doc}
 
-    # If not approved in PendingConfigAdapter, check if it has a bot-configured legacy password
-    if ServerAllianceAdapter:
-        stored_password = await ServerAllianceAdapter.get_password_async(int(guild_id))
-        if stored_password:
-            alliance_id = await ServerAllianceAdapter.get_alliance_async(int(guild_id))
-            alliance_name = f"Configured Alliance (ID: {alliance_id})" if alliance_id else "Configured Alliance"
-            return {
-                "status": "approved",
-                "data": {
-                    "guild_id": int(guild_id),
-                    "alliance_name": alliance_name,
-                    "status": "approved",
-                    "legacy_config": True
-                }
-            }
+    if status == "approved" and doc and doc.get("legacy_config"):
+        return {"status": "approved", "data": doc}
 
     # Return pending, denied, or none
     if not doc:
@@ -101,6 +173,116 @@ async def check_registration_status(guild_id: str):
         "discord_username": doc.get("discord_username"),
     }
     return {"status": doc.get("status", "none"), "data": safe_doc}
+
+
+@router.get("/quick-setup/status")
+async def check_quick_setup_status(guild_id: str, discord_user_id: str = "0"):
+    if not mongo_enabled() or not PendingConfigAdapter:
+        raise HTTPException(status_code=500, detail="Database not available")
+
+    guild_int = int(guild_id)
+    reg_status, reg_doc = await _get_registration_status(guild_int)
+    features = await _quick_setup_feature_status(guild_int)
+
+    user_registration = {
+        "has_registration": False,
+        "active_count": 0,
+        "max_servers": 1,
+        "limit_reached": False,
+    }
+    if discord_user_id and discord_user_id != "0":
+        active_user_regs = await PendingConfigAdapter.get_active_by_user_async(int(discord_user_id))
+        max_servers = 1
+        if RegistrationUserLimitsAdapter:
+            max_servers = await RegistrationUserLimitsAdapter.get_limit_async(int(discord_user_id))
+        first = active_user_regs[0] if active_user_regs else {}
+        user_registration = {
+            "has_registration": bool(active_user_regs),
+            "guild_id": first.get("guild_id"),
+            "guild_name": first.get("guild_name"),
+            "status": first.get("status"),
+            "active_count": len(active_user_regs),
+            "max_servers": max_servers,
+            "limit_reached": len(active_user_regs) >= max_servers,
+        }
+
+    return {
+        "registration_status": reg_status,
+        "registration": _safe_registration_doc(reg_doc),
+        "features": features,
+        "user_registration": user_registration,
+        "all_configured": bool(features["welcome_configured"] and features["birthday_configured"] and reg_status == "approved"),
+    }
+
+
+@router.post("/quick-setup")
+async def run_quick_setup(body: QuickSetupRequest, request: Request):
+    if not mongo_enabled() or not PendingConfigAdapter or not WelcomeChannelAdapter or not BirthdayChannelAdapter:
+        raise HTTPException(status_code=500, detail="Database not available")
+
+    guild_int = int(body.guild_id)
+    bot = getattr(request.app.state, "bot", None)
+    guild = bot.get_guild(guild_int) if bot else None
+    if not guild:
+        raise HTTPException(status_code=404, detail="Bot is not available in this server.")
+
+    welcome_channel, welcome_created = await _ensure_text_channel(guild, "welcome")
+    birthday_channel, birthday_created = await _ensure_text_channel(guild, "birthday")
+    await WelcomeChannelAdapter.set_async(guild_int, int(welcome_channel.id), True)
+    await BirthdayChannelAdapter.set_async(guild_int, int(birthday_channel.id))
+
+    reg_status, reg_doc = await _get_registration_status(guild_int)
+    submitted_registration = False
+    skipped_reason = None
+
+    if reg_status == "approved":
+        skipped_reason = "server_already_registered"
+    elif reg_status == "pending":
+        skipped_reason = "registration_pending"
+    else:
+        user_id = int(body.discord_user_id or 0)
+        active_user_regs = await PendingConfigAdapter.get_active_by_user_async(user_id) if user_id else []
+        max_servers = 1
+        if user_id and RegistrationUserLimitsAdapter:
+            max_servers = await RegistrationUserLimitsAdapter.get_limit_async(user_id)
+        has_same_guild = any(str(item.get("guild_id")) == str(body.guild_id) for item in active_user_regs)
+
+        if user_id and not has_same_guild and len(active_user_regs) >= max_servers:
+            skipped_reason = "user_limit_reached"
+        else:
+            alliance_name = (body.alliance_name or "").strip()
+            access_code = body.access_code or ""
+            if len(alliance_name) < 1 or len(access_code) < 4 or not body.state:
+                skipped_reason = "registration_details_required"
+            else:
+                submit_body = SubmitRegistrationRequest(
+                    guild_id=body.guild_id,
+                    guild_name=body.guild_name,
+                    alliance_name=alliance_name,
+                    access_code=access_code,
+                    state=int(body.state),
+                    discord_user_id=body.discord_user_id,
+                    discord_username=body.discord_username,
+                )
+                submit_result = await submit_registration(submit_body, request)
+                submitted_registration = bool(submit_result.get("success"))
+                reg_status, reg_doc = await _get_registration_status(guild_int)
+
+    features = await _quick_setup_feature_status(guild_int)
+    return {
+        "success": True,
+        "message": "Quick Setup completed.",
+        "features": features,
+        "channels": {
+            "welcome": {"id": str(welcome_channel.id), "name": welcome_channel.name, "created": welcome_created},
+            "birthday": {"id": str(birthday_channel.id), "name": birthday_channel.name, "created": birthday_created},
+        },
+        "registration_status": reg_status,
+        "registration_submitted": submitted_registration,
+        "skipped_reason": skipped_reason,
+        "registration": _safe_registration_doc(reg_doc),
+        "all_configured": bool(features["welcome_configured"] and features["birthday_configured"] and reg_status == "approved"),
+    }
 
 
 @router.get("/user-check")

@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Union
 import re
 from pathlib import Path
+from urllib.parse import urlparse
 import discord
 from discord.ext import commands, tasks
 import logging
@@ -137,6 +138,34 @@ REMINDER_IMAGES = {
     'Bear trap': 'https://cdn.discordapp.com/attachments/1435569370389807144/1441474311834832956/0f4d6593f84ba519bd095f077527f9ec-8.gif?ex=69288491&is=69273311&hm=6da152776bc75ea65c0d5ba9f8bbd5bec8baec1c843928df399daf76797382de',
     'Crazy Joe': 'https://cdn.discordapp.com/attachments/1435569370389807144/1465697260829671687/images__7_-removebg-preview.png?ex=697a0c72&is=6978baf2&hm=d0efd4bfa0374b767a0cc9025abbc6d0c5e59e71cc099cccd423a066be8ceed6'
 }
+
+PUBLIC_DASHBOARD_ORIGIN = (
+    os.environ.get("PUBLIC_DASHBOARD_ORIGIN")
+    or os.environ.get("FRONTEND_URL")
+    or "https://whiteout-survival-bot.vercel.app"
+).rstrip("/")
+
+
+def _public_media_url(url: Optional[str]) -> Optional[str]:
+    if not url:
+        return url
+
+    text = str(url).strip()
+    if not text:
+        return text
+
+    try:
+        parsed = urlparse(text)
+    except Exception:
+        return text
+
+    if text.startswith("/api/static/"):
+        return f"{PUBLIC_DASHBOARD_ORIGIN}{text}"
+
+    if parsed.scheme in {"http", "https"} and parsed.path.startswith("/api/static/"):
+        return f"{PUBLIC_DASHBOARD_ORIGIN}{parsed.path}"
+
+    return text
 
 def get_accurate_utc_time() -> datetime:
     """
@@ -1222,10 +1251,11 @@ class ReminderSystem(commands.Cog):
                     )
                     # Use stored image/thumbnail/footer on the reminder if present
                     try:
-                        thumb = reminder.get('thumbnail_url')
-                        img = reminder.get('image_url')
+                        thumb = _public_media_url(reminder.get('thumbnail_url'))
+                        img = _public_media_url(reminder.get('image_url'))
                         footer_t = reminder.get('footer_text')
-                        footer_icon = reminder.get('footer_icon_url')
+                        footer_icon = _public_media_url(reminder.get('footer_icon_url'))
+                        author_url = _public_media_url(reminder.get('author_url'))
 
                         if img:
                             embed.set_image(url=img)
@@ -1247,7 +1277,7 @@ class ReminderSystem(commands.Cog):
                         pass
 
                         # Set author if author_url is present
-                        if reminder.get('author_url'):
+                        if author_url:
                              # We use the user's display name if we can fetch it, otherwise generic
                             author_name = "Reminder Author"
                             author_icon = None
@@ -1257,7 +1287,7 @@ class ReminderSystem(commands.Cog):
                                     author_icon = user.display_avatar.url
                                 except:
                                     pass
-                            embed.set_author(name=author_name, url=reminder.get('author_url'), icon_url=author_icon)
+                            embed.set_author(name=author_name, url=author_url, icon_url=author_icon)
 
                     except Exception:
                         # Best-effort: ignore image/footer errors and continue
@@ -1495,6 +1525,8 @@ class ReminderSystem(commands.Cog):
         )
         # Use provided thumbnail if supplied, otherwise fall back to set image
         try:
+            image_url = _public_media_url(image_url)
+            thumbnail_url = _public_media_url(thumbnail_url)
             if thumbnail_url:
                 embed.set_thumbnail(url=thumbnail_url)
             else:
@@ -1503,6 +1535,7 @@ class ReminderSystem(commands.Cog):
             pass
 
         # Set author if author_url is provided
+        author_url = _public_media_url(author_url)
         if author_url:
             try:
                 embed.set_author(name=interaction.user.display_name, url=author_url, icon_url=interaction.user.display_avatar.url)
@@ -1562,6 +1595,7 @@ class ReminderSystem(commands.Cog):
         embed.set_footer(text="💡 Use /reminderdashboard to manage your reminders")
         # If the user provided footer text/icon, override footer
         try:
+            footer_icon_url = _public_media_url(footer_icon_url)
             if footer_text or footer_icon_url:
                 embed.set_footer(text=footer_text or "💡 Use /reminderdashboard to manage your reminders", icon_url=footer_icon_url)
         except Exception:
@@ -1631,16 +1665,16 @@ class ReminderSystem(commands.Cog):
             for reminder in user_reminders[:10]:
                 if preview_count >= 5:
                     break
-                img = reminder.get('image_url') or reminder.get('thumbnail_url')
+                img = _public_media_url(reminder.get('image_url') or reminder.get('thumbnail_url'))
                 if not img:
                     continue
                 try:
                     preview = discord.Embed(title=f"Preview — Reminder #{reminder.get('id')}", description=(reminder.get('message') or '')[:200], color=0x2f3136)
                     # Prefer full image preview if available
                     if reminder.get('image_url'):
-                        preview.set_image(url=reminder.get('image_url'))
+                        preview.set_image(url=_public_media_url(reminder.get('image_url')))
                     else:
-                        preview.set_thumbnail(url=reminder.get('thumbnail_url'))
+                        preview.set_thumbnail(url=_public_media_url(reminder.get('thumbnail_url')))
                     await interaction.followup.send(embed=preview, ephemeral=True)
                     preview_count += 1
                 except Exception:
@@ -1757,15 +1791,15 @@ class ReminderSystem(commands.Cog):
                 for reminder in all_reminders[:15]:
                     if preview_count >= 8:
                         break
-                    img = reminder.get('image_url') or reminder.get('thumbnail_url')
+                    img = _public_media_url(reminder.get('image_url') or reminder.get('thumbnail_url'))
                     if not img:
                         continue
                     try:
                         preview = discord.Embed(title=f"Preview — Reminder #{reminder.get('id')}", description=(reminder.get('message') or '')[:200], color=0x2f3136)
                         if reminder.get('image_url'):
-                            preview.set_image(url=reminder.get('image_url'))
+                            preview.set_image(url=_public_media_url(reminder.get('image_url')))
                         else:
-                            preview.set_thumbnail(url=reminder.get('thumbnail_url'))
+                            preview.set_thumbnail(url=_public_media_url(reminder.get('thumbnail_url')))
                         await interaction.followup.send(embed=preview, ephemeral=True)
                         preview_count += 1
                     except Exception:

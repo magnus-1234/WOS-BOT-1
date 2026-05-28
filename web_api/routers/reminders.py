@@ -8,11 +8,17 @@ import discord
 import uuid
 from datetime import datetime, timezone as dt_timezone
 import os
+from urllib.parse import urlparse
 
 from cogs.reminder_system import ReminderStorage, TimeParser
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/reminders", tags=["Reminders"])
+PUBLIC_DASHBOARD_ORIGIN = (
+    os.environ.get("PUBLIC_DASHBOARD_ORIGIN")
+    or os.environ.get("FRONTEND_URL")
+    or "https://whiteout-survival-bot.vercel.app"
+).rstrip("/")
 
 class ReminderCreate(BaseModel):
     message: str = ""
@@ -49,23 +55,66 @@ class CommunityPresetCreate(BaseModel):
     footer_icon_url: Optional[str] = None
     author_url: Optional[str] = None
 
-def _build_reminder_embed(payload: ReminderCreate, user: dict, *, is_test: bool = False) -> discord.Embed:
+def _request_public_origin(request: Optional[Request]) -> str:
+    if request:
+        origin = request.headers.get("origin") or request.headers.get("referer")
+        if origin:
+            parsed = urlparse(origin)
+            if parsed.scheme and parsed.netloc:
+                return f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
+
+        forwarded_proto = request.headers.get("x-forwarded-proto")
+        forwarded_host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+        if forwarded_proto and forwarded_host:
+            return f"{forwarded_proto}://{forwarded_host}".rstrip("/")
+
+    return PUBLIC_DASHBOARD_ORIGIN
+
+
+def _resolve_public_media_url(url: Optional[str], request: Optional[Request] = None) -> Optional[str]:
+    if not url:
+        return url
+
+    text = str(url).strip()
+    if not text:
+        return text
+
+    try:
+        parsed = urlparse(text)
+    except Exception:
+        return text
+
+    if text.startswith("/api/static/"):
+        return f"{_request_public_origin(request)}{text}"
+
+    if parsed.scheme in {"http", "https"} and parsed.path.startswith("/api/static/"):
+        return f"{_request_public_origin(request)}{parsed.path}"
+
+    return text
+
+
+def _build_reminder_embed(payload: ReminderCreate, user: dict, *, request: Optional[Request] = None, is_test: bool = False) -> discord.Embed:
     embed = discord.Embed(
         title=payload.message or "Reminder",
         description=payload.body,
         color=0xb4a7d6
     )
-    if payload.image_url:
-        embed.set_image(url=payload.image_url)
-    if payload.thumbnail_url:
-        embed.set_thumbnail(url=payload.thumbnail_url)
+    image_url = _resolve_public_media_url(payload.image_url, request)
+    thumbnail_url = _resolve_public_media_url(payload.thumbnail_url, request)
+    footer_icon_url = _resolve_public_media_url(payload.footer_icon_url, request)
+    author_url = _resolve_public_media_url(payload.author_url, request)
+
+    if image_url:
+        embed.set_image(url=image_url)
+    if thumbnail_url:
+        embed.set_thumbnail(url=thumbnail_url)
     footer_text = payload.footer_text or ("Test reminder preview" if is_test else None)
-    if footer_text or payload.footer_icon_url:
-        embed.set_footer(text=footer_text or "", icon_url=payload.footer_icon_url)
-    if payload.author_url:
+    if footer_text or footer_icon_url:
+        embed.set_footer(text=footer_text or "", icon_url=footer_icon_url)
+    if author_url:
         embed.set_author(
             name=user.get("global_name") or user.get("username") or "Reminder Author",
-            url=payload.author_url,
+            url=author_url,
             icon_url=f"https://cdn.discordapp.com/avatars/{user.get('id')}/{user.get('avatar')}.png" if user.get("avatar") else None
         )
     return embed
@@ -268,11 +317,11 @@ async def create_community_preset(request: Request, payload: CommunityPresetCrea
         "recurrence_interval": payload.recurrence_interval,
         "recurrence_days": payload.recurrence_days,
         "mention": payload.mention,
-        "image_url": payload.image_url,
-        "thumbnail_url": payload.thumbnail_url,
+        "image_url": _resolve_public_media_url(payload.image_url, request),
+        "thumbnail_url": _resolve_public_media_url(payload.thumbnail_url, request),
         "footer_text": payload.footer_text,
-        "footer_icon_url": payload.footer_icon_url,
-        "author_url": payload.author_url,
+        "footer_icon_url": _resolve_public_media_url(payload.footer_icon_url, request),
+        "author_url": _resolve_public_media_url(payload.author_url, request),
         "created_by": user.get("global_name") or user.get("username") or "Unknown",
         "created_by_id": user.get("id"),
         "created_at": datetime.utcnow().isoformat()
@@ -350,11 +399,11 @@ async def update_community_preset(request: Request, preset_id: str, payload: Com
         "recurrence_interval": payload.recurrence_interval,
         "recurrence_days": payload.recurrence_days,
         "mention": payload.mention,
-        "image_url": payload.image_url,
-        "thumbnail_url": payload.thumbnail_url,
+        "image_url": _resolve_public_media_url(payload.image_url, request),
+        "thumbnail_url": _resolve_public_media_url(payload.thumbnail_url, request),
         "footer_text": payload.footer_text,
-        "footer_icon_url": payload.footer_icon_url,
-        "author_url": payload.author_url,
+        "footer_icon_url": _resolve_public_media_url(payload.footer_icon_url, request),
+        "author_url": _resolve_public_media_url(payload.author_url, request),
     }
     
     col.update_one({"id": preset_id}, {"$set": update_data})
@@ -551,11 +600,11 @@ async def create_reminder(request: Request, guild_id: str, payload: ReminderCrea
         recurrence_days=recurring_info.get("days"),
         original_pattern=recurring_info.get("pattern"),
         mention=payload.mention,
-        image_url=payload.image_url,
-        thumbnail_url=payload.thumbnail_url,
+        image_url=_resolve_public_media_url(payload.image_url, request),
+        thumbnail_url=_resolve_public_media_url(payload.thumbnail_url, request),
         footer_text=payload.footer_text,
-        footer_icon_url=payload.footer_icon_url,
-        author_url=payload.author_url
+        footer_icon_url=_resolve_public_media_url(payload.footer_icon_url, request),
+        author_url=_resolve_public_media_url(payload.author_url, request)
     )
     
     if reminder_id == -1:
@@ -598,7 +647,7 @@ async def send_test_reminder(request: Request, guild_id: str, payload: ReminderC
         mention_text = f"<@{user['id']}>"
         allow_mentions = discord.AllowedMentions(users=True)
 
-    embed = _build_reminder_embed(payload, user, is_test=True)
+    embed = _build_reminder_embed(payload, user, request=request, is_test=True)
     try:
         await channel.send(embed=embed)
         if mention_text:
@@ -705,11 +754,11 @@ async def update_reminder(request: Request, guild_id: str, reminder_id: str, pay
         "reminder_time": reminder_time.isoformat(),
         "channel_id": str(payload.channel_id),
         "mention": payload.mention,
-        "image_url": payload.image_url,
-        "thumbnail_url": payload.thumbnail_url,
+        "image_url": _resolve_public_media_url(payload.image_url, request),
+        "thumbnail_url": _resolve_public_media_url(payload.thumbnail_url, request),
         "footer_text": payload.footer_text,
-        "footer_icon_url": payload.footer_icon_url,
-        "author_url": payload.author_url,
+        "footer_icon_url": _resolve_public_media_url(payload.footer_icon_url, request),
+        "author_url": _resolve_public_media_url(payload.author_url, request),
         "is_recurring": recurring_info.get("is_recurring", False),
         "recurrence_type": recurring_info.get("type"),
         "recurrence_interval": recurring_info.get("interval"),

@@ -6684,7 +6684,7 @@
         function isMongoReminderImageUrl(url) {
             if (!url) return true;
             if (url.startsWith('data:')) return true;
-            return /\/api\/reminders\/uploads\/[a-f0-9]+/i.test(url);
+            return /\/api\/static\/reminder_[a-f0-9]+\.(png|jpe?g|gif|webp)/i.test(url);
         }
 
         async function importImageUrlToMongo(url) {
@@ -7117,8 +7117,12 @@
             const preset = await getLatestCommunityPreset(presetId);
             if (!preset) return;
             selectedReminderPreset = presetId;
-            const imageUrl = preset.image_url || '';
-            const thumbnailUrl = preset.thumbnail_url || '';
+            const [imageUrl, thumbnailUrl, footerIconUrl, authorUrl] = await Promise.all([
+                importImageUrlToMongo(preset.image_url || '').catch(() => preset.image_url || ''),
+                importImageUrlToMongo(preset.thumbnail_url || '').catch(() => preset.thumbnail_url || ''),
+                importImageUrlToMongo(preset.footer_icon_url || '').catch(() => preset.footer_icon_url || ''),
+                importImageUrlToMongo(preset.author_url || '').catch(() => preset.author_url || '')
+            ]);
             document.getElementById('reminder-message').value = preset.message || '';
             document.getElementById('reminder-body').value = preset.body || '';
             document.getElementById('reminder-recurrence').value = preset.recurrence_type || 'none';
@@ -7128,8 +7132,8 @@
             document.getElementById('reminder-image').value = toAbsoluteAssetUrl(imageUrl);
             document.getElementById('reminder-thumbnail').value = toAbsoluteAssetUrl(thumbnailUrl);
             document.getElementById('reminder-footer').value = preset.footer_text || '';
-            document.getElementById('reminder-footer-icon').value = toAbsoluteAssetUrl(preset.footer_icon_url || '');
-            document.getElementById('reminder-author-url').value = toAbsoluteAssetUrl(preset.author_url || '');
+            document.getElementById('reminder-footer-icon').value = toAbsoluteAssetUrl(footerIconUrl);
+            document.getElementById('reminder-author-url').value = toAbsoluteAssetUrl(authorUrl);
             applyReminderScheduleFields(preset);
             toggleCustomInterval();
             toggleDowPicker();

@@ -109,8 +109,7 @@ def _get_bookmarks_collection():
 
 @router.post("/upload-url")
 async def upload_reminder_image_from_url(request: Request):
-    """Validates an external image URL and returns it as-is for use in reminders.
-    Discord can render HTTPS URLs directly — no need to re-host locally."""
+    """Downloads an external image URL and returns a stable local static URL."""
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -120,9 +119,42 @@ async def upload_reminder_image_from_url(request: Request):
     if not url or not url.startswith("http"):
         raise HTTPException(status_code=400, detail="A valid 'url' field is required.")
 
-    # Return the original URL unchanged — Discord embeds support HTTPS URLs natively.
-    # Re-hosting locally would give HTTP-only URLs that Discord silently drops.
-    return {"status": "success", "url": url}
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=20.0) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            content = response.content
+            content_type = response.headers.get("content-type", "").split(";")[0].lower()
+    except Exception as e:
+        logger.warning(f"Failed to import reminder image URL {url}: {e}")
+        raise HTTPException(status_code=400, detail="Could not fetch image URL.")
+
+    if len(content) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image too large (max 8MB)")
+
+    ext_map = {
+        "image/png": "png",
+        "image/jpeg": "jpg",
+        "image/jpg": "jpg",
+        "image/gif": "gif",
+        "image/webp": "webp",
+    }
+    ext = ext_map.get(content_type)
+    if not ext:
+        from urllib.parse import urlparse
+        path_ext = os.path.splitext(urlparse(url).path)[1].lstrip(".").lower()
+        ext = path_ext if path_ext in ["png", "jpg", "jpeg", "gif", "webp"] else "png"
+
+    filename = f"reminder_{uuid.uuid4().hex}.{ext}"
+    upload_dir = "data/uploads"
+    os.makedirs(upload_dir, exist_ok=True)
+    filepath = os.path.join(upload_dir, filename)
+    with open(filepath, "wb") as f:
+        f.write(content)
+
+    base_url = str(request.base_url).rstrip("/")
+    public_url = f"{base_url}/api/static/{filename}"
+    return {"status": "success", "url": public_url}
 
 @router.post("/upload")
 async def upload_reminder_image(request: Request, file: UploadFile = File(...)):

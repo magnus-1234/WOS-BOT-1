@@ -277,6 +277,20 @@ async def lookup_chat_player(fid: str):
 
     player = await fetch_player_info(safe_fid)
     if not player:
+        try:
+            from cogs.login_handler import LoginHandler
+            fallback = await LoginHandler().fetch_player_data(safe_fid)
+            data = fallback.get("data") if isinstance(fallback, dict) else None
+            if data:
+                player = {
+                    "id": data.get("kid"),
+                    "name": data.get("nickname"),
+                    "level": int(data.get("stove_lv") or 0),
+                    "avatar_image": data.get("avatar_image"),
+                }
+        except Exception as exc:
+            logger.warning("WOS fallback lookup failed for %s: %s", safe_fid, exc)
+    if not player:
         raise HTTPException(status_code=404, detail="Player was not found.")
 
     furnace_level = int(player.get("level") or 0)
@@ -391,7 +405,17 @@ def _clean_name(value: Optional[str], fallback: str = "Guest Player") -> str:
 
 
 def _is_allowed_attachment_url(url: str) -> bool:
-    return url.startswith("/api/static/chat/") or url.startswith("https://media.tenor.com/")
+    return (
+        url.startswith("/api/static/chat/")
+        or url.startswith("https://media.tenor.com/")
+        or url.startswith("https://media.giphy.com/")
+        or url.startswith("https://i.giphy.com/")
+        or url.startswith("https://media0.giphy.com/")
+        or url.startswith("https://media1.giphy.com/")
+        or url.startswith("https://media2.giphy.com/")
+        or url.startswith("https://media3.giphy.com/")
+        or url.startswith("https://media4.giphy.com/")
+    )
 
 
 def _public_message(doc: Dict[str, Any]) -> Dict[str, Any]:
@@ -409,6 +433,7 @@ def _public_message(doc: Dict[str, Any]) -> Dict[str, Any]:
         "client_time": doc.get("client_time"),
         "source": doc.get("source", "guest"),
         "announcement_author": doc.get("announcement_author"),
+        "announcement_author_id": doc.get("announcement_author_id"),
     }
 
 
@@ -567,6 +592,7 @@ async def _create_announcement_message(announcement: str, author: Dict[str, Any]
         "created_at": _utc_now_iso(),
         "source": "announcement",
         "announcement_author": author.get("name"),
+        "announcement_author_id": author.get("id"),
         "ip_hint": None,
     }
 
@@ -641,6 +667,35 @@ def _tenor_image_from_result(item: Dict[str, Any]) -> Optional[Dict[str, str]]:
         "url": url,
         "preview_url": preview_url or url,
     }
+
+
+def _fallback_gifs(query: str, limit: int) -> List[Dict[str, str]]:
+    gifs = [
+        {
+            "id": "fallback-snow",
+            "title": "Snow celebration",
+            "url": "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif",
+            "preview_url": "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif",
+        },
+        {
+            "id": "fallback-fire",
+            "title": "Camp fire",
+            "url": "https://media.giphy.com/media/l0HlQ7LRalQqdWfao/giphy.gif",
+            "preview_url": "https://media.giphy.com/media/l0HlQ7LRalQqdWfao/giphy.gif",
+        },
+        {
+            "id": "fallback-win",
+            "title": "Victory",
+            "url": "https://media.giphy.com/media/111ebonMs90YLu/giphy.gif",
+            "preview_url": "https://media.giphy.com/media/111ebonMs90YLu/giphy.gif",
+        },
+    ]
+    safe_query = (query or "").lower()
+    if "fire" in safe_query:
+        gifs = [gifs[1], gifs[0], gifs[2]]
+    elif "win" in safe_query or "victory" in safe_query:
+        gifs = [gifs[2], gifs[0], gifs[1]]
+    return gifs[:limit]
 
 
 async def _translate_with_deepl_sdk(api_key: str, text: str) -> Optional[Dict[str, str]]:
@@ -917,7 +972,12 @@ async def delete_message(message_id: str, request: Request, guest_id: Optional[s
             raise HTTPException(status_code=404, detail="Message not found.")
         
         msg_author = doc.get("author", {})
-        if msg_author.get("id") != caller_id:
+        can_delete = (
+            msg_author.get("id") == caller_id
+            or doc.get("announcement_author_id") == caller_id
+            or _is_chat_admin(author)
+        )
+        if not can_delete:
             raise HTTPException(status_code=403, detail="You can only delete your own messages.")
             
         await collection.delete_one({"_id": str(message_id)})
@@ -928,7 +988,13 @@ async def delete_message(message_id: str, request: Request, guest_id: Optional[s
             raise HTTPException(status_code=404, detail="Message not found.")
             
         msg_author = messages[target_idx].get("author", {})
-        if msg_author.get("id") != caller_id:
+        target_doc = messages[target_idx]
+        can_delete = (
+            msg_author.get("id") == caller_id
+            or target_doc.get("announcement_author_id") == caller_id
+            or _is_chat_admin(author)
+        )
+        if not can_delete:
             raise HTTPException(status_code=403, detail="You can only delete your own messages.")
             
         messages.pop(target_idx)
@@ -1093,12 +1159,12 @@ async def search_tenor(q: str = "whiteout survival", limit: int = 12):
 
 @router.get("/giphy")
 async def search_giphy(q: str = "whiteout survival", limit: int = 12):
-    api_key = os.getenv("GIPHY_API_KEY")
-    if not api_key:
-        raise HTTPException(status_code=503, detail="Giphy search is not configured.")
-
     safe_limit = _coerce_int(limit, 12, 1, 24)
     query = _clean_text(q or "whiteout survival", 80) or "whiteout survival"
+    api_key = os.getenv("GIPHY_API_KEY")
+    if not api_key:
+        return {"results": _fallback_gifs(query, safe_limit)}
+
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             response = await client.get(
@@ -1112,7 +1178,7 @@ async def search_giphy(q: str = "whiteout survival", limit: int = 12):
             )
         if response.status_code >= 400:
             logger.warning("Giphy search failed: %s %s", response.status_code, response.text[:160])
-            raise HTTPException(status_code=502, detail="Giphy search failed.")
+            return {"results": _fallback_gifs(query, safe_limit)}
         data = response.json()
         
         results = []
@@ -1134,7 +1200,7 @@ async def search_giphy(q: str = "whiteout survival", limit: int = 12):
         raise
     except Exception as exc:
         logger.error("Giphy search error: %s", exc)
-        raise HTTPException(status_code=502, detail="GIF search failed.")
+        return {"results": _fallback_gifs(query, safe_limit)}
 
 
 @router.post("/upload")

@@ -223,7 +223,10 @@
     }
   };
   const normalizeUserId = (value) => String(value || "").trim();
-  const userDisplayName = (user) => user ? (user.name || user.global_name || user.username || "Guest Player") : "Guest Player";
+  const userDisplayName = (user) => {
+    if (!user) return "Player";
+    return user.name || user.global_name || user.username || (user.kind === "wos" && user.id ? `ID ${user.id}` : "Player");
+  };
   const getUserById = (userId) => onlineUsers.find((user) => normalizeUserId(user.id || user.name) === normalizeUserId(userId));
   const isCurrentUser = (user) => normalizeUserId(user && (user.id || user.name)) === normalizeUserId(getMyId());
   const isBotId = () => false;
@@ -504,7 +507,7 @@
           furnace_level_formatted: currentUser.furnace_level_formatted,
           state_id: currentUser.state_id
         }
-        : { id: getGuestId(), name: getGuestName() || "Guest Player", avatar_url: getGuestAvatar(), kind: "guest" };
+        : { id: getGuestId(), name: getGuestName() || getGuestId(), avatar_url: getGuestAvatar(), kind: "guest" };
       ws.send(JSON.stringify({ type: "register", user: userInfo }));
       // Stop polling - WebSocket takes over
       if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
@@ -893,7 +896,7 @@
       ].filter(Boolean);
       strong.textContent = `${name}${labels.length ? ` (${labels.join(", ")})` : ""}`;
       const small = document.createElement("small");
-      small.textContent = user.kind === "bot" ? "Assistant" : (user.kind === "discord" ? "Discord player" : "Guest player");
+      small.textContent = user.kind === "bot" ? "Assistant" : (user.kind === "discord" ? "Discord player" : (user.kind === "wos" ? `WOS ID ${user.id || ""}`.trim() : `ID ${user.id || user.name || ""}`.trim()));
       body.append(strong, small);
       button.append(avatar, body);
       button.addEventListener("click", () => openProfile(user));
@@ -1078,6 +1081,16 @@
       content.className = "chat-content";
       content.textContent = [message.announcement_author, message.content || ""].filter(Boolean).join(": ");
       bubble.appendChild(content);
+      const canDeleteAnnouncement = isAdmin || normalizeUserId(message.announcement_author_id) === normalizeUserId(getMyId());
+      if (canDeleteAnnouncement) {
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "chat-announcement-delete";
+        deleteBtn.type = "button";
+        deleteBtn.textContent = "Delete";
+        deleteBtn.title = "Delete announcement";
+        deleteBtn.addEventListener("click", () => deleteMessage(message.id));
+        bubble.appendChild(deleteBtn);
+      }
       article.appendChild(bubble);
       return article;
     }
@@ -1103,7 +1116,7 @@
     top.className = "chat-bubble-top";
     const name = document.createElement("div");
     name.className = "chat-author";
-    name.textContent = isAnnouncement ? "Announcement" : (author.name || "Guest Player");
+    name.textContent = author.name || (author.kind === "wos" && author.id ? `ID ${author.id}` : "Player");
     const time = document.createElement("time");
     time.className = "chat-meta";
     time.dateTime = message.created_at || "";
@@ -1194,7 +1207,7 @@
       const deleteBtn = document.createElement("button");
       deleteBtn.className = "chat-report-button";
       deleteBtn.type = "button";
-      deleteBtn.textContent = "🗑️";
+      deleteBtn.textContent = "Delete";
       deleteBtn.title = "Delete Message";
       deleteBtn.addEventListener("click", () => deleteMessage(message.id));
       actions.appendChild(deleteBtn);
@@ -1497,10 +1510,16 @@
     const q = el.tenorSearch.value.trim() || "whiteout survival";
     el.tenorResults.innerHTML = '<span class="global-chat-status">Loading GIFs...</span>';
     try {
-      const endpoint = activeGifSource === 'giphy' ? '/api/chat/giphy' : '/api/chat/tenor';
-      const response = await fetch(`${endpoint}?q=${encodeURIComponent(q)}&limit=18`, { headers: authHeaders() });
-      if (!response.ok) throw new Error("GIF search unavailable");
-      const data = await response.json();
+      const endpoints = activeGifSource === 'giphy' ? ['/api/chat/giphy', '/api/chat/tenor'] : ['/api/chat/tenor', '/api/chat/giphy'];
+      let data = null;
+      for (const endpoint of endpoints) {
+        const response = await fetch(`${endpoint}?q=${encodeURIComponent(q)}&limit=18`, { headers: authHeaders() });
+        if (response.ok) {
+          data = await response.json();
+          if ((data.results || []).length) break;
+        }
+      }
+      if (!data) throw new Error("GIF search unavailable");
       el.tenorResults.replaceChildren();
       (data.results || []).forEach((gif) => {
         const button = document.createElement("button");

@@ -7443,6 +7443,10 @@ body {
 }
 
 .chat-message-announcement .chat-bubble {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   width: 100%;
   max-width: min(100%, 680px) !important;
   border: 1px solid rgba(180, 83, 9, 0.38) !important;
@@ -7454,12 +7458,30 @@ body {
 }
 
 .chat-message-announcement .chat-content {
+  flex: 1 1 auto;
   margin: 0 !important;
   color: #3f2f05 !important;
   font-size: 0.92rem;
   font-weight: 800;
   line-height: 1.35;
   white-space: pre-wrap;
+}
+
+.chat-announcement-delete {
+  flex: 0 0 auto;
+  border: 1px solid rgba(63, 47, 5, 0.28);
+  border-radius: 0.65rem;
+  background: rgba(63, 47, 5, 0.12);
+  color: #3f2f05;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 0.32rem 0.55rem;
+}
+
+.chat-announcement-delete:hover,
+.chat-announcement-delete:focus-visible {
+  background: rgba(63, 47, 5, 0.2);
 }
 
 @media (max-width: 640px) {

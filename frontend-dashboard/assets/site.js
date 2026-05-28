@@ -119,9 +119,14 @@
     });
   });
 
-  const renderSiteAnnouncement = (message) => {
+  const renderSiteAnnouncement = (message, announcementKey = "") => {
     let bar = document.querySelector("[data-site-announcement]");
     if (!message) {
+      if (bar) bar.remove();
+      return;
+    }
+    const seenKey = announcementKey || message;
+    if (seenKey && localStorage.getItem("wos_site_announcement_seen") === seenKey) {
       if (bar) bar.remove();
       return;
     }
@@ -134,17 +139,24 @@
     bar.innerHTML = '<div class="site-announcement-track"><span></span></div>';
     bar.querySelector("span").textContent = message;
     bar.querySelector(".site-announcement-track").addEventListener("animationend", () => {
+      if (seenKey) localStorage.setItem("wos_site_announcement_seen", seenKey);
       bar.remove();
     }, { once: true });
   };
 
   fetch("/api/chat/room-state", { headers: { Accept: "application/json" }, cache: "no-store" })
     .then((response) => response.ok ? response.json() : null)
-    .then((state) => renderSiteAnnouncement(state && state.announcement))
+    .then((state) => {
+      const message = state && [state.announcement_author, state.announcement].filter(Boolean).join(": ");
+      renderSiteAnnouncement(message, state && state.announcement_updated_at);
+    })
     .catch(() => {});
 
   window.addEventListener("wos:announcement", (event) => {
-    renderSiteAnnouncement(event.detail && event.detail.announcement);
+    renderSiteAnnouncement(
+      event.detail && event.detail.announcement,
+      event.detail && event.detail.announcement_updated_at
+    );
   });
 
   const liveStats = document.querySelectorAll("[data-live-stat]");

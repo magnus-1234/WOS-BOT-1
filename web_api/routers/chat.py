@@ -364,6 +364,9 @@ class PresenceRequest(BaseModel):
     guest_id: Optional[str] = Field(default=None, max_length=80)
     avatar_url: Optional[str] = Field(default=None, max_length=500)
     timezone: Optional[str] = Field(default=None, max_length=80)
+    furnace_level: Optional[int] = Field(default=None)
+    furnace_level_formatted: Optional[str] = Field(default=None, max_length=40)
+    state_id: Optional[str] = Field(default=None, max_length=80)
 
 
 class AnnouncementRequest(BaseModel):
@@ -502,18 +505,28 @@ def _reply_snapshot(message: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any
 
 
 async def _resolve_chat_actor(request: Request, display_name: Optional[str], guest_id: Optional[str], avatar_url: Optional[str] = None) -> Dict[str, Any]:
+    safe_guest_id = _clean_text(guest_id or "", 80)
+    if re.fullmatch(r"\d{9}", safe_guest_id or ""):
+        return {
+            "id": safe_guest_id,
+            "name": _clean_name(display_name, "WOS Player"),
+            "username": _clean_name(display_name, "WOS Player"),
+            "avatar_url": avatar_url if avatar_url and (avatar_url.startswith("http://") or avatar_url.startswith("https://") or avatar_url.startswith("/api/static/chat/")) else None,
+            "kind": "wos",
+        }
+
     auth_header = request.headers.get("Authorization")
     discord_user = await _resolve_discord_user(auth_header)
     if discord_user:
         return discord_user
 
-    safe_guest_id = _clean_text(guest_id or "", 80) or f"guest-{uuid.uuid4().hex[:12]}"
+    safe_guest_id = safe_guest_id or f"guest-{uuid.uuid4().hex[:12]}"
     return {
         "id": safe_guest_id,
         "name": _clean_name(display_name),
         "username": _clean_name(display_name),
-        "avatar_url": avatar_url if avatar_url and (avatar_url.startswith("http://") or avatar_url.startswith("https://")) else None,
-        "kind": "wos" if safe_guest_id.isdigit() else "guest",
+        "avatar_url": avatar_url if avatar_url and (avatar_url.startswith("http://") or avatar_url.startswith("https://") or avatar_url.startswith("/api/static/chat/")) else None,
+        "kind": "guest",
     }
 
 
@@ -928,6 +941,10 @@ async def delete_message(message_id: str, request: Request, guest_id: Optional[s
 @router.post("/presence")
 async def update_presence(payload: PresenceRequest, request: Request):
     author = await _resolve_chat_actor(request, payload.display_name, payload.guest_id, payload.avatar_url)
+    if author.get("kind") == "wos":
+        author["furnace_level"] = payload.furnace_level
+        author["furnace_level_formatted"] = payload.furnace_level_formatted
+        author["state_id"] = payload.state_id
     key = _actor_key(author)
     now = _utc_now_iso()
     doc = {

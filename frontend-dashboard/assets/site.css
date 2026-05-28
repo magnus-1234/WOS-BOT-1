@@ -7436,16 +7436,6 @@ body {
   white-space: nowrap;
 }
 
-.chat-announcement-track span::before {
-  content: "Announcement";
-  border-radius: 999px;
-  background: rgba(63, 47, 5, 0.14);
-  padding: 0.16rem 0.55rem;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .chat-message-announcement {
   display: block !important;
   width: 100%;

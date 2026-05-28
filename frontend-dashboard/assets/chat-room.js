@@ -261,10 +261,13 @@
       return false;
     }
   };
-  const setAnnouncement = (text) => {
-    window.dispatchEvent(new CustomEvent("wos:announcement", { detail: { announcement: text || "" } }));
+  const setAnnouncement = (text, authorName = "", updatedAt = "") => {
+    const displayText = [authorName, text].filter(Boolean).join(": ");
+    window.dispatchEvent(new CustomEvent("wos:announcement", {
+      detail: { announcement: displayText || "", announcement_updated_at: updatedAt || "" }
+    }));
     if (!el.announcement) return;
-    const message = (text || "").trim();
+    const message = (displayText || "").trim();
     el.announcement.hidden = !message;
     el.announcement.replaceChildren();
     if (!message) return;
@@ -378,7 +381,15 @@
         
         if (wsConnected && ws) {
            const userInfo = currentUser
-            ? { id: currentUser.id, name: newName, avatar_url: currentUser.avatar_url, kind: "discord" }
+            ? {
+              id: currentUser.id,
+              name: newName,
+              avatar_url: currentUser.avatar_url,
+              kind: currentUser.kind || "wos",
+              furnace_level: currentUser.furnace_level,
+              furnace_level_formatted: currentUser.furnace_level_formatted,
+              state_id: currentUser.state_id
+            }
             : { id: getGuestId(), name: newName, avatar_url: getGuestAvatar(), kind: "guest" };
            ws.send(JSON.stringify({ type: "register", user: userInfo }));
         }
@@ -516,7 +527,7 @@
         clearInterval(wsHeartbeatTimer);
         wsHeartbeatTimer = null;
       }
-      setStatus("Live updates paused. Messages still refresh.", false);
+      setStatus("Live global room", false);
       startFallbackPolling();
       scheduleReconnect();
     });
@@ -585,12 +596,12 @@
       case "room_state": {
         isBlizzardActive = !!data.is_blizzard_active;
         isAdmin = Boolean(data.is_admin) && isMagnusAdminUser();
-        setAnnouncement(data.announcement);
+        setAnnouncement(data.announcement, data.announcement_author, data.announcement_updated_at);
         updateAdminView();
         break;
       }
       case "admin:announcement": {
-        setAnnouncement(data.announcement);
+        setAnnouncement(data.announcement, data.announcement_author, data.announcement_updated_at);
         break;
       }
       case "admin:error": {
@@ -1065,7 +1076,7 @@
       bubble.className = "chat-bubble";
       const content = document.createElement("p");
       content.className = "chat-content";
-      content.textContent = message.content || "";
+      content.textContent = [message.announcement_author, message.content || ""].filter(Boolean).join(": ");
       bubble.appendChild(content);
       article.appendChild(bubble);
       return article;
@@ -1263,7 +1274,10 @@
           display_name: getGuestName() || el.name.value,
           guest_id: getGuestId(),
           avatar_url: getGuestAvatar(),
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+          furnace_level: currentUser && currentUser.kind === "wos" ? currentUser.furnace_level : undefined,
+          furnace_level_formatted: currentUser && currentUser.kind === "wos" ? currentUser.furnace_level_formatted : undefined,
+          state_id: currentUser && currentUser.kind === "wos" ? currentUser.state_id : undefined
         })
       });
       if (!response.ok) return;
@@ -1348,7 +1362,7 @@
       });
       if (!response.ok) throw new Error("Announcement failed");
       const data = await response.json();
-      setAnnouncement(data.announcement);
+      setAnnouncement(data.announcement, data.announcement_author, data.announcement_updated_at);
       if (input) input.value = "";
       setStatus(data.announcement ? "Announcement published" : "Announcement cleared");
     } catch (error) {

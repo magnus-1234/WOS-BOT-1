@@ -5947,7 +5947,7 @@ class BotOperations(commands.Cog):
                     async def on_submit(self, modal_interaction: discord.Interaction):
                         await modal_interaction.response.defer(ephemeral=True)
                         try:
-                            from db.mongo_adapters import PendingConfigAdapter, ServerAllianceAdapter
+                            from db.mongo_adapters import PendingConfigAdapter, RegistrationUserLimitsAdapter, ServerAllianceAdapter
                             guild_id = modal_interaction.guild_id
                             guild = modal_interaction.guild
                             user_id = modal_interaction.user.id
@@ -5983,11 +5983,13 @@ class BotOperations(commands.Cog):
                                 )
                                 return
 
-                            existing_user = await PendingConfigAdapter.get_by_user_async(user_id)
-                            if existing_user and existing_user.get("guild_id") != str(guild_id):
+                            active_user_regs = await PendingConfigAdapter.get_active_by_user_async(user_id)
+                            max_servers = await RegistrationUserLimitsAdapter.get_limit_async(user_id)
+                            has_same_guild = any(str(item.get("guild_id")) == str(guild_id) for item in active_user_regs)
+                            if not has_same_guild and len(active_user_regs) >= max_servers:
                                 await modal_interaction.followup.send(
-                                    f"⚠️ You already have a registration on server `{existing_user.get('guild_name', 'another server')}`. "
-                                    "Only one registration per user is allowed.",
+                                    f"⚠️ Limit reached. Your account can register {max_servers} server(s). "
+                                    "Ask a global admin to increase your limit if you need another server.",
                                     ephemeral=True
                                 )
                                 return

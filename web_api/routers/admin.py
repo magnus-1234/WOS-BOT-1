@@ -13,6 +13,7 @@ try:
     from db.mongo_adapters import (
         AdminsAdapter,
         PendingConfigAdapter,
+        RegistrationUserLimitsAdapter,
         ServerLimitsAdapter,
         _get_db_main_async,
         mongo_enabled,
@@ -20,6 +21,7 @@ try:
 except ImportError:
     AdminsAdapter = None
     PendingConfigAdapter = None
+    RegistrationUserLimitsAdapter = None
     ServerLimitsAdapter = None
     _get_db_main_async = None
     mongo_enabled = lambda: False
@@ -45,6 +47,10 @@ class LockPayload(BaseModel):
 class AdminPayload(BaseModel):
     user_id: str = Field(..., min_length=3, max_length=32)
     is_global: bool = False
+
+
+class RegistrationLimitPayload(BaseModel):
+    max_servers: int = Field(1, ge=1, le=1000)
 
 
 class ReviewPayload(BaseModel):
@@ -255,6 +261,9 @@ async def admin_overview(request: Request):
     locks = _get_sqlite_locks()
     admins = await _list_admins()
     pending = await _pending_registrations()
+    registration_limits = []
+    if mongo_enabled() and RegistrationUserLimitsAdapter:
+        registration_limits = await RegistrationUserLimitsAdapter.get_all_async()
 
     for guild in guilds:
         guild["limits"] = limits.get(guild["id"], {})
@@ -271,10 +280,12 @@ async def admin_overview(request: Request):
             "feature_locked_servers": sum(1 for item in locks.values() if item.get("feature_locked")),
             "pending_registrations": len(pending),
             "admins": len(admins),
+            "registration_user_limits": len(registration_limits),
         },
         "servers": sorted(guilds, key=lambda item: item["name"].lower()),
         "admins": admins,
         "pending": pending,
+        "registration_user_limits": registration_limits,
         "settings_catalog": [
             {"name": "Welcome", "tab": "welcome", "scope": "server"},
             {"name": "Alliance Monitor", "tab": "alliance", "scope": "server"},
@@ -322,6 +333,26 @@ async def admin_reset_limits(guild_id: int, request: Request):
     if not mongo_enabled() or not ServerLimitsAdapter:
         raise HTTPException(status_code=500, detail="MongoDB not available")
     await ServerLimitsAdapter.delete_async(guild_id)
+    return {"status": "success"}
+
+
+@router.post("/registration-limits/{discord_user_id}")
+async def admin_set_registration_user_limit(discord_user_id: int, payload: RegistrationLimitPayload, request: Request):
+    user = await _require_global_admin(request)
+    if not mongo_enabled() or not RegistrationUserLimitsAdapter:
+        raise HTTPException(status_code=500, detail="MongoDB not available")
+    ok = await RegistrationUserLimitsAdapter.set_async(discord_user_id, payload.max_servers, int(user["id"]))
+    if not ok:
+        raise HTTPException(status_code=500, detail="Failed to save registration limit")
+    return {"status": "success"}
+
+
+@router.delete("/registration-limits/{discord_user_id}")
+async def admin_reset_registration_user_limit(discord_user_id: int, request: Request):
+    await _require_global_admin(request)
+    if not mongo_enabled() or not RegistrationUserLimitsAdapter:
+        raise HTTPException(status_code=500, detail="MongoDB not available")
+    await RegistrationUserLimitsAdapter.delete_async(discord_user_id)
     return {"status": "success"}
 
 

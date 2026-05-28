@@ -10,10 +10,16 @@ import logging
 import httpx
 
 try:
-    from db.mongo_adapters import PendingConfigAdapter, ServerAllianceAdapter, mongo_enabled
+    from db.mongo_adapters import (
+        PendingConfigAdapter,
+        RegistrationUserLimitsAdapter,
+        ServerAllianceAdapter,
+        mongo_enabled,
+    )
 except ImportError:
     mongo_enabled = lambda: False
     PendingConfigAdapter = None
+    RegistrationUserLimitsAdapter = None
     ServerAllianceAdapter = None
 
 logger = logging.getLogger(__name__)
@@ -106,15 +112,25 @@ async def check_user_registration(discord_user_id: str):
     if not mongo_enabled() or not PendingConfigAdapter:
         raise HTTPException(status_code=500, detail="Database not available")
 
-    doc = await PendingConfigAdapter.get_by_user_async(int(discord_user_id))
-    if not doc:
-        return {"has_registration": False}
+    user_id = int(discord_user_id)
+    docs = await PendingConfigAdapter.get_active_by_user_async(user_id)
+    max_servers = 1
+    if RegistrationUserLimitsAdapter:
+        max_servers = await RegistrationUserLimitsAdapter.get_limit_async(user_id)
+
+    if not docs:
+        return {"has_registration": False, "active_count": 0, "max_servers": max_servers, "limit_reached": False}
+
+    doc = docs[0]
 
     return {
         "has_registration": True,
         "guild_id": doc.get("guild_id"),
         "guild_name": doc.get("guild_name"),
-        "status": doc.get("status")
+        "status": doc.get("status"),
+        "active_count": len(docs),
+        "max_servers": max_servers,
+        "limit_reached": len(docs) >= max_servers,
     }
 
 
@@ -127,13 +143,18 @@ async def submit_registration(body: SubmitRegistrationRequest, request: Request)
     if not mongo_enabled() or not PendingConfigAdapter:
         raise HTTPException(status_code=500, detail="Database not available")
 
-    # Enforce: this user cannot have another active (pending/approved) registration
-    existing_user = await PendingConfigAdapter.get_by_user_async(int(body.discord_user_id))
-    if existing_user and existing_user.get("guild_id") != body.guild_id:
+    user_id = int(body.discord_user_id)
+    active_user_regs = await PendingConfigAdapter.get_active_by_user_async(user_id)
+    max_servers = 1
+    if RegistrationUserLimitsAdapter:
+        max_servers = await RegistrationUserLimitsAdapter.get_limit_async(user_id)
+    has_same_guild = any(str(item.get("guild_id")) == str(body.guild_id) for item in active_user_regs)
+    if not has_same_guild and len(active_user_regs) >= max_servers:
+        existing_user = active_user_regs[0] if active_user_regs else {}
         raise HTTPException(
             status_code=409,
-            detail=f"You already have a registration on server '{existing_user.get('guild_name', 'another server')}'. "
-                   f"One registration per user is allowed."
+            detail=f"Limit reached. You already have {len(active_user_regs)} of {max_servers} allowed server registration(s). "
+                   f"Current server: '{existing_user.get('guild_name', 'another server')}'."
         )
 
     # Check if this guild already has an approved registration

@@ -4484,7 +4484,8 @@
                 <div class="form-group" style="margin-bottom:0;">
                     <label>State (Number Only)</label>
                     <input type="number" id="reg-state" placeholder="e.g. 123" min="1" max="99999"
-                           style="font-size:1rem;"
+                           inputmode="numeric" pattern="[0-9]*"
+                           style="font-size:1rem;width:100%;height:54px;padding:0 16px;border-radius:10px;"
                            onkeydown="if(event.key==='Enter') regStep1Next()">
                     <div id="reg-step1-error" style="color:#ef4444;font-size:0.8rem;margin-top:8px;display:none;"></div>
                 </div>
@@ -4977,8 +4978,8 @@
                 try {
                     const chk = await fetch(`/api/register/user-check?discord_user_id=${_discordUserId}`);
                     const chkData = await chk.json();
-                    if (chkData.has_registration && chkData.guild_id !== guildId) {
-                        errEl.textContent = `You already have a registration on "${chkData.guild_name || 'another server'}". One registration per user is allowed.`;
+                    if (chkData.limit_reached && String(chkData.guild_id) !== String(guildId)) {
+                        errEl.textContent = `Limit reached. Your account can register ${chkData.max_servers || 1} server(s). Ask a global admin to increase your limit if you need another server.`;
                         errEl.style.display = 'block';
                         return;
                     }
@@ -6634,6 +6635,15 @@
             }
         }
 
+        function toAbsoluteAssetUrl(url) {
+            if (!url) return url;
+            try {
+                return new URL(url, window.location.origin).href;
+            } catch (e) {
+                return url;
+            }
+        }
+
         async function uploadImageForReminder(input, targetId) {
             if (!input.files || input.files.length === 0) return;
             const file = input.files[0];
@@ -7060,11 +7070,11 @@
             document.getElementById('reminder-interval').value = preset.recurrence_interval || 1;
             setDowSelection(preset.recurrence_days || []);
             document.getElementById('reminder-mention').value = preset.mention || 'everyone';
-            document.getElementById('reminder-image').value = preset.image_url || '';
-            document.getElementById('reminder-thumbnail').value = preset.thumbnail_url || '';
+            document.getElementById('reminder-image').value = toAbsoluteAssetUrl(preset.image_url || '');
+            document.getElementById('reminder-thumbnail').value = toAbsoluteAssetUrl(preset.thumbnail_url || '');
             document.getElementById('reminder-footer').value = preset.footer_text || '';
-            document.getElementById('reminder-footer-icon').value = preset.footer_icon_url || '';
-            document.getElementById('reminder-author-url').value = preset.author_url || '';
+            document.getElementById('reminder-footer-icon').value = toAbsoluteAssetUrl(preset.footer_icon_url || '');
+            document.getElementById('reminder-author-url').value = toAbsoluteAssetUrl(preset.author_url || '');
             toggleCustomInterval();
             toggleDowPicker();
             updateReminderPreview();
@@ -7361,11 +7371,11 @@
             const channel_id     = document.getElementById('reminder-channel').value;
             const body           = document.getElementById('reminder-body').value.trim() || null;
             const mention        = document.getElementById('reminder-mention').value;
-            const image_url      = document.getElementById('reminder-image').value.trim() || null;
-            const thumbnail_url  = document.getElementById('reminder-thumbnail').value.trim() || null;
+            const image_url      = toAbsoluteAssetUrl(document.getElementById('reminder-image').value.trim()) || null;
+            const thumbnail_url  = toAbsoluteAssetUrl(document.getElementById('reminder-thumbnail').value.trim()) || null;
             const footer_text    = document.getElementById('reminder-footer').value.trim() || null;
-            const footer_icon_url = document.getElementById('reminder-footer-icon').value.trim() || null;
-            const author_url     = document.getElementById('reminder-author-url').value.trim() || null;
+            const footer_icon_url = toAbsoluteAssetUrl(document.getElementById('reminder-footer-icon').value.trim()) || null;
+            const author_url     = toAbsoluteAssetUrl(document.getElementById('reminder-author-url').value.trim()) || null;
             
             const save_as_preset = document.getElementById('reminder-save-as-preset').checked;
             const preset_title   = document.getElementById('reminder-preset-title').value.trim() || null;

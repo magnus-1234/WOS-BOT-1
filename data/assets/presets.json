@@ -1,0 +1,48 @@
+[
+  {
+    "id": "wos",
+    "title": "WOS",
+    "type": "game",
+    "badge": "Game Event",
+    "image_url": "/api/assets/presets/wos.png",
+    "thumbnail_url": "/api/assets/presets/wos.png",
+    "footer_text": "Whiteout Survival"
+  },
+  {
+    "id": "crazy-joe",
+    "title": "Crazy Joe",
+    "type": "game",
+    "badge": "Game Event",
+    "image_url": "/api/assets/presets/crazy-joe.png",
+    "thumbnail_url": "/api/assets/presets/crazy-joe.png",
+    "footer_text": "Crazy Joe"
+  },
+  {
+    "id": "arena",
+    "title": "Arena",
+    "type": "game",
+    "badge": "Game Event",
+    "image_url": "/api/assets/presets/arena.png",
+    "thumbnail_url": "/api/assets/presets/arena.png",
+    "footer_text": "Arena"
+  },
+  {
+    "id": "sunfire-castle",
+    "title": "Sunfire Castle",
+    "type": "game",
+    "badge": "Game Event",
+    "image_url": "/api/assets/presets/sunfire-castle.png",
+    "thumbnail_url": "/api/assets/presets/sunfire-castle.png",
+    "footer_text": "Sunfire Castle"
+  },
+  {
+    "id": "bear-trap",
+    "title": "Bear Trap",
+    "type": "game",
+    "badge": "Game Event",
+    "image_url": "/api/assets/presets/bear-trap.gif",
+    "thumbnail_url": "/api/assets/presets/bear-trap.gif",
+    "footer_text": "Bear Trap"
+  }
+]
+

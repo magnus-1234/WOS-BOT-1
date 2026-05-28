@@ -611,6 +611,26 @@
 
         <div class="panel section">
           <div class="section-head">
+            <h2>User Registration Limits</h2>
+            <span class="muted" id="registration-limit-count">-</span>
+          </div>
+          <div class="form-grid">
+            <label>Discord user ID
+              <input id="registration-limit-user-id" type="text" placeholder="User ID">
+            </label>
+            <label>Allowed servers
+              <input id="registration-limit-max" type="number" min="1" max="1000" value="1">
+            </label>
+          </div>
+          <div class="actions">
+            <button class="btn primary" onclick="saveRegistrationLimit()"><i data-lucide="save"></i> Save User Limit</button>
+          </div>
+          <p class="muted" style="margin-top:12px;">Default is 1 server per user. Add a user here only when they need more server registrations.</p>
+          <div class="table" id="registration-limit-list" style="margin-top:14px;"></div>
+        </div>
+
+        <div class="panel section">
+          <div class="section-head">
             <h2>Administrators</h2>
             <span class="muted" id="admin-count">-</span>
           </div>
@@ -639,7 +659,7 @@
   <script>
     const API_BASE = '';
     const token = localStorage.getItem('discord_access_token');
-    let state = { servers: [], admins: [], pending: [], stats: {}, settingsCatalog: [] };
+    let state = { servers: [], admins: [], pending: [], registrationLimits: [], stats: {}, settingsCatalog: [] };
     let selectedGuildId = null;
 
     function authHeaders(json = true) {
@@ -692,6 +712,7 @@
           servers: overview.servers || [],
           admins: overview.admins || [],
           pending: overview.pending || [],
+          registrationLimits: overview.registration_user_limits || [],
           stats: overview.stats || {},
           settingsCatalog: overview.settings_catalog || []
         };
@@ -700,6 +721,7 @@
         renderServers();
         renderSelected();
         renderPending();
+        renderRegistrationLimits();
         renderAdmins();
       } catch (err) {
         toast(err.message, true);
@@ -887,6 +909,69 @@
           body: JSON.stringify({ action })
         });
         toast(`Registration ${action}d`);
+        await refreshAll();
+      } catch (err) {
+        toast(err.message, true);
+      }
+    }
+
+    function renderRegistrationLimits() {
+      const list = document.getElementById('registration-limit-list');
+      const items = state.registrationLimits || [];
+      document.getElementById('registration-limit-count').textContent = `${items.length} custom`;
+      if (!items.length) {
+        list.innerHTML = '<div class="empty">No custom user registration limits.</div>';
+        return;
+      }
+      list.innerHTML = items.map(item => `
+        <div class="table-row">
+          <div>
+            <strong>${escapeHTML(item.discord_user_id)}</strong>
+            <div class="muted">Allowed servers: ${escapeHTML(item.max_servers || 1)}</div>
+          </div>
+          <div class="row-actions">
+            <button class="btn small" onclick="fillRegistrationLimit('${escapeHTML(item.discord_user_id)}', ${Number(item.max_servers || 1)})">Edit</button>
+            <button class="btn small danger" onclick="resetRegistrationLimit('${escapeHTML(item.discord_user_id)}')">Reset</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function fillRegistrationLimit(userId, maxServers) {
+      document.getElementById('registration-limit-user-id').value = userId;
+      document.getElementById('registration-limit-max').value = maxServers;
+    }
+
+    async function saveRegistrationLimit() {
+      const userId = document.getElementById('registration-limit-user-id').value.trim();
+      const maxServers = Number(document.getElementById('registration-limit-max').value);
+      if (!/^\d{3,32}$/.test(userId)) {
+        toast('Enter a valid Discord user ID', true);
+        return;
+      }
+      if (!Number.isInteger(maxServers) || maxServers < 1) {
+        toast('Allowed servers must be at least 1', true);
+        return;
+      }
+      try {
+        await api(`/api/admin/registration-limits/${userId}`, {
+          method: 'POST',
+          body: JSON.stringify({ max_servers: maxServers })
+        });
+        document.getElementById('registration-limit-user-id').value = '';
+        document.getElementById('registration-limit-max').value = 1;
+        toast('Registration limit saved');
+        await refreshAll();
+      } catch (err) {
+        toast(err.message, true);
+      }
+    }
+
+    async function resetRegistrationLimit(userId) {
+      if (!confirm('Reset this user back to the default 1 server limit?')) return;
+      try {
+        await api(`/api/admin/registration-limits/${userId}`, { method: 'DELETE' });
+        toast('Registration limit reset');
         await refreshAll();
       } catch (err) {
         toast(err.message, true);

@@ -5077,6 +5077,81 @@ class ServerLimitsAdapter:
             return False
 
 
+class RegistrationUserLimitsAdapter:
+    """Adapter for per-user server registration caps."""
+    COLL = 'registration_user_limits'
+
+    @staticmethod
+    async def get_async(discord_user_id: int) -> Optional[Dict[str, Any]]:
+        try:
+            db = await _get_db_main_async()
+            doc = await db[RegistrationUserLimitsAdapter.COLL].find_one({'_id': str(discord_user_id)})
+            if doc:
+                doc['discord_user_id'] = str(doc['_id'])
+                doc.pop('_id', None)
+            return doc
+        except Exception as e:
+            logger.error(f'Failed to get registration limit for user {discord_user_id}: {e}')
+            return None
+
+    @staticmethod
+    async def get_limit_async(discord_user_id: int) -> int:
+        try:
+            doc = await RegistrationUserLimitsAdapter.get_async(discord_user_id)
+            if doc:
+                return max(1, int(doc.get('max_servers', 1)))
+            return 1
+        except Exception:
+            return 1
+
+    @staticmethod
+    async def set_async(discord_user_id: int, max_servers: int, updated_by: Optional[int] = None) -> bool:
+        try:
+            db = await _get_db_main_async()
+            now = datetime.utcnow().isoformat()
+            payload = {
+                'max_servers': max(1, int(max_servers)),
+                'updated_at': now,
+            }
+            if updated_by is not None:
+                payload['updated_by'] = int(updated_by)
+            await db[RegistrationUserLimitsAdapter.COLL].update_one(
+                {'_id': str(discord_user_id)},
+                {'$set': payload, '$setOnInsert': {'created_at': now}},
+                upsert=True
+            )
+            return True
+        except Exception as e:
+            logger.error(f'Failed to set registration limit for user {discord_user_id}: {e}')
+            return False
+
+    @staticmethod
+    async def delete_async(discord_user_id: int) -> bool:
+        try:
+            db = await _get_db_main_async()
+            result = await db[RegistrationUserLimitsAdapter.COLL].delete_one({'_id': str(discord_user_id)})
+            return result.deleted_count > 0
+        except Exception as e:
+            logger.error(f'Failed to reset registration limit for user {discord_user_id}: {e}')
+            return False
+
+    @staticmethod
+    async def get_all_async() -> List[Dict[str, Any]]:
+        try:
+            db = await _get_db_main_async()
+            cursor = db[RegistrationUserLimitsAdapter.COLL].find({})
+            docs = await cursor.to_list(length=None)
+            results = []
+            for doc in docs:
+                doc['discord_user_id'] = str(doc['_id'])
+                doc.pop('_id', None)
+                results.append(doc)
+            return results
+        except Exception as e:
+            logger.error(f'Failed to get registration user limits: {e}')
+            return []
+
+
 
 # BotActivityAdapter is defined once at the top of the file
 
@@ -5150,6 +5225,20 @@ class PendingConfigAdapter:
         except Exception as e:
             logger.error(f'Failed to get pending config for user {discord_user_id}: {e}')
             return None
+
+    @staticmethod
+    async def get_active_by_user_async(discord_user_id: int) -> list:
+        """Get all pending/approved registration requests for a user."""
+        try:
+            db = await _get_db_main_async()
+            cursor = db[PendingConfigAdapter.COLL].find({
+                'discord_user_id': str(discord_user_id),
+                'status': {'$in': ['pending', 'approved']}
+            })
+            return await cursor.to_list(length=None)
+        except Exception as e:
+            logger.error(f'Failed to list active configs for user {discord_user_id}: {e}')
+            return []
 
     @staticmethod
     async def get_all_pending_async() -> list:

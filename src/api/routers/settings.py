@@ -95,8 +95,7 @@ async def save_welcome_settings(guild_id: int, settings: WelcomeSettings):
     channel_id = int(settings.channel_id) if settings.channel_id else 0
     await WelcomeChannelAdapter.set_async(guild_id, channel_id, settings.enabled)
 
-    if settings.bg_image_url:
-        await WelcomeChannelAdapter.set_bg_image_async(guild_id, settings.bg_image_url)
+    await WelcomeChannelAdapter.set_bg_image_async(guild_id, settings.bg_image_url or "")
 
     # Persist custom text fields directly on the document
     try:

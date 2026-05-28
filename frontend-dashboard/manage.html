@@ -2474,8 +2474,8 @@
                                                     Hi <span class="dc-mention">@NewMember</span> Welcome to the <strong>Your Server</strong>🥳
                                                 </div>
                                             </div>
-                                            <div class="dc-embed-img-wrap" id="preview-img-wrap" style="position: relative; margin: 0 16px 16px 16px; border-radius: 4px; overflow: hidden; background: linear-gradient(to bottom, #bca4df, #8b5cf6); aspect-ratio: 1000/300; container-type: size;">
-                                                <img id="preview-embed-image" class="dc-embed-image" src="" alt="" style="display:none; width: 100%; height: 100%; object-fit: cover;">
+                                            <div class="dc-embed-img-wrap" id="preview-img-wrap" style="position: relative; margin: 0 16px 16px 16px; border-radius: 4px; overflow: hidden; background: #050505; aspect-ratio: 1000/300; container-type: size;">
+                                                <img id="preview-embed-image" class="dc-embed-image" src="" alt="" style="display:none; width: 100%; height: 100%; object-fit: fill;">
                                                 <div id="preview-img-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
                                                     <!-- White border circle: x=40, y=30, size=240 -->
                                                     <div style="position:absolute; left:4%; top:10%; width:24%; aspect-ratio:1; background:white; border-radius:50%;"></div>
@@ -5380,10 +5380,14 @@
             if (bgUrl || window._uploadedPreviewUrl) {
                 previewImg.src = bgUrl || window._uploadedPreviewUrl;
                 previewImg.style.display = 'block';
+                previewImg.onerror = () => {
+                    previewImg.style.display = 'none';
+                    wrap.style.background = '#050505';
+                };
             } else {
                 previewImg.style.display = 'none';
             }
-            wrap.style.backgroundColor = color;
+            wrap.style.background = bgUrl || window._uploadedPreviewUrl ? '#050505' : 'linear-gradient(180deg, #050505 0%, #0f1117 100%)';
 
             lucide.createIcons();
         }
@@ -5535,7 +5539,7 @@
             showLoading(true);
 
             try {
-                let bgImageUrl = document.getElementById('welcome-bg').value;
+                let bgImageUrl = toAbsoluteAssetUrl(document.getElementById('welcome-bg').value.trim());
 
                 // Upload file if selected
                 const fileInput = document.getElementById('welcome-bg-upload');
@@ -6910,10 +6914,11 @@
                     grid.innerHTML = displayedPresets.map(p => `
                         <div class="preset-card">
                             <div class="preset-thumb">
-                                <img src="${escapeAttribute(getReminderThumbnail({ thumbnail_url: p.thumbnail_url || p.image_url, message: p.title }))}" 
+                                <img src="${escapeAttribute(getReminderThumbnail(p))}" 
                                      alt="" 
                                      data-message="${escapeAttribute(p.title || '')}" 
                                      data-thumbnail="${escapeAttribute(p.thumbnail_url || p.image_url || '')}" 
+                                     data-fallback="${escapeAttribute(getReminderAssetFallback(p) || '')}"
                                      onerror="handleThumbnailError(this)">
                             </div>
                             <div class="preset-body">
@@ -7064,14 +7069,17 @@
             const preset = REMINDER_PRESETS.find(p => p.id === presetId);
             if (!preset) return;
             selectedReminderPreset = presetId;
+            const presetFallback = getReminderAssetFallback(preset);
+            const imageUrl = preset.image_url || presetFallback || '';
+            const thumbnailUrl = preset.thumbnail_url || preset.image_url || presetFallback || '';
             document.getElementById('reminder-message').value = preset.message || '';
             document.getElementById('reminder-body').value = preset.body || '';
             document.getElementById('reminder-recurrence').value = preset.recurrence_type || 'none';
             document.getElementById('reminder-interval').value = preset.recurrence_interval || 1;
             setDowSelection(preset.recurrence_days || []);
             document.getElementById('reminder-mention').value = preset.mention || 'everyone';
-            document.getElementById('reminder-image').value = toAbsoluteAssetUrl(preset.image_url || '');
-            document.getElementById('reminder-thumbnail').value = toAbsoluteAssetUrl(preset.thumbnail_url || '');
+            document.getElementById('reminder-image').value = toAbsoluteAssetUrl(imageUrl);
+            document.getElementById('reminder-thumbnail').value = toAbsoluteAssetUrl(thumbnailUrl);
             document.getElementById('reminder-footer').value = preset.footer_text || '';
             document.getElementById('reminder-footer-icon').value = toAbsoluteAssetUrl(preset.footer_icon_url || '');
             document.getElementById('reminder-author-url').value = toAbsoluteAssetUrl(preset.author_url || '');
@@ -7527,21 +7535,42 @@
         }
 
         function getReminderThumbnail(r) {
-            if (!r) return 'logo.png';
-            const url = r.thumbnail_url || '';
-            
-            if (url) {
+            if (!r) return getReminderPlaceholder();
+            const urls = [r.thumbnail_url, r.image_url].filter(Boolean);
+            for (const url of urls) {
                 // Ignore the deleted postimg links so we don't display broken placeholders
-                if (!url.includes('postimg.cc') && !url.includes('postimg.org')) {
+                if (!url.includes('postimg.cc') && !url.includes('postimg.org') && !url.endsWith('/logo.png') && url !== 'logo.png') {
                     return url;
                 }
             }
-            return 'logo.png';
+            return getReminderAssetFallback(r) || getReminderPlaceholder();
+        }
+
+        function getReminderAssetFallback(p) {
+            const key = `${p?.id || ''} ${p?.title || ''} ${p?.message || ''}`.toLowerCase();
+            if (key.includes('crazy') || key.includes('joe')) return '/assets/presets/crazy-joe.png';
+            if (key.includes('arena')) return '/assets/presets/arena.png';
+            if (key.includes('sunfire') || key.includes('castle')) return '/assets/presets/sunfire-castle.png';
+            if (key.includes('bear') || key.includes('trap')) return '/assets/presets/bear-trap.gif';
+            if (key.includes('wos') || key.includes('whiteout')) return '/assets/presets/wos.png';
+            return '';
+        }
+
+        function getReminderPlaceholder() {
+            return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360"><rect width="640" height="360" fill="#111317"/><path d="M286 154h68v52h-68z" fill="none" stroke="#8b5cf6" stroke-width="14" rx="8"/><path d="M298 154l22-28h46l-22 28" fill="none" stroke="#8b5cf6" stroke-width="14" stroke-linejoin="round"/><circle cx="248" cy="224" r="28" fill="none" stroke="#6b7280" stroke-width="12"/><path d="M380 198l44 54H216l56-72 42 50 28-32 38 48z" fill="#232831"/></svg>'
+            );
         }
 
         function handleThumbnailError(imgElement) {
-            imgElement.onerror = null; // prevent loops
-            imgElement.src = 'logo.png';
+            const fallback = imgElement.dataset.fallback;
+            if (fallback && imgElement.src !== new URL(fallback, window.location.origin).href) {
+                imgElement.src = fallback;
+                imgElement.dataset.fallback = '';
+                return;
+            }
+            imgElement.onerror = null;
+            imgElement.src = getReminderPlaceholder();
         }
 
         function renderReminders() {

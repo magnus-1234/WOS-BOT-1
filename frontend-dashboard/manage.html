@@ -5151,7 +5151,7 @@
             if(index !== -1) {
                 const item = items[index];
                 const scrollPos = item.offsetTop - el.offsetTop - (el.clientHeight / 2) + (item.clientHeight / 2);
-                el.scrollTo({ top: scrollPos, behavior: 'smooth' });
+                el.scrollTop = scrollPos;
                 // Mark selected immediately for better UX
                 items.forEach(i => i.classList.remove('selected'));
                 item.classList.add('selected');
@@ -7297,6 +7297,13 @@
                 }
             }
             document.getElementById('reminder-modal').style.display = 'flex';
+            const activePreset = presetId ? REMINDER_PRESETS.find(p => p.id === presetId) : null;
+            if (activePreset?.target_time) {
+                requestAnimationFrame(() => {
+                    applyReminderScheduleFields(activePreset);
+                    updateReminderPreview();
+                });
+            }
             
             // Initialize flatpickr if not already initialized
             const dateInput = document.getElementById('reminder-date');

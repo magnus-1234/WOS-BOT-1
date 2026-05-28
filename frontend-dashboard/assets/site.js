@@ -119,6 +119,29 @@
     });
   });
 
+  const renderSiteAnnouncement = (message) => {
+    let bar = document.querySelector("[data-site-announcement]");
+    if (!message) {
+      if (bar) bar.remove();
+      return;
+    }
+    if (!bar) {
+      bar = document.createElement("div");
+      bar.className = "site-announcement-ticker";
+      bar.setAttribute("data-site-announcement", "");
+      bar.innerHTML = '<div class="site-announcement-track"><span></span><span aria-hidden="true"></span></div>';
+      document.body.prepend(bar);
+    }
+    bar.querySelectorAll("span").forEach((span) => {
+      span.textContent = message;
+    });
+  };
+
+  fetch("/api/chat/room-state", { headers: { Accept: "application/json" }, cache: "no-store" })
+    .then((response) => response.ok ? response.json() : null)
+    .then((state) => renderSiteAnnouncement(state && state.announcement))
+    .catch(() => {});
+
   const liveStats = document.querySelectorAll("[data-live-stat]");
   if (liveStats.length) {
     const setStat = (key, value) => {

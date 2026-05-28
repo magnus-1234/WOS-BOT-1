@@ -105,6 +105,10 @@
   let voiceChunks = [];
   let ws = null;
   let wsReconnectTimer = null;
+  let wsHeartbeatTimer = null;
+  let wsReconnectAttempts = 0;
+  let wsConnectionId = 0;
+  let isPageUnloading = false;
   let wsConnected = false;
   let soundEnabled = true;
   let searchQuery = "";
@@ -112,7 +116,8 @@
   let typingTimer = null;
   let selectedProfileUser = null;
   let memberSearchQuery = "";
-  let isAdmin = localStorage.getItem(STORAGE_KEYS.admin) === "true";
+  const MAGNUS_ADMIN_USER_ID = "850786361572720661";
+  let isAdmin = false;
   let isBlizzardActive = false;
   let friendUserIds = JSON.parse(localStorage.getItem(STORAGE_KEYS.friends) || "[]");
   let mutedUserIds = JSON.parse(localStorage.getItem(STORAGE_KEYS.muted) || "[]");
@@ -206,6 +211,15 @@
     return parts.map((part) => part[0] || "").join("").toUpperCase() || "G";
   };
   const getMyId = () => currentUser ? String(currentUser.id) : getGuestId();
+  const isMagnusAdminUser = () => normalizeUserId(getMyId()) === MAGNUS_ADMIN_USER_ID;
+  const syncAdminAccess = () => {
+    isAdmin = isMagnusAdminUser();
+    if (isAdmin) {
+      localStorage.setItem(STORAGE_KEYS.admin, "true");
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.admin);
+    }
+  };
   const normalizeUserId = (value) => String(value || "").trim();
   const userDisplayName = (user) => user ? (user.name || user.global_name || user.username || "Guest Player") : "Guest Player";
   const getUserById = (userId) => onlineUsers.find((user) => normalizeUserId(user.id || user.name) === normalizeUserId(userId));
@@ -251,9 +265,14 @@
     el.announcement.textContent = text || "";
   };
   const updateAdminView = () => {
-    if (el.adminBadge) el.adminBadge.textContent = isAdmin ? "Admin" : "Locked";
+    syncAdminAccess();
+    if (el.adminBadge) el.adminBadge.textContent = "Admin";
     if (el.adminBadge) el.adminBadge.classList.toggle("is-admin", isAdmin);
+    if (el.adminToggle) el.adminToggle.hidden = !isAdmin;
+    const adminCard = el.adminToggle ? el.adminToggle.closest("[data-room-admin-card]") : null;
+    if (adminCard) adminCard.hidden = !isAdmin;
     if (el.adminPanel) el.adminPanel.classList.toggle("is-admin", isAdmin);
+    if (el.adminPanel && !isAdmin) el.adminPanel.hidden = true;
     if (el.blizzard) {
       el.blizzard.checked = isBlizzardActive;
       el.blizzard.disabled = !isAdmin;
@@ -278,6 +297,7 @@
     
     const editBtn = roomRoot.querySelector("[data-edit-profile]");
     if (editBtn) editBtn.addEventListener("click", openProfileModal);
+    updateAdminView();
   };
 
   const resolveDiscordIdentity = async () => {
@@ -412,8 +432,17 @@
   };
 
   const connectWebSocket = () => {
+    const connectionId = ++wsConnectionId;
     if (ws) {
       try { ws.close(); } catch (e) {}
+    }
+    if (wsReconnectTimer) {
+      clearTimeout(wsReconnectTimer);
+      wsReconnectTimer = null;
+    }
+    if (wsHeartbeatTimer) {
+      clearInterval(wsHeartbeatTimer);
+      wsHeartbeatTimer = null;
     }
     const proto = location.protocol === "https:" ? "wss" : "ws";
     const wsUrl = `${proto}://${location.host}/api/chat/ws`;
@@ -421,11 +450,14 @@
       ws = new WebSocket(wsUrl);
     } catch (e) {
       console.warn("WebSocket construction failed:", e);
+      scheduleReconnect();
       return;
     }
 
     ws.addEventListener("open", () => {
+      if (connectionId !== wsConnectionId) return;
       wsConnected = true;
+      wsReconnectAttempts = 0;
       setStatus("Live global room");
       playChime("connect");
       // Register the current user with the server
@@ -443,23 +475,44 @@
       ws.send(JSON.stringify({ type: "register", user: userInfo }));
       // Stop polling - WebSocket takes over
       if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+      wsHeartbeatTimer = setInterval(() => {
+        if (wsConnected && ws && ws.readyState === WebSocket.OPEN) {
+          sendWs({ type: "ping" });
+        }
+      }, 25000);
     });
 
     ws.addEventListener("message", (event) => {
+      if (connectionId !== wsConnectionId) return;
       try { handleWsEvent(JSON.parse(event.data)); } catch (e) {}
     });
 
     ws.addEventListener("close", () => {
+      if (connectionId !== wsConnectionId || isPageUnloading) return;
       wsConnected = false;
-      setStatus("⚠️ Reconnecting...", true);
+      if (wsHeartbeatTimer) {
+        clearInterval(wsHeartbeatTimer);
+        wsHeartbeatTimer = null;
+      }
+      setStatus("Reconnecting in the background...", true);
       startFallbackPolling();
-      if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
-      wsReconnectTimer = setTimeout(connectWebSocket, 5000);
+      scheduleReconnect();
     });
 
     ws.addEventListener("error", () => {
+      if (connectionId !== wsConnectionId) return;
       wsConnected = false;
     });
+  };
+
+  const scheduleReconnect = () => {
+    if (isPageUnloading || wsReconnectTimer) return;
+    wsReconnectAttempts += 1;
+    const delay = Math.min(30000, 1200 * Math.pow(1.65, wsReconnectAttempts - 1));
+    wsReconnectTimer = setTimeout(() => {
+      wsReconnectTimer = null;
+      connectWebSocket();
+    }, delay);
   };
 
   const handleWsEvent = (data) => {
@@ -507,12 +560,17 @@
       }
       case "room_state": {
         isBlizzardActive = !!data.is_blizzard_active;
+        isAdmin = Boolean(data.is_admin) && isMagnusAdminUser();
         setAnnouncement(data.announcement);
         updateAdminView();
         break;
       }
       case "admin:announcement": {
         setAnnouncement(data.announcement);
+        break;
+      }
+      case "admin:error": {
+        setStatus(data.message || "Admin action was rejected", true);
         break;
       }
       case "clear": {
@@ -1516,18 +1574,8 @@
   updateAdminView();
 
   if (el.adminToggle) el.adminToggle.addEventListener("click", () => {
+    if (!isAdmin) return;
     if (el.adminPanel) el.adminPanel.hidden = !el.adminPanel.hidden;
-  });
-  if (el.adminClaim) el.adminClaim.addEventListener("click", () => {
-    const code = (el.adminCode && el.adminCode.value || "").trim();
-    if (code === "survival100") {
-      isAdmin = true;
-      localStorage.setItem(STORAGE_KEYS.admin, "true");
-      setStatus("Command deck unlocked");
-      updateAdminView();
-    } else {
-      setStatus("Invalid admin code", true);
-    }
   });
   if (el.blizzard) el.blizzard.addEventListener("change", () => {
     if (!isAdmin) return updateAdminView();
@@ -1644,9 +1692,11 @@
   el.voice.addEventListener("click", toggleVoice);
   el.replyClear.addEventListener("click", clearReply);
   window.addEventListener("beforeunload", () => {
+    isPageUnloading = true;
     if (pollTimer) window.clearInterval(pollTimer);
     if (presenceTimer) window.clearInterval(presenceTimer);
     if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+    if (wsHeartbeatTimer) clearInterval(wsHeartbeatTimer);
     if (ws) try { ws.close(); } catch (e) {}
   });
 })();

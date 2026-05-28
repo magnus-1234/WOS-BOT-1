@@ -23,6 +23,16 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/chat", tags=["Global Chat"])
+CHAT_ADMIN_USER_IDS = {
+    os.getenv("CHAT_ADMIN_USER_ID", "850786361572720661")
+}
+
+
+def _is_chat_admin(info: Optional[Dict[str, Any]]) -> bool:
+    if not info:
+        return False
+    user_id = str(info.get("id") or "").strip()
+    return user_id in CHAT_ADMIN_USER_IDS
 
 
 class ConnectionManager:
@@ -49,17 +59,23 @@ class ConnectionManager:
 
     async def register_user(self, websocket: WebSocket, user_info: Dict[str, Any]):
         if websocket in self.active_connections:
+            user_id = str(user_info.get("id") or "").strip()
             self.active_connections[websocket].update({
-                "id": user_info.get("id"),
+                "id": user_id,
                 "name": user_info.get("name", "Guest Player"),
                 "avatar_url": user_info.get("avatar_url"),
                 "kind": user_info.get("kind", "guest"),
                 "furnace_level": user_info.get("furnace_level"),
                 "furnace_level_formatted": user_info.get("furnace_level_formatted"),
                 "state_id": user_info.get("state_id"),
+                "is_admin": user_id in CHAT_ADMIN_USER_IDS,
             })
             await self.broadcast_presence()
-            await websocket.send_json({"type": "room_state", **self.room_state})
+            await websocket.send_json({
+                "type": "room_state",
+                **self.room_state,
+                "is_admin": self.active_connections[websocket]["is_admin"],
+            })
 
     async def set_typing(self, websocket: WebSocket, is_typing: bool):
         if websocket in self.active_connections:
@@ -159,13 +175,22 @@ async def websocket_endpoint(websocket: WebSocket):
             elif event_type == "ping":
                 await websocket.send_json({"type": "pong"})
             elif event_type == "admin:blizzard":
+                if not _is_chat_admin(manager.active_connections.get(websocket)):
+                    await websocket.send_json({"type": "admin:error", "message": "Admin access required."})
+                    continue
                 manager.room_state["is_blizzard_active"] = bool(data.get("is_frozen"))
                 await manager.broadcast_room_state()
             elif event_type == "admin:announcement":
+                if not _is_chat_admin(manager.active_connections.get(websocket)):
+                    await websocket.send_json({"type": "admin:error", "message": "Admin access required."})
+                    continue
                 announcement = _clean_text(data.get("announcement") or "", 180)
                 manager.room_state["announcement"] = announcement or None
                 await manager.broadcast({"type": "admin:announcement", "announcement": manager.room_state["announcement"]})
             elif event_type == "admin:clear":
+                if not _is_chat_admin(manager.active_connections.get(websocket)):
+                    await websocket.send_json({"type": "admin:error", "message": "Admin access required."})
+                    continue
                 await _clear_all_messages()
                 await manager.broadcast({"type": "clear"})
             elif event_type and event_type.startswith("call:"):
@@ -195,6 +220,11 @@ async def get_tinode_config():
         "api_key": os.getenv("TINODE_API_KEY", "AQEAAAABAAD_rAp4DJh05a1HAwFT3A6K"),
         "topic": os.getenv("TINODE_TOPIC", "grpCommunityRoom"),
     }
+
+
+@router.get("/room-state")
+async def get_room_state():
+    return manager.room_state
 
 
 @router.get("/player/{fid}")

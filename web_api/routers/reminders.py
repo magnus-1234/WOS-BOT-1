@@ -120,7 +120,11 @@ async def upload_reminder_image_from_url(request: Request):
         raise HTTPException(status_code=400, detail="A valid 'url' field is required.")
 
     try:
-        async with httpx.AsyncClient(follow_redirects=True, timeout=20.0) as client:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (compatible; WhiteoutSurvivalBot/1.0)",
+            "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+        }
+        async with httpx.AsyncClient(follow_redirects=True, timeout=20.0, headers=headers) as client:
             response = await client.get(url)
             response.raise_for_status()
             content = response.content
@@ -152,8 +156,7 @@ async def upload_reminder_image_from_url(request: Request):
     with open(filepath, "wb") as f:
         f.write(content)
 
-    base_url = str(request.base_url).rstrip("/")
-    public_url = f"{base_url}/api/static/{filename}"
+    public_url = f"/api/static/{filename}"
     return {"status": "success", "url": public_url}
 
 @router.post("/upload")
@@ -182,9 +185,7 @@ async def upload_reminder_image(request: Request, file: UploadFile = File(...)):
     with open(filepath, "wb") as f:
         f.write(content)
 
-    # Use the request's base URL to construct the public URL
-    base_url = str(request.base_url).rstrip("/")
-    public_url = f"{base_url}/api/static/{filename}"
+    public_url = f"/api/static/{filename}"
     return {"status": "success", "url": public_url}
 
 @router.get("/presets")

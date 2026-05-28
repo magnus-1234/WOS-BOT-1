@@ -6645,6 +6645,17 @@
             }
         }
 
+        function normalizeReminderStaticUrl(url) {
+            if (!url) return url;
+            try {
+                const parsed = new URL(url, window.location.origin);
+                if (/^\/api\/static\/reminder_[a-f0-9]+\.(png|jpe?g|gif|webp)$/i.test(parsed.pathname)) {
+                    return parsed.pathname;
+                }
+            } catch (e) {}
+            return url;
+        }
+
         async function uploadImageForReminder(input, targetId) {
             if (!input.files || input.files.length === 0) return;
             const file = input.files[0];
@@ -6688,6 +6699,7 @@
         }
 
         async function importImageUrlToMongo(url) {
+            url = normalizeReminderStaticUrl(url);
             if (!url || !/^https?:\/\//i.test(url) || isMongoReminderImageUrl(url)) return url;
             const data = await fetchData('/api/reminders/upload-url', {
                 method: 'POST',

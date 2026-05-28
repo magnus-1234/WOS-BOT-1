@@ -8,11 +8,15 @@ from typing import Optional
 import os
 import logging
 import httpx
+import sys
+
+import discord
 
 try:
     from db.mongo_adapters import (
         BirthdayChannelAdapter,
         PendingConfigAdapter,
+        PersistentViewsAdapter,
         RegistrationUserLimitsAdapter,
         ServerAllianceAdapter,
         WelcomeChannelAdapter,
@@ -22,6 +26,7 @@ except ImportError:
     mongo_enabled = lambda: False
     BirthdayChannelAdapter = None
     PendingConfigAdapter = None
+    PersistentViewsAdapter = None
     RegistrationUserLimitsAdapter = None
     ServerAllianceAdapter = None
     WelcomeChannelAdapter = None
@@ -131,6 +136,95 @@ async def _ensure_text_channel(guild, preferred_name: str):
     return channel, True
 
 
+def _build_birthday_manager_embed() -> discord.Embed:
+    embed_text = (
+        "Never miss a alliance member's birthday again!\n\n"
+        "📅 **Add Your Birthday**\n"
+        "Click \"Add Birthday\" and select your birth date.\n\n"
+        "🎂 **Celebrate Together**\n"
+        "Get your special day recognized and join the party vibes with the community.\n\n"
+        "🔄 **Need to Update It?**\n"
+        "Simply click the button again anytime to edit your entry.\n\n"
+        "🗑️ **Want to Remove Your Birthday?**\n"
+        "Use the \"Remove My Entry\" button whenever you like.\n\n"
+        "✨ More members added = more celebrations, more fun, and a stronger community! 🎉"
+    )
+    embed = discord.Embed(title="Birthday Manager 🎉", description=embed_text, color=0xff69b4)
+    embed.set_thumbnail(
+        url="https://cdn.discordapp.com/attachments/1435569370389807144/1496492127494996119/image_34e5650b.png?ex=69ea1466&is=69e8c2e6&hm=d6fa1fe93d7c505e34d5c746c5e36f42d9e076c5dd7aab13a4f0683b1bb1dcde"
+    )
+    return embed
+
+
+def _make_birthday_manager_view(bot):
+    for module_name in ("app", "__main__"):
+        module = sys.modules.get(module_name)
+        view_cls = getattr(module, "BirthdayView", None) if module else None
+        if view_cls:
+            return view_cls(), "birthday"
+
+    birthday_cog = bot.get_cog("BirthdaySystem") if bot else None
+    if birthday_cog:
+        try:
+            import cogs.shared_views as shared_views
+            return shared_views.BirthdayDashboardView(birthday_cog), None
+        except Exception as view_error:
+            logger.warning(f"Could not build fallback birthday dashboard view: {view_error}")
+
+    return None, None
+
+
+async def _send_birthday_manager_message(guild_id: int, channel, bot):
+    try:
+        from db.mongo_adapters import _get_db_main_async
+        db = await _get_db_main_async()
+        doc = await db[BirthdayChannelAdapter.COLL].find_one({"_id": str(guild_id)})
+        existing_message_id = doc.get("quick_setup_message_id") if doc else None
+        existing_channel_id = doc.get("quick_setup_channel_id") if doc else None
+
+        if existing_message_id and str(existing_channel_id or channel.id) == str(channel.id):
+            try:
+                await channel.fetch_message(int(existing_message_id))
+                return {"sent": False, "message_id": str(existing_message_id), "reason": "already_posted"}
+            except Exception:
+                pass
+
+        perms = channel.permissions_for(channel.guild.me)
+        if not perms.send_messages:
+            return {"sent": False, "message_id": "", "reason": "missing_send_messages"}
+
+        view, persistent_view_type = _make_birthday_manager_view(bot)
+        message = await channel.send(embed=_build_birthday_manager_embed(), view=view)
+
+        if view:
+            try:
+                bot.add_view(view, message_id=message.id)
+            except Exception as add_view_error:
+                logger.debug(f"Could not register birthday view for quick setup message {message.id}: {add_view_error}")
+
+        if persistent_view_type and PersistentViewsAdapter:
+            await PersistentViewsAdapter.register_view_async(
+                guild_id=guild_id,
+                channel_id=int(channel.id),
+                message_id=int(message.id),
+                view_type=persistent_view_type,
+                metadata={"source": "quick_setup"}
+            )
+
+        await db[BirthdayChannelAdapter.COLL].update_one(
+            {"_id": str(guild_id)},
+            {"$set": {
+                "quick_setup_message_id": int(message.id),
+                "quick_setup_channel_id": int(channel.id),
+            }},
+            upsert=True,
+        )
+        return {"sent": True, "message_id": str(message.id), "reason": "posted"}
+    except Exception as e:
+        logger.warning(f"Could not post birthday manager message for guild {guild_id}: {e}")
+        return {"sent": False, "message_id": "", "reason": "send_failed"}
+
+
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
 @router.get("/status")
@@ -230,6 +324,7 @@ async def run_quick_setup(body: QuickSetupRequest, request: Request):
     birthday_channel, birthday_created = await _ensure_text_channel(guild, "birthday")
     await WelcomeChannelAdapter.set_async(guild_int, int(welcome_channel.id), True)
     await BirthdayChannelAdapter.set_async(guild_int, int(birthday_channel.id))
+    birthday_manager_message = await _send_birthday_manager_message(guild_int, birthday_channel, bot)
 
     reg_status, reg_doc = await _get_registration_status(guild_int)
     submitted_registration = False
@@ -277,6 +372,7 @@ async def run_quick_setup(body: QuickSetupRequest, request: Request):
             "welcome": {"id": str(welcome_channel.id), "name": welcome_channel.name, "created": welcome_created},
             "birthday": {"id": str(birthday_channel.id), "name": birthday_channel.name, "created": birthday_created},
         },
+        "birthday_manager_message": birthday_manager_message,
         "registration_status": reg_status,
         "registration_submitted": submitted_registration,
         "skipped_reason": skipped_reason,

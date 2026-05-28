@@ -290,61 +290,52 @@
       display: block;
       max-width: 34rem;
       margin: 0;
-      border: 0;
-      border-left: 3px solid rgba(141, 232, 255, 0.72);
-      border-radius: 0;
-      background: linear-gradient(90deg, rgba(255, 255, 255, 0.06), transparent 58%);
-      color: #ffffff;
-      font-family: "Newsreader", var(--font-display);
-      font-size: clamp(2rem, 4.2vw, 4.1rem);
-      font-weight: 700;
-      line-height: 0.94;
+      border: 1px solid rgba(226, 232, 240, 0.12);
+      border-left: 3px solid rgba(125, 211, 252, 0.72);
+      border-radius: 0.55rem;
+      background: rgba(10, 16, 28, 0.58);
+      color: #f8fafc;
+      font-family: var(--font-display);
+      font-size: clamp(1.55rem, 2.4vw, 2.45rem);
+      font-weight: 650;
+      line-height: 1.08;
       letter-spacing: 0;
-      padding: clamp(0.8rem, 2vw, 1.35rem) 0 clamp(0.8rem, 2vw, 1.35rem) clamp(1rem, 2vw, 1.5rem);
+      padding: clamp(1rem, 2vw, 1.4rem);
       text-wrap: balance;
-      text-shadow: 0 0 28px rgba(141, 232, 255, 0.18);
+      text-shadow: none;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
     }
 
     .showcase-card:nth-child(4n + 1) p {
-      border-left-color: #fc3d21;
-      background: linear-gradient(90deg, rgba(252, 61, 33, 0.14), transparent 62%);
+      border-left-color: #fb7185;
     }
 
     .showcase-card:nth-child(4n + 2) p {
-      border-left-color: #005ea8;
-      background: linear-gradient(90deg, rgba(0, 94, 168, 0.18), transparent 62%);
+      border-left-color: #38bdf8;
     }
 
     .showcase-card:nth-child(4n + 3) p {
-      border-left-color: #ffd166;
-      background: linear-gradient(90deg, rgba(255, 209, 102, 0.12), transparent 62%);
+      border-left-color: #facc15;
     }
 
     .showcase-card:nth-child(4n) p {
-      border-left-color: #78e8ff;
-      background: linear-gradient(90deg, rgba(120, 232, 255, 0.12), transparent 62%);
+      border-left-color: #34d399;
     }
 
     .showcase-card p span {
       display: block;
-      margin-top: 1rem;
-      background: linear-gradient(90deg, #fc3d21, #ffffff 28%, #ffd166 56%, #78e8ff 86%);
-      background-clip: text;
-      -webkit-background-clip: text;
-      color: transparent;
-      -webkit-text-fill-color: transparent;
+      margin-top: 0.8rem;
+      color: rgba(226, 232, 240, 0.76);
+      -webkit-text-fill-color: currentColor;
       font-family: var(--font-body);
-      font-size: clamp(1rem, 1.45vw, 1.28rem);
-      font-weight: 700;
-      line-height: 1.45;
+      font-size: clamp(0.95rem, 1.15vw, 1.08rem);
+      font-weight: 500;
+      line-height: 1.55;
     }
 
     [data-theme="cyberpunk-cool"] .showcase-card:nth-child(even) p span {
-      background: linear-gradient(90deg, #0b1020, #fc3d21 36%, #005ea8 72%);
-      background-clip: text;
-      -webkit-background-clip: text;
-      color: transparent;
-      -webkit-text-fill-color: transparent;
+      color: rgba(71, 85, 105, 0.92);
+      -webkit-text-fill-color: currentColor;
     }
 
     .hero-copy {
@@ -2969,24 +2960,24 @@
           translation, reminders, music, and AI tools,etc.</p>
       </div>
 
-      <!-- CYBERPUNK COOL THEME: SYSTEM INFO READOUT (MIDDLE) -->
+      <!-- User environment summary -->
       <div class="cyberpunk-cool-system-info" id="user-system-readout">
-        <div class="sys-info-header">SYSTEM info</div>
+        <div class="sys-info-header">Connection details</div>
         <div class="sys-info-divider">────────────────────────</div>
         <div class="sys-info-grid">
           <div class="sys-info-col">
-            <div class="sys-row"><span class="sys-label">IP:</span><span class="sys-value sys-blue" id="sys-ip">FETCHING...</span></div>
-            <div class="sys-row"><span class="sys-label">REGION:</span><span class="sys-value sys-pink" id="sys-region">DETECTING...</span></div>
-            <div class="sys-row"><span class="sys-label">ISP:</span><span class="sys-value sys-blue" id="sys-isp">UNKNOWN</span></div>
-            <div class="sys-row"><span class="sys-label">DEVICE:</span><span class="sys-value sys-pink" id="sys-device">DETECTING...</span></div>
-            <div class="sys-row"><span class="sys-label">BROWSER:</span><span class="sys-value sys-pink" id="sys-browser">DETECTING...</span></div>
+            <div class="sys-row"><span class="sys-label">IP:</span><span class="sys-value sys-blue" id="sys-ip">Loading...</span></div>
+            <div class="sys-row"><span class="sys-label">REGION:</span><span class="sys-value sys-pink" id="sys-region">Checking...</span></div>
+            <div class="sys-row"><span class="sys-label">ISP:</span><span class="sys-value sys-blue" id="sys-isp">Unknown</span></div>
+            <div class="sys-row"><span class="sys-label">DEVICE:</span><span class="sys-value sys-pink" id="sys-device">Checking...</span></div>
+            <div class="sys-row"><span class="sys-label">BROWSER:</span><span class="sys-value sys-pink" id="sys-browser">Checking...</span></div>
           </div>
           <div class="sys-info-col">
-            <div class="sys-row"><span class="sys-label">TIMEZONE:</span><span class="sys-value sys-blue" id="sys-timezone">CALCULATING...</span></div>
-            <div class="sys-row"><span class="sys-label">LATENCY:</span><span class="sys-value sys-blue" id="sys-latency">PINGING...</span></div>
-            <div class="sys-row"><span class="sys-label">SESSION:</span><span class="sys-value sys-neon">ACTIVE</span></div>
-            <div class="sys-row"><span class="sys-label">TLS:</span><span class="sys-value sys-blue">AES-256 SECURE</span></div>
-            <div class="sys-row"><span class="sys-label">VPN:</span><span class="sys-value sys-neon" id="sys-vpn">NOT DETECTED</span></div>
+            <div class="sys-row"><span class="sys-label">TIMEZONE:</span><span class="sys-value sys-blue" id="sys-timezone">Checking...</span></div>
+            <div class="sys-row"><span class="sys-label">LATENCY:</span><span class="sys-value sys-blue" id="sys-latency">Checking...</span></div>
+            <div class="sys-row"><span class="sys-label">SESSION:</span><span class="sys-value sys-neon">Active</span></div>
+            <div class="sys-row"><span class="sys-label">TLS:</span><span class="sys-value sys-blue">HTTPS</span></div>
+            <div class="sys-row"><span class="sys-label">VPN:</span><span class="sys-value sys-neon" id="sys-vpn">Not detected</span></div>
           </div>
         </div>
         <div class="sys-info-divider">────────────────────────</div>
@@ -3413,7 +3404,7 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      // ── Cyberpunk Cool System Info Logic ──
+      // Connection details shown in the footer.
       const sysIp = document.getElementById("sys-ip");
       const sysRegion = document.getElementById("sys-region");
       const sysIsp = document.getElementById("sys-isp");
@@ -3424,70 +3415,100 @@
 
       const sysVpn = document.getElementById("sys-vpn");
 
-      if (sysTimezone) sysTimezone.textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || "UNKNOWN";
+      if (sysTimezone) sysTimezone.textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown";
 
       const ua = navigator.userAgent;
-      let browser = "UNKNOWN";
+      let browser = "Unknown";
       if (ua.includes("Firefox")) browser = "Firefox " + ua.split("Firefox/")[1].split(" ")[0];
       else if (ua.includes("Chrome")) browser = "Chrome " + ua.split("Chrome/")[1].split(" ")[0].split(".")[0];
       else if (ua.includes("Safari") && !ua.includes("Chrome")) browser = "Safari";
       if (sysBrowser) sysBrowser.textContent = browser;
 
-      let os = "UNKNOWN OS";
+      let os = "Unknown OS";
       if (ua.includes("Win")) os = "Windows";
       else if (ua.includes("Mac")) os = "MacOS";
       else if (ua.includes("Linux")) os = "Linux";
       else if (ua.includes("Android")) os = "Android";
       else if (ua.includes("like Mac")) os = "iOS";
-      if (sysDevice) sysDevice.textContent = os + " Device";
+      if (sysDevice) sysDevice.textContent = os;
 
       const start = performance.now();
       fetch('https://1.1.1.1/cdn-cgi/trace', { mode: 'no-cors' }).then(() => {
         if (sysLatency) sysLatency.textContent = Math.round(performance.now() - start) + "ms";
       }).catch(() => {
-        if (sysLatency) sysLatency.textContent = "14ms"; // mock fallback
+        if (sysLatency) sysLatency.textContent = "Unavailable";
       });
 
-      fetch("https://ipapi.co/json/")
-        .then(res => res.json())
-        .then(data => {
-          if (sysIp) sysIp.textContent = data.ip || "103.xxx.xxx.xxx";
-          if (sysRegion) sysRegion.textContent = (data.region || "Unknown") + ", " + (data.country || "UN");
-          if (sysIsp) sysIsp.textContent = data.org || "Unknown ISP";
+      const fetchJsonWithTimeout = async (url, timeout = 3500) => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeout);
+        try {
+          const response = await fetch(url, { signal: controller.signal, cache: "no-store" });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return await response.json();
+        } finally {
+          clearTimeout(timer);
+        }
+      };
 
-          // VPN Detection Logic
-          const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-          const ipTz = data.timezone;
-          const org = (data.org || "").toLowerCase();
-          const vpnKeywords = ["vpn", "proxy", "hosting", "server", "mullvad", "nordvpn", "expressvpn", "surfshark", "proton", "tunnelbear", "m247", "leaseweb", "digitalocean", "linode", "ovh", "vultr", "aws", "amazon", "google cloud", "cloudflare", "fastly", "akamai", "asn", "datacenter", "tor exit", "private internet", "ipvanish", "vyprvpn", "strongvpn"];
+      const normalizeIpData = data => {
+        if (!data) return null;
+        if (data.success === false || data.error) return null;
 
-          let isVpn = false;
-          if (ipTz && localTz && ipTz.toLowerCase() !== localTz.toLowerCase()) {
-            isVpn = true;
+        return {
+          ip: data.ip || data.query || "",
+          region: data.region || data.regionName || "",
+          country: data.country || data.countryCode || data.country_code || "",
+          org: data.org || data.isp || data.connection?.org || data.connection?.isp || "",
+          timezone: data.timezone || data.time_zone?.id || "",
+          proxy: Boolean(data.proxy || data.security?.proxy || data.security?.vpn || data.security?.tor),
+        };
+      };
+
+      const loadConnectionDetails = async () => {
+        const providers = [
+          "https://ipapi.co/json/",
+          "https://ipwho.is/",
+          "https://ipinfo.io/json",
+        ];
+
+        for (const provider of providers) {
+          try {
+            const normalized = normalizeIpData(await fetchJsonWithTimeout(provider));
+            if (normalized?.ip) return normalized;
+          } catch (error) {
+            continue;
           }
-          if (vpnKeywords.some(kw => org.includes(kw))) {
-            isVpn = true;
-          }
+        }
+        return null;
+      };
 
+      loadConnectionDetails().then(data => {
+        if (!data) {
+          if (sysIp) sysIp.textContent = "Blocked";
+          if (sysRegion) sysRegion.textContent = "Private";
+          if (sysIsp) sysIsp.textContent = "Private";
           if (sysVpn) {
-            if (isVpn) {
-              sysVpn.textContent = "DETECTED";
-              sysVpn.className = "sys-value sys-pink";
-            } else {
-              sysVpn.textContent = "NOT DETECTED";
-              sysVpn.className = "sys-value sys-neon";
-            }
+            sysVpn.textContent = "Unknown";
+            sysVpn.className = "sys-value";
           }
-        })
-        .catch(err => {
-          if (sysIp) sysIp.textContent = "SECURE.IP.HIDDEN";
-          if (sysRegion) sysRegion.textContent = "ENCRYPTED, XX";
-          if (sysIsp) sysIsp.textContent = "ANONYMOUS RELAY";
-          if (sysVpn) {
-            sysVpn.textContent = "DETECTED (SECURE)";
-            sysVpn.className = "sys-value sys-pink";
-          }
-        });
+          return;
+        }
+
+        if (sysIp) sysIp.textContent = data.ip || "Unknown";
+        if (sysRegion) sysRegion.textContent = data.region && data.country ? `${data.region}, ${data.country}` : data.country || "Unknown";
+        if (sysIsp) sysIsp.textContent = data.org || "Unknown";
+
+        const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const org = (data.org || "").toLowerCase();
+        const vpnKeywords = ["vpn", "proxy", "hosting", "mullvad", "nordvpn", "expressvpn", "surfshark", "proton", "tunnelbear", "m247", "leaseweb", "digitalocean", "linode", "ovh", "vultr", "aws", "amazon", "google cloud", "cloudflare", "fastly", "akamai", "datacenter", "tor exit", "private internet", "ipvanish", "vyprvpn", "strongvpn"];
+        const isVpn = data.proxy || Boolean(data.timezone && localTz && data.timezone.toLowerCase() !== localTz.toLowerCase()) || vpnKeywords.some(kw => org.includes(kw));
+
+        if (sysVpn) {
+          sysVpn.textContent = isVpn ? "Possible" : "Not detected";
+          sysVpn.className = isVpn ? "sys-value sys-pink" : "sys-value sys-neon";
+        }
+      });
     });
   </script>
 </body>

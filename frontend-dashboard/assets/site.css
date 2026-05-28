@@ -7312,6 +7312,54 @@ body {
   display: none !important;
 }
 
+.chat-announcement-compose,
+.fchat-announcement-compose {
+  display: grid;
+  gap: 0.5rem;
+  border: 1px solid rgba(250, 204, 21, 0.32);
+  border-radius: 1rem;
+  background: rgba(250, 204, 21, 0.08);
+  padding: 0.75rem;
+}
+
+.chat-announcement-compose span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chat-announcement-compose div,
+.fchat-announcement-compose {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chat-announcement-compose input,
+.fchat-announcement-compose input {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 0.8rem;
+  background: rgba(15, 23, 42, 0.72);
+  color: var(--text-primary);
+  padding: 0.62rem 0.72rem;
+  font: inherit;
+}
+
+.chat-announcement-compose button,
+.fchat-announcement-compose button {
+  border: 0;
+  border-radius: 0.8rem;
+  background: linear-gradient(135deg, #facc15, #fb923c);
+  color: #2f2104;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 0.64rem 0.85rem;
+}
+
 .chat-room-side,
 .chat-room-main,
 .chat-member-panel,
@@ -7375,13 +7423,36 @@ body {
   display: block;
 }
 
-.chat-announcement::before {
+.chat-announcement-track {
+  display: flex;
+  width: max-content;
+  min-width: 200%;
+  animation: siteAnnouncementMarquee 20s linear infinite;
+}
+
+.chat-announcement-track span {
+  display: inline-flex;
+  min-width: 50vw;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: center;
+  padding: 0.48rem 2rem;
+  white-space: nowrap;
+}
+
+.chat-announcement-track span::before {
   content: "Announcement";
-  display: inline-block;
-  margin-right: 1rem;
   border-radius: 999px;
   background: rgba(63, 47, 5, 0.14);
   padding: 0.16rem 0.55rem;
   font-size: 0.68rem;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 640px) {
+  .chat-announcement-compose div,
+  .fchat-announcement-compose {
+    grid-template-columns: 1fr;
+  }
 }

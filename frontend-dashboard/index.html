@@ -3079,11 +3079,18 @@
       <strong data-room-status style="font-weight:normal;">Connecting...</strong>
     </div>
 
+    <div class="fchat-announcement-strip chat-announcement" data-room-announcement hidden></div>
+
     <!-- Guest login panel -->
     <div class="fchat-login-panel global-chat-login room-login" data-room-login>
       <input type="text" maxlength="32" placeholder="Your player name" autocomplete="nickname" data-room-name>
       <button type="button" data-room-guest>Join</button>
       <a href="login.html" data-room-discord>Discord</a>
+    </div>
+
+    <div class="fchat-announcement-compose">
+      <input type="text" maxlength="180" placeholder="Advertise or announce" data-room-announcement-public-input>
+      <button type="button" data-room-announcement-public-send>Post</button>
     </div>
 
     <!-- Loading -->

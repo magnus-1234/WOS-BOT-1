@@ -61,6 +61,8 @@
     announcement: roomRoot.querySelector("[data-room-announcement]"),
     announcementInput: roomRoot.querySelector("[data-room-announcement-input]"),
     announcementSend: roomRoot.querySelector("[data-room-announcement-send]"),
+    announcementPublicInput: roomRoot.querySelector("[data-room-announcement-public-input]"),
+    announcementPublicSend: roomRoot.querySelector("[data-room-announcement-public-send]"),
     clear: roomRoot.querySelector("[data-room-clear]"),
     dice: roomRoot.querySelector("[data-room-dice]"),
     voiceCall: roomRoot.querySelector("[data-room-voice-call]"),
@@ -260,9 +262,21 @@
     }
   };
   const setAnnouncement = (text) => {
+    window.dispatchEvent(new CustomEvent("wos:announcement", { detail: { announcement: text || "" } }));
     if (!el.announcement) return;
-    el.announcement.hidden = !text;
-    el.announcement.textContent = text || "";
+    const message = (text || "").trim();
+    el.announcement.hidden = !message;
+    el.announcement.replaceChildren();
+    if (!message) return;
+    const track = document.createElement("div");
+    track.className = "chat-announcement-track";
+    for (let index = 0; index < 2; index += 1) {
+      const span = document.createElement("span");
+      span.textContent = message;
+      if (index === 1) span.setAttribute("aria-hidden", "true");
+      track.appendChild(span);
+    }
+    el.announcement.appendChild(track);
   };
   const updateAdminView = () => {
     syncAdminAccess();
@@ -432,6 +446,12 @@
   };
 
   const connectWebSocket = () => {
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+    if (!navigator.onLine) {
+      setStatus("You are offline. Chat will reconnect when internet returns.", true);
+      scheduleReconnect();
+      return;
+    }
     const connectionId = ++wsConnectionId;
     if (ws) {
       try { ws.close(); } catch (e) {}
@@ -448,6 +468,7 @@
     const wsUrl = `${proto}://${location.host}/api/chat/ws`;
     try {
       ws = new WebSocket(wsUrl);
+      setStatus("Connecting to global room...");
     } catch (e) {
       console.warn("WebSocket construction failed:", e);
       scheduleReconnect();
@@ -508,7 +529,9 @@
   const scheduleReconnect = () => {
     if (isPageUnloading || wsReconnectTimer) return;
     wsReconnectAttempts += 1;
-    const delay = Math.min(30000, 1200 * Math.pow(1.65, wsReconnectAttempts - 1));
+    const delay = navigator.onLine
+      ? Math.min(30000, 1200 * Math.pow(1.65, wsReconnectAttempts - 1))
+      : 10000;
     wsReconnectTimer = setTimeout(() => {
       wsReconnectTimer = null;
       connectWebSocket();
@@ -1287,6 +1310,35 @@
     }
   };
 
+  const publishAnnouncement = async (input, allowEmpty = false) => {
+    const announcement = (input && input.value || "").trim();
+    if (!announcement && !allowEmpty) {
+      setStatus("Write an announcement first", true);
+      if (input) input.focus();
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/chat/announcement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({
+          announcement,
+          display_name: getGuestName() || el.name.value,
+          guest_id: getGuestId(),
+          avatar_url: getGuestAvatar()
+        })
+      });
+      if (!response.ok) throw new Error("Announcement failed");
+      const data = await response.json();
+      setAnnouncement(data.announcement);
+      if (input) input.value = "";
+      setStatus(data.announcement ? "Announcement published" : "Announcement cleared");
+    } catch (error) {
+      setStatus("Announcement was not sent", true);
+    }
+  };
+
   const sendDice = () => {
     const rolled = Math.floor(Math.random() * 6) + 1;
     el.input.value = `🎲 rolled a survival die: ${rolled}`;
@@ -1585,10 +1637,16 @@
   });
   if (el.announcementSend) el.announcementSend.addEventListener("click", () => {
     if (!isAdmin) return;
-    const announcement = (el.announcementInput && el.announcementInput.value || "").trim();
-    setAnnouncement(announcement);
-    sendWs({ type: "admin:announcement", announcement });
-    if (el.announcementInput) el.announcementInput.value = "";
+    publishAnnouncement(el.announcementInput, true);
+  });
+  if (el.announcementPublicSend) el.announcementPublicSend.addEventListener("click", () => {
+    publishAnnouncement(el.announcementPublicInput);
+  });
+  if (el.announcementPublicInput) el.announcementPublicInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      publishAnnouncement(el.announcementPublicInput);
+    }
   });
   if (el.clear) el.clear.addEventListener("click", () => {
     if (!isAdmin) return;
@@ -1691,6 +1749,20 @@
   });
   el.voice.addEventListener("click", toggleVoice);
   el.replyClear.addEventListener("click", clearReply);
+  window.addEventListener("online", () => {
+    setStatus("Internet restored. Reconnecting...");
+    if (wsReconnectTimer) {
+      clearTimeout(wsReconnectTimer);
+      wsReconnectTimer = null;
+    }
+    connectWebSocket();
+    if (!wsConnected) startFallbackPolling();
+  });
+  window.addEventListener("offline", () => {
+    wsConnected = false;
+    setStatus("You are offline. Chat will keep trying.", true);
+    startFallbackPolling();
+  });
   window.addEventListener("beforeunload", () => {
     isPageUnloading = true;
     if (pollTimer) window.clearInterval(pollTimer);

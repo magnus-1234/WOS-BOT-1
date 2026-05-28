@@ -142,6 +142,10 @@
     .then((state) => renderSiteAnnouncement(state && state.announcement))
     .catch(() => {});
 
+  window.addEventListener("wos:announcement", (event) => {
+    renderSiteAnnouncement(event.detail && event.detail.announcement);
+  });
+
   const liveStats = document.querySelectorAll("[data-live-stat]");
   if (liveStats.length) {
     const setStat = (key, value) => {

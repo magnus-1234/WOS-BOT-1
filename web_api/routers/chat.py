@@ -26,6 +26,33 @@ router = APIRouter(prefix="/api/chat", tags=["Global Chat"])
 CHAT_ADMIN_USER_IDS = {
     os.getenv("CHAT_ADMIN_USER_ID", "850786361572720661")
 }
+ROOM_STATE_STORE = Path("data/global_chat_room_state.json")
+
+
+def _default_room_state() -> Dict[str, Any]:
+    return {
+        "is_blizzard_active": False,
+        "announcement": None,
+        "announcement_author": None,
+        "announcement_updated_at": None,
+    }
+
+
+def _read_room_state() -> Dict[str, Any]:
+    state = _default_room_state()
+    if ROOM_STATE_STORE.exists():
+        try:
+            stored = json.loads(ROOM_STATE_STORE.read_text(encoding="utf-8"))
+            if isinstance(stored, dict):
+                state.update({key: stored.get(key) for key in state.keys() if key in stored})
+        except Exception as exc:
+            logger.error("Failed to read %s: %s", ROOM_STATE_STORE, exc)
+    return state
+
+
+def _write_room_state(state: Dict[str, Any]) -> None:
+    ROOM_STATE_STORE.parent.mkdir(parents=True, exist_ok=True)
+    ROOM_STATE_STORE.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _is_chat_admin(info: Optional[Dict[str, Any]]) -> bool:
@@ -38,10 +65,7 @@ def _is_chat_admin(info: Optional[Dict[str, Any]]) -> bool:
 class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[WebSocket, Dict[str, Any]] = {}
-        self.room_state: Dict[str, Any] = {
-            "is_blizzard_active": False,
-            "announcement": None,
-        }
+        self.room_state: Dict[str, Any] = _read_room_state()
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -155,6 +179,18 @@ class ConnectionManager:
     async def broadcast_room_state(self):
         await self.broadcast({"type": "room_state", **self.room_state})
 
+    async def update_announcement(self, announcement: Optional[str], author: Optional[Dict[str, Any]] = None):
+        self.room_state["announcement"] = announcement or None
+        self.room_state["announcement_author"] = (author or {}).get("name") if announcement else None
+        self.room_state["announcement_updated_at"] = _utc_now_iso() if announcement else None
+        _write_room_state(self.room_state)
+        await self.broadcast({
+            "type": "admin:announcement",
+            "announcement": self.room_state["announcement"],
+            "announcement_author": self.room_state["announcement_author"],
+            "announcement_updated_at": self.room_state["announcement_updated_at"],
+        })
+
 
 manager = ConnectionManager()
 
@@ -179,14 +215,14 @@ async def websocket_endpoint(websocket: WebSocket):
                     await websocket.send_json({"type": "admin:error", "message": "Admin access required."})
                     continue
                 manager.room_state["is_blizzard_active"] = bool(data.get("is_frozen"))
+                _write_room_state(manager.room_state)
                 await manager.broadcast_room_state()
             elif event_type == "admin:announcement":
                 if not _is_chat_admin(manager.active_connections.get(websocket)):
                     await websocket.send_json({"type": "admin:error", "message": "Admin access required."})
                     continue
                 announcement = _clean_text(data.get("announcement") or "", 180)
-                manager.room_state["announcement"] = announcement or None
-                await manager.broadcast({"type": "admin:announcement", "announcement": manager.room_state["announcement"]})
+                await manager.update_announcement(announcement or None, manager.active_connections.get(websocket))
             elif event_type == "admin:clear":
                 if not _is_chat_admin(manager.active_connections.get(websocket)):
                     await websocket.send_json({"type": "admin:error", "message": "Admin access required."})
@@ -322,6 +358,13 @@ class PresenceRequest(BaseModel):
     guest_id: Optional[str] = Field(default=None, max_length=80)
     avatar_url: Optional[str] = Field(default=None, max_length=500)
     timezone: Optional[str] = Field(default=None, max_length=80)
+
+
+class AnnouncementRequest(BaseModel):
+    announcement: str = Field(default="", max_length=180)
+    display_name: Optional[str] = Field(default=None, max_length=MAX_NAME_LENGTH)
+    guest_id: Optional[str] = Field(default=None, max_length=80)
+    avatar_url: Optional[str] = Field(default=None, max_length=500)
 
 
 def _utc_now_iso() -> str:
@@ -464,6 +507,22 @@ async def _resolve_chat_actor(request: Request, display_name: Optional[str], gue
         "username": _clean_name(display_name),
         "avatar_url": avatar_url if avatar_url and (avatar_url.startswith("http://") or avatar_url.startswith("https://")) else None,
         "kind": "wos" if safe_guest_id.isdigit() else "guest",
+    }
+
+
+@router.post("/announcement")
+async def post_announcement(payload: AnnouncementRequest, request: Request):
+    announcement = _clean_text(payload.announcement or "", 180)
+    author = await _resolve_chat_actor(request, payload.display_name, payload.guest_id, payload.avatar_url)
+
+    if not announcement and not _is_chat_admin(author):
+        raise HTTPException(status_code=400, detail="Announcement text is required.")
+
+    await manager.update_announcement(announcement or None, author)
+    return {
+        "announcement": manager.room_state["announcement"],
+        "announcement_author": manager.room_state["announcement_author"],
+        "announcement_updated_at": manager.room_state["announcement_updated_at"],
     }
 
 

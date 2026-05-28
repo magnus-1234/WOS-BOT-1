@@ -5065,6 +5065,11 @@
                 }
                 
                 el.addEventListener('scroll', () => updateWheelSelection(el));
+                el.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    el.scrollTop += e.deltaY;
+                    updateWheelSelection(el);
+                }, { passive: false });
                 
                 // Drag to scroll support
                 let isDown = false;
@@ -5097,17 +5102,6 @@
                 });
             });
             
-            // Initial selection based on current time
-            setTimeout(() => {
-                const now = new Date();
-                let h = now.getHours();
-                const p = h >= 12 ? 'PM' : 'AM';
-                h = h % 12 || 12;
-                setWheelValue(document.getElementById('wheel-hour'), String(h).padStart(2, '0'));
-                setWheelValue(document.getElementById('wheel-min'), String(now.getMinutes()).padStart(2, '0'));
-                setWheelValue(document.getElementById('wheel-sec'), '00');
-                setWheelValue(document.getElementById('wheel-ampm'), p);
-            }, 500);
         }
 
         function updateWheelSelection(el) {
@@ -6837,8 +6831,8 @@
             }
         }
 
-        function editCommunityPreset(id) {
-            const p = REMINDER_PRESETS.find(x => x.id === id);
+        async function editCommunityPreset(id) {
+            const p = await getLatestCommunityPreset(id);
             if (!p) return;
             openReminderModal(null, id, true);
         }
@@ -6859,6 +6853,22 @@
 
         let REMINDER_PRESETS = [];
         let communityPresetsDebounce = null;
+
+        async function getLatestCommunityPreset(id) {
+            try {
+                const res = await fetchData(`/api/reminders/presets/${id}`);
+                const preset = res.preset;
+                if (preset) {
+                    const index = REMINDER_PRESETS.findIndex(p => p.id === id);
+                    if (index >= 0) REMINDER_PRESETS[index] = preset;
+                    else REMINDER_PRESETS.unshift(preset);
+                }
+                return preset;
+            } catch (e) {
+                showNotification(e.message || 'Failed to load latest preset', true);
+                return null;
+            }
+        }
 
         async function loadCommunityPresets(query = '') {
             const grid = document.getElementById('reminder-presets');
@@ -7103,8 +7113,8 @@
             }
         }
 
-        function applyReminderPreset(presetId, options = {}) {
-            const preset = REMINDER_PRESETS.find(p => p.id === presetId);
+        async function applyReminderPreset(presetId, options = {}) {
+            const preset = await getLatestCommunityPreset(presetId);
             if (!preset) return;
             selectedReminderPreset = presetId;
             const imageUrl = preset.image_url || '';
@@ -7184,7 +7194,7 @@
             return 'Recurring';
         }
 
-        function openReminderModal(reminderId = null, presetId = null, editPreset = false) {
+        async function openReminderModal(reminderId = null, presetId = null, editPreset = false) {
             currentLoadedPresetId = editPreset ? null : presetId;
             currentReminderId = reminderId;
             selectedReminderPreset = null;
@@ -7279,7 +7289,7 @@
                 if (savePresetBox) savePresetBox.style.display = 'block';
                 handleSavePresetChange(document.getElementById('reminder-save-as-preset'));
                 
-                if (presetId) applyReminderPreset(presetId, { silent: editPreset });
+                if (presetId) await applyReminderPreset(presetId, { silent: editPreset });
                 if (editPreset) {
                     const preset = REMINDER_PRESETS.find(p => p.id === presetId);
                     if (!preset?.target_time) {

@@ -190,6 +190,23 @@ async def get_builtin_presets(request: Request):
         logger.error(f"Failed to load builtin presets: {e}")
         return {"presets": []}
 
+@router.get("/presets/{preset_id}")
+async def get_community_preset(request: Request, preset_id: str):
+    """Get the latest version of a single community preset."""
+    try:
+        col = _get_presets_collection()
+        if col is None:
+            raise HTTPException(status_code=503, detail="Storage not available")
+        preset = col.find_one({"id": preset_id}, {"_id": 0})
+        if not preset:
+            raise HTTPException(status_code=404, detail="Preset not found")
+        return {"preset": preset}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to fetch community preset {preset_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch preset")
+
 @router.post("/presets")
 async def create_community_preset(request: Request, payload: CommunityPresetCreate):
     """Create a new community reminder preset visible to all users."""

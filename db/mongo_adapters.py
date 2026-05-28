@@ -5084,7 +5084,7 @@ class ServerLimitsAdapter:
 class PendingConfigAdapter:
     """Adapter for managing pending server self-registration requests.
     
-    Stores: guild_id, guild_name, alliance_name, access_code, discord_user_id,
+    Stores: guild_id, guild_name, alliance_name, access_code, state, discord_user_id,
     discord_username, status (pending/approved/denied).
     One request per guild; one approved/pending per user globally.
     """
@@ -5093,25 +5093,29 @@ class PendingConfigAdapter:
     @staticmethod
     async def submit_async(guild_id: int, guild_name: str, alliance_name: str,
                            access_code: str, discord_user_id: int,
-                           discord_username: str) -> bool:
+                           discord_username: str, state: Optional[int] = None) -> bool:
         """Submit a new pending config request."""
         try:
             db = await _get_db_main_async()
             now = datetime.utcnow().isoformat()
+            payload = {
+                'guild_id': str(guild_id),
+                'guild_name': str(guild_name),
+                'alliance_name': str(alliance_name),
+                'access_code': str(access_code),
+                'discord_user_id': str(discord_user_id),
+                'discord_username': str(discord_username),
+                'status': 'pending',
+                'submitted_at': now,
+                'updated_at': now
+            }
+            if state is not None:
+                payload['state'] = int(state)
+
             await db[PendingConfigAdapter.COLL].update_one(
                 {'guild_id': str(guild_id)},
                 {
-                    '$set': {
-                        'guild_id': str(guild_id),
-                        'guild_name': str(guild_name),
-                        'alliance_name': str(alliance_name),
-                        'access_code': str(access_code),
-                        'discord_user_id': str(discord_user_id),
-                        'discord_username': str(discord_username),
-                        'status': 'pending',
-                        'submitted_at': now,
-                        'updated_at': now
-                    },
+                    '$set': payload,
                     '$setOnInsert': {'created_at': now}
                 },
                 upsert=True
@@ -5170,17 +5174,21 @@ class PendingConfigAdapter:
             if not doc:
                 return False
             now = datetime.utcnow().isoformat()
+            server_payload = {
+                'id': int(guild_id),
+                'alliance_name': doc['alliance_name'],
+                'member_list_password': doc['access_code'],
+                'password_set_by': int(admin_user_id),
+                'password_set_at': now,
+                'updated_at': now
+            }
+            if doc.get('state') is not None:
+                server_payload['state'] = int(doc['state'])
+
             await db[ServerAllianceAdapter.COLL].update_one(
                 {'_id': str(guild_id)},
                 {
-                    '$set': {
-                        'id': int(guild_id),
-                        'alliance_name': doc['alliance_name'],
-                        'member_list_password': doc['access_code'],
-                        'password_set_by': int(admin_user_id),
-                        'password_set_at': now,
-                        'updated_at': now
-                    },
+                    '$set': server_payload,
                     '$setOnInsert': {'created_at': now}
                 },
                 upsert=True

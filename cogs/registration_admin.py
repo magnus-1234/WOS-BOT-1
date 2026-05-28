@@ -297,11 +297,13 @@ class RegistrationAdmin(commands.Cog):
                 color=0xf59e0b
             )
             for doc in docs[:10]:  # Show up to 10
+                state_text = f"`{doc.get('state')}`" if doc.get("state") is not None else "`not provided`"
                 embed.add_field(
                     name=f"🏰 {doc.get('guild_name', 'Unknown Server')}",
                     value=(
                         f"**Guild ID:** `{doc.get('guild_id')}`\n"
                         f"**Alliance:** `{doc.get('alliance_name')}`\n"
+                        f"**State:** {state_text}\n"
                         f"**By:** {doc.get('discord_username')} (`{doc.get('discord_user_id')}`)\n"
                         f"**Submitted:** {doc.get('submitted_at', 'N/A')[:10]}\n"
                         f"Use `/reg-approve {doc.get('guild_id')}` or `/reg-deny {doc.get('guild_id')}`"

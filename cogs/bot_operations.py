@@ -6,6 +6,7 @@ import os
 import sqlite3
 import asyncio
 import requests
+import logging
 from .alliance_member_operations import AllianceSelectView
 from admin_utils import is_bot_owner
 try:
@@ -19,6 +20,8 @@ except Exception:
     RecordsAdapter = None
     AuthSessionsAdapter = None
     PlayerTimezonesAdapter = None
+
+logger = logging.getLogger(__name__)
 
 class BotOperations(commands.Cog):
     def __init__(self, bot, conn):
@@ -5944,10 +5947,35 @@ class BotOperations(commands.Cog):
                     async def on_submit(self, modal_interaction: discord.Interaction):
                         await modal_interaction.response.defer(ephemeral=True)
                         try:
-                            from db.mongo_adapters import PendingConfigAdapter, mongo_enabled
+                            from db.mongo_adapters import PendingConfigAdapter, ServerAllianceAdapter
                             guild_id = modal_interaction.guild_id
+                            guild = modal_interaction.guild
                             user_id = modal_interaction.user.id
                             username = modal_interaction.user.name
+                            alliance_name = " ".join(self.alliance_name.value.strip().split())
+                            access_code = self.access_code.value.strip()
+                            state_val = self.state_number.value.strip()
+
+                            if not guild_id or not guild:
+                                await modal_interaction.followup.send(
+                                    "❌ Registration must be started from inside a Discord server.",
+                                    ephemeral=True
+                                )
+                                return
+
+                            if not modal_interaction.user.guild_permissions.administrator:
+                                await modal_interaction.followup.send(
+                                    "❌ Only server administrators can register this server.",
+                                    ephemeral=True
+                                )
+                                return
+
+                            if ServerAllianceAdapter.get_password(guild_id):
+                                await modal_interaction.followup.send(
+                                    "✅ This server is already registered. Run `/manage` again to authenticate.",
+                                    ephemeral=True
+                                )
+                                return
 
                             existing_user = await PendingConfigAdapter.get_by_user_async(user_id)
                             if existing_user and existing_user.get("guild_id") != str(guild_id):
@@ -5958,51 +5986,113 @@ class BotOperations(commands.Cog):
                                 )
                                 return
 
-                            state_val = self.state_number.value.strip()
                             if not state_val.isdigit():
                                 await modal_interaction.followup.send("❌ State must be a valid number.", ephemeral=True)
                                 return
+                            state_number = int(state_val)
+                            if state_number < 1 or state_number > 99999:
+                                await modal_interaction.followup.send(
+                                    "❌ State must be between 1 and 99999.",
+                                    ephemeral=True
+                                )
+                                return
+
+                            if len(alliance_name) < 2:
+                                await modal_interaction.followup.send(
+                                    "❌ Alliance name must contain at least 2 characters.",
+                                    ephemeral=True
+                                )
+                                return
+                            if len(access_code) < 4:
+                                await modal_interaction.followup.send(
+                                    "❌ Access Code must contain at least 4 characters.",
+                                    ephemeral=True
+                                )
+                                return
+
+                            existing_guild = await PendingConfigAdapter.get_by_guild_async(guild_id)
+                            if existing_guild and existing_guild.get("status") == "pending":
+                                same_user = existing_guild.get("discord_user_id") == str(user_id)
+                                if not same_user:
+                                    await modal_interaction.followup.send(
+                                        "⏳ This server already has a pending registration request. "
+                                        "Ask the original requester or global admin to approve, deny, or resubmit it.",
+                                        ephemeral=True
+                                    )
+                                    return
 
                             ok = await PendingConfigAdapter.submit_async(
                                 guild_id=guild_id,
-                                guild_name=modal_interaction.guild.name,
-                                alliance_name=self.alliance_name.value.strip(),
-                                access_code=self.access_code.value.strip(),
+                                guild_name=guild.name,
+                                alliance_name=alliance_name,
+                                access_code=access_code,
                                 discord_user_id=user_id,
                                 discord_username=username,
-                                state=int(state_val)
+                                state=state_number
                             )
                             if not ok:
                                 await modal_interaction.followup.send("❌ Failed to save registration request. Try again later.", ephemeral=True)
                                 return
 
+                            owner_notified = False
                             try:
                                 import os
                                 owner_id = int(os.getenv("BOT_OWNER_ID", "0"))
                                 if owner_id:
                                     admin_user = await modal_interaction.client.fetch_user(owner_id)
                                     if admin_user:
+                                        view = None
+                                        try:
+                                            from .registration_admin import ApproveView
+                                            view = ApproveView(
+                                                str(guild_id),
+                                                guild.name,
+                                                alliance_name,
+                                                str(user_id),
+                                                username,
+                                                access_code
+                                            )
+                                        except Exception as view_error:
+                                            logger.warning("Registration approve view unavailable: %s", view_error)
                                         msg = (
                                             f"📋 **New Server Registration Request (Via Bot)**\n\n"
-                                            f"**Server:** {modal_interaction.guild.name} (`{guild_id}`)\n"
-                                            f"**State:** `{state_val}`\n"
-                                            f"**Alliance Name:** `{self.alliance_name.value.strip()}`\n"
+                                            f"**Server:** {guild.name} (`{guild_id}`)\n"
+                                            f"**State:** `{state_number}`\n"
+                                            f"**Alliance Name:** `{alliance_name}`\n"
                                             f"**Requested by:** {username} (`{user_id}`)\n"
-                                            f"**Access Code:** ||`{self.access_code.value.strip()}`||\n\n"
+                                            f"**Access Code:** ||`{access_code}`||\n\n"
                                             f"Reply with `/reg-approve {guild_id}` or `/reg-deny {guild_id}`"
                                         )
-                                        await admin_user.send(msg)
+                                        await admin_user.send(msg, view=view)
+                                        owner_notified = True
                             except Exception as e:
-                                pass
+                                logger.warning(
+                                    "Failed to notify bot owner for registration guild %s: %s",
+                                    guild_id,
+                                    e
+                                )
 
+                            status_line = (
+                                "The global administrator has been notified."
+                                if owner_notified
+                                else "The request was saved, but I could not DM the global administrator. Please contact the bot owner."
+                            )
                             await modal_interaction.followup.send(
                                 "✅ **Registration Submitted!**\n\n"
-                                "Your request has been sent to the global administrator for review.\n"
+                                f"{status_line}\n"
                                 "You will receive a Direct Message once it is approved.",
                                 ephemeral=True
                             )
                         except Exception as e:
-                            await modal_interaction.followup.send("❌ An unexpected error occurred.", ephemeral=True)
+                            logger.exception(
+                                "Unexpected server registration error for guild %s by user %s",
+                                getattr(modal_interaction, "guild_id", None),
+                                getattr(modal_interaction.user, "id", None)
+                            )
+                            await modal_interaction.followup.send(
+                                "❌ Registration could not be completed. The error has been logged; please try again or contact the bot owner.",
+                                ephemeral=True
+                            )
 
                 class RegistrationPromptView(discord.ui.View):
                     def __init__(self):

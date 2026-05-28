@@ -571,13 +571,39 @@ async def _create_announcement_message(announcement: str, author: Dict[str, Any]
 
 
 async def _online_count() -> int:
+    return len(await _online_users())
+
+
+async def _online_users() -> List[Dict[str, Any]]:
     cutoff = _presence_cutoff_iso()
+    users_by_key: Dict[str, Dict[str, Any]] = {}
     collection = await _get_collection(PRESENCE_COLLECTION)
     if collection is not None:
-        return await collection.count_documents({"last_seen": {"$gte": cutoff}})
+        cursor = collection.find({"last_seen": {"$gte": cutoff}})
+        docs = await cursor.to_list(length=500)
+    else:
+        docs = [
+            item
+            for item in _read_fallback_presence().values()
+            if item.get("last_seen", "") >= cutoff
+        ]
 
-    presence = _read_fallback_presence()
-    return sum(1 for item in presence.values() if item.get("last_seen", "") >= cutoff)
+    for doc in docs:
+        author = doc.get("author") or {}
+        user_id = str(author.get("id") or author.get("name") or "").strip()
+        if not user_id:
+            continue
+        users_by_key[user_id] = {
+            "id": author.get("id"),
+            "name": author.get("name"),
+            "avatar_url": author.get("avatar_url"),
+            "kind": author.get("kind"),
+            "furnace_level": author.get("furnace_level"),
+            "furnace_level_formatted": author.get("furnace_level_formatted"),
+            "state_id": author.get("state_id"),
+            "last_seen": doc.get("last_seen"),
+        }
+    return list(users_by_key.values())
 
 
 def _coerce_int(value: int, fallback: int, min_value: int, max_value: int) -> int:
@@ -922,12 +948,14 @@ async def update_presence(payload: PresenceRequest, request: Request):
         presence[key] = doc
         _write_fallback_presence(presence)
 
-    return {"online_count": await _online_count(), "you": author}
+    users = await _online_users()
+    return {"online_count": len(users), "users": users, "you": author}
 
 
 @router.get("/presence")
 async def get_presence():
-    return {"online_count": await _online_count()}
+    users = await _online_users()
+    return {"online_count": len(users), "users": users}
 
 
 @router.post("/messages/{message_id}/react")

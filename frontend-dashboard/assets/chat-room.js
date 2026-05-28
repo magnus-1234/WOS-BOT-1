@@ -1061,6 +1061,14 @@
     const isAnnouncement = message.source === "announcement";
     if (isAnnouncement) {
       article.classList.add("chat-message-announcement");
+      const bubble = document.createElement("div");
+      bubble.className = "chat-bubble";
+      const content = document.createElement("p");
+      content.className = "chat-content";
+      content.textContent = message.content || "";
+      bubble.appendChild(content);
+      article.appendChild(bubble);
+      return article;
     }
 
     const avatar = document.createElement("div");
@@ -1113,18 +1121,7 @@
 
     if (message.content) {
       const diceMatch = message.content.match(/rolled a survival die:\s*([1-6])/i);
-      if (isAnnouncement) {
-        const content = document.createElement("p");
-        content.className = "chat-content";
-        content.textContent = message.content;
-        bubble.appendChild(content);
-        if (message.announcement_author) {
-          const byline = document.createElement("span");
-          byline.className = "chat-announcement-byline";
-          byline.textContent = `Posted by ${message.announcement_author}`;
-          bubble.appendChild(byline);
-        }
-      } else if (diceMatch) {
+      if (diceMatch) {
         const dice = document.createElement("div");
         dice.className = "chat-dice-card";
         dice.innerHTML = `<span>Survival Dice</span><strong>${diceMatch[1]}</strong>`;
@@ -1272,6 +1269,10 @@
       if (!response.ok) return;
       const data = await response.json();
       el.online.textContent = String(data.online_count || 0);
+      onlineUsers = data.users || [];
+      renderActiveRoom();
+      renderSessions();
+      renderMembers();
     } catch (error) {
       // Presence is best-effort.
     }

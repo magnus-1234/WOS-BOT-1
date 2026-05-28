@@ -6818,19 +6818,7 @@
         function editCommunityPreset(id) {
             const p = REMINDER_PRESETS.find(x => x.id === id);
             if (!p) return;
-            editingPresetId = id;
-            document.getElementById('cp-title').value = p.title || '';
-            document.getElementById('cp-message').value = p.message || '';
-            document.getElementById('cp-body').value = p.body || '';
-            document.getElementById('cp-recurrence').value = p.recurrence_type || 'none';
-            document.getElementById('cp-interval').value = p.recurrence_interval || '1';
-            document.getElementById('cp-mention').value = p.mention || 'none';
-            document.getElementById('cp-image').value = p.image_url || '';
-            document.getElementById('cp-thumbnail').value = p.thumbnail_url || '';
-            document.getElementById('cp-footer').value = p.footer_text || '';
-            document.getElementById('cp-footer-icon').value = p.footer_icon_url || '';
-            document.getElementById('create-preset-modal').style.display = 'flex';
-            updatePresetPreview();
+            openReminderModal(null, id, true);
         }
         
         async function saveAsCommunityPreset(data) {
@@ -7065,7 +7053,35 @@
             }
         }
 
-        function applyReminderPreset(presetId) {
+        function applyReminderScheduleFields(preset) {
+            if (!preset) return;
+            if (preset.channel_id) {
+                document.getElementById('reminder-channel').value = preset.channel_id;
+            }
+            if (preset.timezone) {
+                document.getElementById('reminder-timezone').value = preset.timezone;
+            }
+            if (preset.target_time) {
+                const raw = String(preset.target_time);
+                const localMatch = raw.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+                const d = localMatch ? null : parseReminderDate(raw);
+                const datePart = localMatch ? localMatch[1] : (d ? d.toISOString().split('T')[0] : '');
+                let h24 = localMatch ? parseInt(localMatch[2], 10) : (d ? d.getHours() : null);
+                const min = localMatch ? localMatch[3] : (d ? String(d.getMinutes()).padStart(2, '0') : '00');
+                const sec = localMatch ? (localMatch[4] || '00') : (d ? String(d.getSeconds()).padStart(2, '0') : '00');
+                if (datePart && h24 !== null) {
+                    document.getElementById('reminder-date').value = datePart;
+                    const ampm = h24 >= 12 ? 'PM' : 'AM';
+                    const h12 = h24 % 12 || 12;
+                    setWheelValue(document.getElementById('wheel-hour'), String(h12).padStart(2, '0'));
+                    setWheelValue(document.getElementById('wheel-min'), min);
+                    setWheelValue(document.getElementById('wheel-sec'), sec);
+                    setWheelValue(document.getElementById('wheel-ampm'), ampm);
+                }
+            }
+        }
+
+        function applyReminderPreset(presetId, options = {}) {
             const preset = REMINDER_PRESETS.find(p => p.id === presetId);
             if (!preset) return;
             selectedReminderPreset = presetId;
@@ -7083,23 +7099,26 @@
             document.getElementById('reminder-footer').value = preset.footer_text || '';
             document.getElementById('reminder-footer-icon').value = toAbsoluteAssetUrl(preset.footer_icon_url || '');
             document.getElementById('reminder-author-url').value = toAbsoluteAssetUrl(preset.author_url || '');
+            applyReminderScheduleFields(preset);
             toggleCustomInterval();
             toggleDowPicker();
             updateReminderPreview();
             
-            // Highlight the channel selection to prompt user
-            const channelSelect = document.getElementById('reminder-channel');
-            if (channelSelect) {
-                channelSelect.style.transition = 'box-shadow 0.3s, border-color 0.3s';
-                channelSelect.style.borderColor = 'var(--primary)';
-                channelSelect.style.boxShadow = '0 0 15px rgba(139,92,246,0.6)';
-                setTimeout(() => {
-                    channelSelect.style.boxShadow = 'none';
-                    channelSelect.style.borderColor = 'var(--glass-border)';
-                }, 2000);
+            if (!options.silent) {
+                // Highlight the channel selection to prompt user
+                const channelSelect = document.getElementById('reminder-channel');
+                if (channelSelect) {
+                    channelSelect.style.transition = 'box-shadow 0.3s, border-color 0.3s';
+                    channelSelect.style.borderColor = 'var(--primary)';
+                    channelSelect.style.boxShadow = '0 0 15px rgba(139,92,246,0.6)';
+                    setTimeout(() => {
+                        channelSelect.style.boxShadow = 'none';
+                        channelSelect.style.borderColor = 'var(--glass-border)';
+                    }, 2000);
+                }
+
+                showNotification('Preset applied! Please select a channel and time.', false);
             }
-            
-            showNotification('Preset applied! Please select a channel and time.', false);
         }
 
         function setReminderDateOffset(days) {
@@ -7138,12 +7157,14 @@
             return 'Recurring';
         }
 
-        function openReminderModal(reminderId = null, presetId = null) {
-            currentLoadedPresetId = presetId;
+        function openReminderModal(reminderId = null, presetId = null, editPreset = false) {
+            currentLoadedPresetId = editPreset ? null : presetId;
             currentReminderId = reminderId;
             selectedReminderPreset = null;
+            editingPresetId = editPreset ? presetId : null;
             const titleEl = document.querySelector('#reminder-modal h3');
             const submitBtn = document.getElementById('reminder-submit-btn');
+            const savePresetBox = document.querySelector('.preset-save-container');
             try { renderReminderPresets(); } catch(e) { console.error('Failed to render reminder presets:', e); }
             
             if (reminderId && remindersMap[reminderId]) {
@@ -7186,11 +7207,12 @@
                 // Reset preset fields
                 document.getElementById('reminder-save-as-preset').checked = false;
                 document.getElementById('reminder-preset-title').value = '';
+                if (savePresetBox) savePresetBox.style.display = 'block';
                 handleSavePresetChange(document.getElementById('reminder-save-as-preset'));
             } else {
-                titleEl.textContent = 'New Reminder';
-                submitBtn.textContent = 'Create Reminder';
-                submitBtn.onclick = createReminder;
+                titleEl.textContent = editPreset ? 'Edit Community Preset' : 'New Reminder';
+                submitBtn.textContent = editPreset ? 'Save Preset' : 'Create Reminder';
+                submitBtn.onclick = editPreset ? () => updateCommunityPresetFromReminder(presetId) : createReminder;
                 
                 document.getElementById('reminder-message').value = '';
                 const now = new Date();
@@ -7224,9 +7246,18 @@
                 // Reset preset fields
                 document.getElementById('reminder-save-as-preset').checked = false;
                 document.getElementById('reminder-preset-title').value = '';
+                if (savePresetBox) savePresetBox.style.display = 'block';
                 handleSavePresetChange(document.getElementById('reminder-save-as-preset'));
                 
-                if (presetId) applyReminderPreset(presetId);
+                if (presetId) applyReminderPreset(presetId, { silent: editPreset });
+                if (editPreset) {
+                    const preset = REMINDER_PRESETS.find(p => p.id === presetId);
+                    const savePreset = document.getElementById('reminder-save-as-preset');
+                    const presetTitle = document.getElementById('reminder-preset-title');
+                    if (savePreset) savePreset.checked = true;
+                    if (presetTitle) presetTitle.value = preset?.title || '';
+                    handleSavePresetChange(savePreset);
+                }
             }
             document.getElementById('reminder-modal').style.display = 'flex';
             
@@ -7317,6 +7348,9 @@
                         recurrence_type: data.recurrence_type,
                         recurrence_interval: data.recurrence_interval,
                         recurrence_days: data.recurrence_days,
+                        target_time: data.target_time,
+                        timezone: data.timezone,
+                        channel_id: data.channel_id,
                         mention: data.mention,
                         image_url: data.image_url,
                         thumbnail_url: data.thumbnail_url,
@@ -7328,6 +7362,46 @@
             } catch(e) {
                 console.error("Failed to save preset:", e);
                 throw e;
+            }
+        }
+
+        async function updateCommunityPresetFromReminder(id) {
+            const data = getReminderFormData({ requireSchedule: false, requireChannel: false });
+            if (!data) return;
+            const preset = REMINDER_PRESETS.find(p => p.id === id);
+            const title = data.preset_title || preset?.title || data.message || 'Untitled Preset';
+
+            showLoading(true);
+            try {
+                await autoImportReminderImages(data);
+                await fetchData(`/api/reminders/presets/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        title,
+                        message: data.message,
+                        body: data.body,
+                        recurrence_type: data.recurrence_type,
+                        recurrence_interval: data.recurrence_interval,
+                        recurrence_days: data.recurrence_days,
+                        target_time: data.target_time,
+                        timezone: data.timezone,
+                        channel_id: data.channel_id || null,
+                        mention: data.mention,
+                        image_url: data.image_url,
+                        thumbnail_url: data.thumbnail_url,
+                        footer_text: data.footer_text,
+                        footer_icon_url: data.footer_icon_url,
+                        author_url: data.author_url
+                    })
+                });
+                showNotification('Community preset updated!');
+                editingPresetId = null;
+                closeReminderModal();
+                loadCommunityPresets();
+            } catch (e) {
+                showNotification(e.message || 'Failed to update preset', true);
+            } finally {
+                showLoading(false);
             }
         }
 
@@ -7366,6 +7440,7 @@
 
         function getReminderFormData(options = {}) {
             const requireSchedule = options.requireSchedule !== false;
+            const requireChannel = options.requireChannel !== false;
             const message = document.getElementById('reminder-message').value.trim();
             const date    = document.getElementById('reminder-date').value;
             const hour    = getWheelValue('wheel-hour');
@@ -7388,8 +7463,14 @@
             const save_as_preset = document.getElementById('reminder-save-as-preset').checked;
             const preset_title   = document.getElementById('reminder-preset-title').value.trim() || null;
 
-            if (!message || !channel_id || (requireSchedule && !date)) {
-                showNotification(requireSchedule ? 'Title, Date, and Channel are required' : 'Title and Channel are required for a test', true);
+            if (!message || (requireChannel && !channel_id) || (requireSchedule && !date)) {
+                if (requireSchedule) {
+                    showNotification('Title, Date, and Channel are required', true);
+                } else if (requireChannel) {
+                    showNotification('Title and Channel are required for a test', true);
+                } else {
+                    showNotification('Title is required', true);
+                }
                 return null;
             }
             if (requireSchedule && recurrence_type === 'specific_days' && (!recurrence_days || recurrence_days.length === 0)) {
@@ -8827,10 +8908,10 @@
                 </div>
             </div>
              <div class="modal-footer">
-                 <button onclick="closeReminderModal()" class="btn btn-secondary">Cancel</button>
-                 <button onclick="sendTestReminder()" class="btn btn-secondary"><i data-lucide="send"></i> Send Test</button>
-                 <button onclick="openSaveAsPresetModal()" class="btn btn-secondary" style="background: rgba(139,92,246,0.15); color: #c4b5fd;"><i data-lucide="copy-plus"></i> Save as Preset</button>
-                 <button id="reminder-submit-btn" onclick="createReminder()" class="btn btn-primary">Create Reminder</button>
+                 <button onclick="closeCreatePresetModal()" class="btn btn-secondary">Cancel</button>
+                 <button onclick="submitCommunityPreset()" class="btn btn-primary">
+                     <i data-lucide="upload-cloud"></i> Publish Preset
+                 </button>
              </div>
         </div>
     </div>

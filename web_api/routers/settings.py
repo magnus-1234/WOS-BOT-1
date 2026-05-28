@@ -189,8 +189,9 @@ async def get_birthday_records(guild_id: int, request: Request):
                     is_match = True
                     user_id_str = u_id_str
         else:
-            is_match = True
-            user_id_str = key
+            # Legacy birthdays without a guild id cannot be safely attributed to
+            # a specific server, so the dashboard must not show them globally.
+            continue
 
         if is_match:
             try:

@@ -36,6 +36,9 @@ class CommunityPresetCreate(BaseModel):
     badge: Optional[str] = None
     message: str = ""
     body: Optional[str] = None
+    target_time: Optional[str] = None
+    timezone: str = "UTC"
+    channel_id: Optional[str] = None
     recurrence_type: str = "none"
     recurrence_interval: int = 1
     recurrence_days: Optional[List[int]] = None
@@ -208,6 +211,9 @@ async def create_community_preset(request: Request, payload: CommunityPresetCrea
         "badge": badge,
         "message": payload.message,
         "body": payload.body,
+        "target_time": payload.target_time,
+        "timezone": payload.timezone,
+        "channel_id": payload.channel_id,
         "recurrence_type": payload.recurrence_type,
         "recurrence_interval": payload.recurrence_interval,
         "recurrence_days": payload.recurrence_days,
@@ -287,6 +293,9 @@ async def update_community_preset(request: Request, preset_id: str, payload: Com
         "badge": badge,
         "message": payload.message,
         "body": payload.body,
+        "target_time": payload.target_time,
+        "timezone": payload.timezone,
+        "channel_id": payload.channel_id,
         "recurrence_type": payload.recurrence_type,
         "recurrence_interval": payload.recurrence_interval,
         "recurrence_days": payload.recurrence_days,

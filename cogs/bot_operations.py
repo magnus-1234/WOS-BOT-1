@@ -5963,7 +5963,13 @@ class BotOperations(commands.Cog):
                                 )
                                 return
 
-                            if not modal_interaction.user.guild_permissions.administrator:
+                            permissions = getattr(modal_interaction.user, "guild_permissions", None)
+                            interaction_permissions = getattr(modal_interaction, "permissions", None)
+                            is_admin = bool(
+                                getattr(permissions, "administrator", False)
+                                or getattr(interaction_permissions, "administrator", False)
+                            )
+                            if not is_admin:
                                 await modal_interaction.followup.send(
                                     "❌ Only server administrators can register this server.",
                                     ephemeral=True
@@ -6097,12 +6103,58 @@ class BotOperations(commands.Cog):
                 class RegistrationPromptView(discord.ui.View):
                     def __init__(self):
                         super().__init__(timeout=120)
+
+                    async def on_error(self, interaction: discord.Interaction, error: Exception, item) -> None:
+                        logger.error(
+                            "Registration prompt view failed for guild %s user %s item %s",
+                            getattr(interaction, "guild_id", None),
+                            getattr(interaction.user, "id", None),
+                            getattr(item, "custom_id", None),
+                            exc_info=(type(error), error, error.__traceback__)
+                        )
+                        if not interaction.response.is_done():
+                            await interaction.response.send_message(
+                                "❌ Registration could not be opened. The error has been logged; please try `/manage` again.",
+                                ephemeral=True
+                            )
+                        else:
+                            await interaction.followup.send(
+                                "❌ Registration could not be opened. The error has been logged; please try `/manage` again.",
+                                ephemeral=True
+                            )
+
                     @discord.ui.button(label="Register Server", style=discord.ButtonStyle.success, emoji="📝")
                     async def register_btn(self, btn_interaction: discord.Interaction, button: discord.ui.Button):
-                        if not btn_interaction.user.guild_permissions.administrator:
-                            await btn_interaction.response.send_message("❌ Only server administrators can register the server.", ephemeral=True)
-                            return
-                        await btn_interaction.response.send_modal(RegistrationModal())
+                        try:
+                            permissions = getattr(btn_interaction.user, "guild_permissions", None)
+                            interaction_permissions = getattr(btn_interaction, "permissions", None)
+                            is_admin = bool(
+                                getattr(permissions, "administrator", False)
+                                or getattr(interaction_permissions, "administrator", False)
+                            )
+                            if not is_admin:
+                                await btn_interaction.response.send_message(
+                                    "❌ Only server administrators can register the server.",
+                                    ephemeral=True
+                                )
+                                return
+                            await btn_interaction.response.send_modal(RegistrationModal())
+                        except Exception as e:
+                            logger.exception(
+                                "Failed to open registration modal for guild %s user %s",
+                                getattr(btn_interaction, "guild_id", None),
+                                getattr(btn_interaction.user, "id", None)
+                            )
+                            if not btn_interaction.response.is_done():
+                                await btn_interaction.response.send_message(
+                                    "❌ Registration could not be opened. The error has been logged; please try `/manage` again.",
+                                    ephemeral=True
+                                )
+                            else:
+                                await btn_interaction.followup.send(
+                                    "❌ Registration could not be opened. The error has been logged; please try `/manage` again.",
+                                    ephemeral=True
+                                )
 
                 await interaction.followup.send(embed=error_embed, view=RegistrationPromptView(), ephemeral=True)
                 return

@@ -6,6 +6,8 @@
     online: roomRoot.querySelector("[data-room-online]"),
     login: roomRoot.querySelector("[data-room-login]"),
     name: roomRoot.querySelector("[data-room-name]"),
+    guestName: roomRoot.querySelector("[data-room-guest-name]"),
+    playerLogin: roomRoot.querySelector("[data-room-player-login]"),
     guest: roomRoot.querySelector("[data-room-guest]"),
     discord: roomRoot.querySelector("[data-room-discord]"),
     identity: roomRoot.querySelector("[data-room-identity]"),
@@ -104,6 +106,10 @@
   let replyTo = null;
   let replyToUser = null; // target_user_id for private messages
   let activeGifSource = 'tenor'; // tenor or giphy
+  let gifQuery = "";
+  let gifNext = null;
+  let gifLoading = false;
+  let gifHasMore = true;
   let pollTimer = null;
   let presenceTimer = null;
   let mediaRecorder = null;
@@ -198,6 +204,20 @@
     const cleaned = (name || "").trim().slice(0, 32);
     if (cleaned) localStorage.setItem(STORAGE_KEYS.guestName, cleaned);
     return cleaned;
+  };
+  const registerCurrentIdentity = () => {
+    const userInfo = currentUser
+      ? {
+        id: currentUser.id,
+        name: currentUser.name || currentUser.global_name || currentUser.username,
+        avatar_url: currentUser.avatar_url,
+        kind: currentUser.kind || "discord",
+        furnace_level: currentUser.furnace_level,
+        furnace_level_formatted: currentUser.furnace_level_formatted,
+        state_id: currentUser.state_id
+      }
+      : { id: getGuestId(), name: getGuestName() || "Guest Player", avatar_url: getGuestAvatar(), kind: "guest" };
+    sendWs({ type: "register", user: userInfo });
   };
   const setGuestAvatar = (url) => {
     if (url) localStorage.setItem(STORAGE_KEYS.guestAvatar, url);
@@ -311,14 +331,15 @@
   const updateIdentityView = () => {
     const guestName = getGuestName();
     if (currentUser) {
-      el.identity.innerHTML = `WOS: ${currentUser.name || currentUser.global_name || currentUser.username} <button type="button" data-edit-profile style="background:none;border:none;cursor:pointer;color:var(--primary);margin-left:8px;font-size:0.8em;" title="Edit Profile">Edit</button>`;
-      el.login.classList.add("is-hidden");
+      const label = currentUser.kind === "discord" || !currentUser.kind ? "Discord" : (currentUser.kind === "wos" ? "WOS" : "Guest");
+      el.identity.innerHTML = `${label}: ${currentUser.name || currentUser.global_name || currentUser.username} <button type="button" data-edit-profile class="chat-inline-edit" title="Edit Profile">Edit</button>`;
+      if (el.login) el.login.classList.add("is-hidden");
     } else if (guestName) {
-      el.identity.innerHTML = `WOS: ${guestName} <button type="button" data-edit-profile style="background:none;border:none;cursor:pointer;color:var(--primary);margin-left:8px;font-size:0.8em;" title="Edit Profile">Edit</button>`;
-      el.login.classList.add("is-hidden");
+      el.identity.innerHTML = `Guest: ${guestName} <button type="button" data-edit-profile class="chat-inline-edit" title="Edit Profile">Edit</button>`;
+      if (el.login) el.login.classList.add("is-hidden");
     } else {
-      el.identity.textContent = "Login with WOS player ID";
-      el.login.classList.remove("is-hidden");
+      el.identity.textContent = "Choose WOS ID, Discord, or guest";
+      if (el.login) el.login.classList.remove("is-hidden");
     }
     
     const editBtn = roomRoot.querySelector("[data-edit-profile]");
@@ -352,6 +373,7 @@
       const response = await fetch("/api/auth/me", { headers: authHeaders() });
       if (!response.ok) throw new Error("Discord login expired");
       currentUser = await response.json();
+      currentUser.kind = currentUser.kind || "discord";
     } catch (error) {
       currentUser = null;
     } finally {
@@ -393,7 +415,7 @@
               id: currentUser.id,
               name: newName,
               avatar_url: currentUser.avatar_url,
-              kind: currentUser.kind || "wos",
+              kind: currentUser.kind || "discord",
               furnace_level: currentUser.furnace_level,
               furnace_level_formatted: currentUser.furnace_level_formatted,
               state_id: currentUser.state_id
@@ -501,19 +523,7 @@
       wsReconnectAttempts = 0;
       setStatus("Live global room");
       playChime("connect");
-      // Register the current user with the server
-      const userInfo = currentUser
-        ? {
-          id: currentUser.id,
-          name: currentUser.name || currentUser.global_name || currentUser.username,
-          avatar_url: currentUser.avatar_url,
-          kind: currentUser.kind || "wos",
-          furnace_level: currentUser.furnace_level,
-          furnace_level_formatted: currentUser.furnace_level_formatted,
-          state_id: currentUser.state_id
-        }
-        : { id: getGuestId(), name: getGuestName() || getGuestId(), avatar_url: getGuestAvatar(), kind: "guest" };
-      ws.send(JSON.stringify({ type: "register", user: userInfo }));
+      registerCurrentIdentity();
       // Stop polling - WebSocket takes over
       if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
       wsHeartbeatTimer = setInterval(() => {
@@ -733,11 +743,19 @@
       const ul = document.createElement("ul");
       onlineUsers.slice(0, 20).forEach(user => {
         const li = document.createElement("li");
+        li.tabIndex = 0;
         const dot = document.createElement("span");
         dot.className = "online-dot";
         const name = document.createElement("span");
         name.textContent = user.name || "Guest";
+        const meta = document.createElement("small");
+        meta.textContent = user.kind === "discord" ? "Discord" : (user.kind === "wos" ? `WOS ${user.id || ""}`.trim() : "Guest");
         li.append(dot, name);
+        li.append(meta);
+        li.addEventListener("click", () => {
+          popover.remove();
+          if (el.memberList) openProfile(user);
+        });
         ul.appendChild(li);
       });
       popover.appendChild(ul);
@@ -1305,7 +1323,7 @@
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
-          display_name: getGuestName() || el.name.value,
+          display_name: getGuestName() || (el.name && el.name.value) || "Guest Player",
           guest_id: getGuestId(),
           avatar_url: getGuestAvatar(),
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
@@ -1327,11 +1345,11 @@
   };
 
   const sendMessage = async () => {
-    const guestName = getGuestName() || setGuestName(el.name.value);
+    const guestName = getGuestName() || setGuestName((el.guestName && el.guestName.value) || (el.name && el.name.value));
     if (!currentUser && !guestName) {
-      el.login.classList.remove("is-hidden");
-      el.name.focus();
-      setStatus("Add a player name or login with Discord", true);
+      if (el.login) el.login.classList.remove("is-hidden");
+      (el.guestName || el.name || el.input).focus();
+      setStatus("Login with WOS ID, Discord, or a guest name", true);
       return;
     }
 
@@ -1389,7 +1407,7 @@
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           announcement,
-          display_name: getGuestName() || el.name.value,
+          display_name: getGuestName() || (el.name && el.name.value) || "Guest Player",
           guest_id: getGuestId(),
           avatar_url: getGuestAvatar()
         })
@@ -1470,7 +1488,7 @@
       const response = await fetch(`/api/chat/messages/${encodeURIComponent(messageId)}/react`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ emoji, display_name: getGuestName() || el.name.value, guest_id: getGuestId() })
+        body: JSON.stringify({ emoji, display_name: getGuestName() || (el.name && el.name.value) || "Guest Player", guest_id: getGuestId() })
       });
       if (!response.ok) throw new Error("Reaction failed");
       // WebSocket broadcast will update reactions; only poll as fallback
@@ -1489,7 +1507,7 @@
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           reason,
-          display_name: getGuestName() || el.name.value,
+          display_name: getGuestName() || (el.name && el.name.value) || "Guest Player",
           guest_id: getGuestId(),
           reported_content: message.content,
           reported_author_name: message.author.name
@@ -1538,21 +1556,30 @@
     el.input.dispatchEvent(new Event("input"));
   };
 
-  const searchTenor = async () => {
+  const searchTenor = async (reset = true) => {
     const q = el.tenorSearch.value.trim() || "whiteout survival";
-    el.tenorResults.innerHTML = '<span class="global-chat-status">Loading GIFs...</span>';
+    if (gifLoading) return;
+    if (reset || q !== gifQuery) {
+      gifQuery = q;
+      gifNext = null;
+      gifHasMore = true;
+      el.tenorResults.innerHTML = '<span class="global-chat-status">Loading GIFs...</span>';
+    }
+    if (!gifHasMore) return;
+    gifLoading = true;
     try {
       const endpoints = activeGifSource === 'giphy' ? ['/api/chat/giphy', '/api/chat/tenor'] : ['/api/chat/tenor', '/api/chat/giphy'];
       let data = null;
       for (const endpoint of endpoints) {
-        const response = await fetch(`${endpoint}?q=${encodeURIComponent(q)}&limit=18`, { headers: authHeaders() });
+        const cursor = gifNext ? `&pos=${encodeURIComponent(gifNext)}` : "";
+        const response = await fetch(`${endpoint}?q=${encodeURIComponent(q)}&limit=18${cursor}`, { headers: authHeaders() });
         if (response.ok) {
           data = await response.json();
           if ((data.results || []).length) break;
         }
       }
       if (!data) throw new Error("GIF search unavailable");
-      el.tenorResults.replaceChildren();
+      if (reset) el.tenorResults.replaceChildren();
       (data.results || []).forEach((gif) => {
         const button = document.createElement("button");
         button.type = "button";
@@ -1568,10 +1595,65 @@
         });
         el.tenorResults.appendChild(button);
       });
+      gifNext = data.next || null;
+      gifHasMore = Boolean(gifNext) || (data.results || []).length >= 18;
       if (!el.tenorResults.children.length) el.tenorResults.textContent = "No GIFs found";
     } catch (error) {
       el.tenorResults.textContent = "GIF search unavailable";
+    } finally {
+      gifLoading = false;
     }
+  };
+
+  const loginWithWosPlayer = async () => {
+    const fid = (el.name && el.name.value || "").replace(/\D/g, "");
+    if (fid.length < 8 || fid.length > 9) {
+      setStatus("Enter a valid 8- or 9-digit WOS player ID", true);
+      if (el.name) el.name.focus();
+      return;
+    }
+    try {
+      setStatus("Fetching WOS profile...");
+      const response = await fetch(`/api/chat/player/${encodeURIComponent(fid)}`, { headers: { Accept: "application/json" } });
+      if (!response.ok) throw new Error("Player lookup failed");
+      const profile = await response.json();
+      setWosProfile(profile);
+      currentUser = {
+        id: profile.id,
+        name: profile.nickname,
+        username: profile.nickname,
+        avatar_url: profile.avatar_image || null,
+        kind: "wos",
+        furnace_level: profile.furnace_level,
+        furnace_level_formatted: profile.furnace_level_formatted,
+        state_id: profile.state_id
+      };
+      updateIdentityView();
+      setStatus("WOS profile connected");
+      registerCurrentIdentity();
+      await sendPresence();
+      await refreshMessages();
+      el.input.focus();
+    } catch (error) {
+      setStatus("Could not fetch that WOS player", true);
+    }
+  };
+
+  const loginAsGuest = async () => {
+    const source = (el.guestName && el.guestName.value) || (el.name && !/^\d+$/.test(el.name.value || "") ? el.name.value : "");
+    const name = setGuestName(source);
+    if (!name) {
+      setStatus("Enter a guest display name", true);
+      (el.guestName || el.name || el.input).focus();
+      return;
+    }
+    localStorage.removeItem(STORAGE_KEYS.wosProfile);
+    currentUser = null;
+    updateIdentityView();
+    registerCurrentIdentity();
+    await sendPresence();
+    setStatus("Guest profile connected");
+    el.input.focus();
   };
 
   const toggleVoice = async () => {
@@ -1644,13 +1726,14 @@
     Array.from(gifTabs.children).forEach(b => b.classList.remove('active'));
     e.target.classList.add('active');
     activeGifSource = e.target.dataset.source;
-    searchTenor();
+    searchTenor(true);
   });
 
   initThemeToggle();
 
   if (el.discord) el.discord.href = buildDiscordAuthUrl();
-  el.name.value = (getWosProfile() && getWosProfile().id) || "";
+  if (el.name) el.name.value = (getWosProfile() && getWosProfile().id) || "";
+  if (el.guestName) el.guestName.value = getGuestName();
   updateIdentityView();
   resolveDiscordIdentity();
 
@@ -1751,52 +1834,9 @@
     hideCall();
   });
 
-  el.guest.addEventListener("click", async () => {
-    const fid = (el.name.value || "").replace(/\D/g, "");
-    if (fid.length !== 9) {
-      setStatus("Enter a valid 9-digit WOS player ID", true);
-      el.name.focus();
-      return;
-    }
-    try {
-      setStatus("Fetching WOS profile...");
-      const response = await fetch(`/api/chat/player/${encodeURIComponent(fid)}`, { headers: { Accept: "application/json" } });
-      if (!response.ok) throw new Error("Player lookup failed");
-      const profile = await response.json();
-      setWosProfile(profile);
-      currentUser = {
-        id: profile.id,
-        name: profile.nickname,
-        username: profile.nickname,
-        avatar_url: profile.avatar_image || null,
-        kind: "wos",
-        furnace_level: profile.furnace_level,
-        furnace_level_formatted: profile.furnace_level_formatted,
-        state_id: profile.state_id
-      };
-      updateIdentityView();
-      setStatus("WOS profile connected");
-      if (wsConnected && ws) {
-        ws.send(JSON.stringify({
-          type: "register",
-          user: {
-            id: currentUser.id,
-            name: currentUser.name,
-            avatar_url: currentUser.avatar_url,
-            kind: "wos",
-            furnace_level: currentUser.furnace_level,
-            furnace_level_formatted: currentUser.furnace_level_formatted,
-            state_id: currentUser.state_id
-          }
-        }));
-      }
-      await sendPresence();
-      await refreshMessages();
-      el.input.focus();
-    } catch (error) {
-      setStatus("Could not fetch that WOS player", true);
-    }
-  });
+  if (el.playerLogin) el.playerLogin.addEventListener("click", loginWithWosPlayer);
+  if (el.guest) el.guest.addEventListener("click", loginAsGuest);
+  if (!el.playerLogin && el.guest && el.name) el.guest.addEventListener("dblclick", loginWithWosPlayer);
 
   if (el.refresh) el.refresh.addEventListener("click", refreshMessages);
   el.file.addEventListener("change", (event) => uploadFiles(event.target.files || []));
@@ -1822,14 +1862,18 @@
   el.tenor.addEventListener("click", () => {
     el.tenorPanel.hidden = !el.tenorPanel.hidden;
     el.emojiPanel.hidden = true;
-    if (!el.tenorPanel.hidden && !el.tenorResults.children.length) searchTenor();
+    if (!el.tenorPanel.hidden && !el.tenorResults.children.length) searchTenor(true);
   });
-  el.tenorGo.addEventListener("click", searchTenor);
+  el.tenorGo.addEventListener("click", () => searchTenor(true));
   el.tenorSearch.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      searchTenor();
+      searchTenor(true);
     }
+  });
+  el.tenorResults.addEventListener("scroll", () => {
+    const distance = el.tenorResults.scrollHeight - el.tenorResults.scrollTop - el.tenorResults.clientHeight;
+    if (distance < 80) searchTenor(false);
   });
   el.voice.addEventListener("click", toggleVoice);
   el.replyClear.addEventListener("click", clearReply);

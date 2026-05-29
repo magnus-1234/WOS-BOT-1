@@ -784,7 +784,7 @@ def _tenor_image_from_result(item: Dict[str, Any]) -> Optional[Dict[str, str]]:
     }
 
 
-def _fallback_gifs(query: str, limit: int) -> List[Dict[str, str]]:
+def _fallback_gifs(query: str, limit: int, offset: int = 0) -> List[Dict[str, str]]:
     gifs = [
         {
             "id": "fallback-snow",
@@ -865,7 +865,12 @@ def _fallback_gifs(query: str, limit: int) -> List[Dict[str, str]]:
         title = gif["title"].lower()
         score = 0 if not safe_query or safe_query in title else 1
         scored.append((score, index, gif))
-    return [gif for _, _, gif in sorted(scored)][:limit]
+    ordered = [gif for _, _, gif in sorted(scored)]
+    if not ordered:
+        return []
+    start = max(0, offset)
+    repeated = (ordered * ((start + limit) // len(ordered) + 1))[start:start + limit]
+    return [{**gif, "id": f"{gif['id']}-{start + index}"} for index, gif in enumerate(repeated)]
 
 
 async def _translate_with_deepl_sdk(api_key: str, text: str) -> Optional[Dict[str, str]]:
@@ -1297,7 +1302,7 @@ async def report_message(message_id: str, payload: ReportRequest, request: Reque
 
 
 @router.get("/tenor")
-async def search_tenor(q: str = "whiteout survival", limit: int = 12):
+async def search_tenor(q: str = "whiteout survival", limit: int = 12, pos: Optional[str] = None):
     api_key = os.getenv("TENOR_API_KEY") or os.getenv("GOOGLE_TENOR_API_KEY")
     if not api_key:
         raise HTTPException(status_code=503, detail="Tenor GIF search is not configured.")
@@ -1306,23 +1311,26 @@ async def search_tenor(q: str = "whiteout survival", limit: int = 12):
     query = _clean_text(q or "whiteout survival", 80) or "whiteout survival"
     try:
         async with httpx.AsyncClient(timeout=10) as client:
+            params = {
+                "key": api_key,
+                "client_key": "wos-global-chat",
+                "q": query,
+                "limit": safe_limit,
+                "media_filter": "gif,tinygif,nanogif",
+                "contentfilter": "medium",
+            }
+            if pos:
+                params["pos"] = pos
             response = await client.get(
                 "https://tenor.googleapis.com/v2/search",
-                params={
-                    "key": api_key,
-                    "client_key": "wos-global-chat",
-                    "q": query,
-                    "limit": safe_limit,
-                    "media_filter": "gif,tinygif,nanogif",
-                    "contentfilter": "medium",
-                },
+                params=params,
             )
         if response.status_code >= 400:
             logger.warning("Tenor search failed: %s %s", response.status_code, response.text[:160])
             raise HTTPException(status_code=502, detail="Tenor search failed.")
         data = response.json()
         gifs = [_tenor_image_from_result(item) for item in data.get("results", [])]
-        return {"results": [item for item in gifs if item]}
+        return {"results": [item for item in gifs if item], "next": data.get("next")}
     except HTTPException:
         raise
     except Exception as exc:
@@ -1330,12 +1338,13 @@ async def search_tenor(q: str = "whiteout survival", limit: int = 12):
         raise HTTPException(status_code=502, detail="GIF search failed.")
 
 @router.get("/giphy")
-async def search_giphy(q: str = "whiteout survival", limit: int = 12):
+async def search_giphy(q: str = "whiteout survival", limit: int = 12, pos: Optional[str] = None):
     safe_limit = _coerce_int(limit, 12, 1, 24)
+    safe_offset = _coerce_int(pos or 0, 0, 0, 4999)
     query = _clean_text(q or "whiteout survival", 80) or "whiteout survival"
     api_key = os.getenv("GIPHY_API_KEY")
     if not api_key:
-        return {"results": _fallback_gifs(query, safe_limit)}
+        return {"results": _fallback_gifs(query, safe_limit, safe_offset), "next": str(safe_offset + safe_limit)}
 
     try:
         async with httpx.AsyncClient(timeout=10) as client:
@@ -1345,12 +1354,13 @@ async def search_giphy(q: str = "whiteout survival", limit: int = 12):
                     "api_key": api_key,
                     "q": query,
                     "limit": safe_limit,
+                    "offset": safe_offset,
                     "rating": "pg-13",
                 },
             )
         if response.status_code >= 400:
             logger.warning("Giphy search failed: %s %s", response.status_code, response.text[:160])
-            return {"results": _fallback_gifs(query, safe_limit)}
+            return {"results": _fallback_gifs(query, safe_limit, safe_offset), "next": str(safe_offset + safe_limit)}
         data = response.json()
         
         results = []
@@ -1367,12 +1377,15 @@ async def search_giphy(q: str = "whiteout survival", limit: int = 12):
                     "preview_url": fixed_width.get("url") or original.get("url")
                 })
                 
-        return {"results": results}
+        pagination = data.get("pagination") or {}
+        next_offset = safe_offset + safe_limit
+        total = int(pagination.get("total_count") or 0)
+        return {"results": results, "next": str(next_offset) if not total or next_offset < total else None}
     except HTTPException:
         raise
     except Exception as exc:
         logger.error("Giphy search error: %s", exc)
-        return {"results": _fallback_gifs(query, safe_limit)}
+        return {"results": _fallback_gifs(query, safe_limit, safe_offset), "next": str(safe_offset + safe_limit)}
 
 
 @router.post("/upload")

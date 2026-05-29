@@ -65,9 +65,16 @@
           </div>
         </div>
 
-        <div class="global-chat-login room-login" data-room-login>
-          <input type="text" inputmode="numeric" maxlength="9" placeholder="WOS player ID" autocomplete="off" data-room-name>
-          <button type="button" data-room-guest>Login</button>
+        <div class="global-chat-login room-login chat-login-card" data-room-login>
+          <div class="chat-login-row">
+            <input type="text" inputmode="numeric" maxlength="9" placeholder="WOS player ID" autocomplete="off" data-room-name>
+            <button type="button" data-room-player-login>Player ID</button>
+          </div>
+          <div class="chat-login-row">
+            <input type="text" maxlength="32" placeholder="Guest display name" autocomplete="nickname" data-room-guest-name>
+            <button type="button" data-room-guest>Guest</button>
+          </div>
+          <a href="login.html" data-room-discord>Discord login</a>
         </div>
 
         <div class="chat-room-user">
@@ -232,6 +239,12 @@
             <div><dt>Furnace</dt><dd data-room-profile-furnace>-</dd></div>
             <div><dt>State</dt><dd data-room-profile-state>-</dd></div>
           </dl>
+          <div class="chat-profile-actions">
+            <button type="button" data-room-profile-whisper>Message</button>
+            <button type="button" data-room-profile-friend>Friend</button>
+            <button type="button" data-room-profile-mute>Mute</button>
+            <button type="button" data-room-profile-copy>Copy ID</button>
+          </div>
         </div>
       </aside>
     </section>

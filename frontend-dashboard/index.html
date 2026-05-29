@@ -2079,18 +2079,21 @@
 
     /* Login panel inside popup */
     .fchat-login-panel {
-      display: flex !important;
-      /* override .room-login grid from site.css */
+      display: grid !important;
       padding: 0.8rem 1.1rem;
       border-bottom: 1px solid rgba(255, 255, 255, 0.07);
       gap: 0.5rem;
-      align-items: center;
       flex-shrink: 0;
-      flex-wrap: wrap;
     }
 
     .fchat-login-panel.is-hidden {
-      display: none;
+      display: none !important;
+    }
+
+    .fchat-login-panel .chat-login-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.45rem;
     }
 
     [data-theme="cartoon"] .fchat-login-panel {
@@ -2099,8 +2102,8 @@
     }
 
     .fchat-login-panel input {
-      flex: 1;
-      min-width: 8rem;
+      width: 100%;
+      min-width: 0;
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 0.5rem;
       background: rgba(255, 255, 255, 0.06);
@@ -2137,6 +2140,10 @@
       transition: all 0.2s;
       text-decoration: none;
       white-space: nowrap;
+    }
+
+    .fchat-login-panel a {
+      width: 100%;
     }
 
     .fchat-login-panel button:hover,
@@ -2414,8 +2421,9 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 4px;
-      max-height: 160px;
+      max-height: 210px;
       overflow-y: auto;
+      overscroll-behavior: contain;
     }
 
     .fchat-tenor-results button {
@@ -3082,9 +3090,15 @@
     <div class="fchat-announcement-strip chat-announcement" data-room-announcement hidden></div>
 
     <!-- Guest login panel -->
-    <div class="fchat-login-panel global-chat-login room-login" data-room-login>
-      <input type="text" inputmode="numeric" maxlength="9" placeholder="WOS player ID" autocomplete="off" data-room-name>
-      <button type="button" data-room-guest>Join</button>
+    <div class="fchat-login-panel global-chat-login room-login chat-login-card" data-room-login>
+      <div class="chat-login-row">
+        <input type="text" inputmode="numeric" maxlength="9" placeholder="WOS player ID" autocomplete="off" data-room-name>
+        <button type="button" data-room-player-login>Player</button>
+      </div>
+      <div class="chat-login-row">
+        <input type="text" maxlength="32" placeholder="Guest name" autocomplete="nickname" data-room-guest-name>
+        <button type="button" data-room-guest>Guest</button>
+      </div>
       <a href="login.html" data-room-discord>Discord</a>
     </div>
 

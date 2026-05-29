@@ -8,7 +8,10 @@ This workflow MUST be run automatically after every session where code changes a
 
 ## Pre-conditions
 - Working directory: `f:\Whiteout Survival Bot`
-- Main Bot git remote: `origin` → `https://github.com/storage1mohitraj-cmd/WOS-BOT-1.git`
+- Main Bot git remote: `origin` → `https://github.com/magnus-1234/WOS-BOT-1.git`
+- Oracle VM SSH target: `ubuntu@140.245.241.54`, repo path `~/bot`
+- Oracle VM SSH key: `C:\Users\mohit\.ssh\oracle_vm_key`
+- Do not rely on `git push oracle main`; the Oracle repo has `main` checked out and rejects direct pushes. Deploy by SSH pull/restart instead.
 - Frontend Dashboard git remote: `origin` → `https://github.com/magnus-1234/frontend-dashboard.git`
 - GitHub Actions auto-deploys to Oracle VM on every push to `main`
 
@@ -61,9 +64,14 @@ if (Test-Path "f:\Whiteout Survival Bot\frontend-dashboard\.git") {
 }
 ```
 
-### 5. Instant Deploy via SSH (Updates both bot and frontend on the VM)
-Bypasses the 2-minute GitHub Actions wait by pushing directly to the VM.
+### 5. Deploy to Oracle VM via SSH (required after every bot push)
+Bypasses the 2-minute GitHub Actions wait by pulling the pushed GitHub commit on the VM and restarting PM2. This is required whenever bot code changes are pushed.
 // turbo
+```powershell
+ssh -i "C:\Users\mohit\.ssh\oracle_vm_key" -o StrictHostKeyChecking=no ubuntu@140.245.241.54 "cd bot && git pull && pm2 restart discordbot"
+```
+
+If the frontend dashboard also changed, deploy both repositories:
 ```powershell
 ssh -i "C:\Users\mohit\.ssh\oracle_vm_key" -o StrictHostKeyChecking=no ubuntu@140.245.241.54 "cd bot && git pull && cd frontend-dashboard && git pull && pm2 restart discordbot"
 ```

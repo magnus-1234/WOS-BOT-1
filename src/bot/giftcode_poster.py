@@ -3,7 +3,7 @@ import json
 import os
 from datetime import datetime
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import discord
 
@@ -548,27 +548,78 @@ async def post_new_codes_to_channel(bot: discord.Client, channel: discord.TextCh
         logger.error(f"Failed to post gift codes to channel {getattr(channel,'id',None)}: {e}")
 
 
-async def run_check_once(bot: discord.Client):
+def _coerce_codes_for_posting(raw_codes) -> List[Dict]:
+    """Normalize fetched/detected code payloads into poster embed dictionaries."""
+    normalized = []
+    for item in raw_codes or []:
+        if isinstance(item, dict):
+            code = item.get('code') or item.get('giftcode') or item.get('_id')
+            expiry = item.get('expiry') or item.get('date') or item.get('expires') or 'Unknown'
+            rewards = item.get('rewards') or item.get('reward') or item.get('description') or 'Rewards not specified'
+            source = item.get('source') or 'active_fetch'
+        elif isinstance(item, (tuple, list)) and item:
+            code = item[0]
+            expiry = item[1] if len(item) > 1 else 'Unknown'
+            rewards = 'Rewards not specified'
+            source = 'auto_redeem_detection'
+        else:
+            code = str(item).strip() if item else ''
+            expiry = 'Unknown'
+            rewards = 'Rewards not specified'
+            source = 'active_fetch'
+
+        code = poster._normalize_code(code)
+        if not code:
+            continue
+        normalized.append({
+            'code': code,
+            'rewards': str(rewards).strip() if rewards else 'Rewards not specified',
+            'expiry': str(expiry).strip() if expiry else 'Unknown',
+            'is_active': True,
+            'source': source,
+        })
+    return normalized
+
+
+async def _fetch_codes_for_posting(bot: discord.Client) -> List[Dict]:
+    """Use the same consolidated source as ManageGiftCode/auto-redeem when available."""
+    manage_cog = bot.get_cog('ManageGiftCode') if bot and hasattr(bot, 'get_cog') else None
+    if manage_cog and hasattr(manage_cog, 'get_active_gift_codes_consolidated'):
+        try:
+            active_map = await manage_cog.get_active_gift_codes_consolidated(force_refresh=True)
+            if active_map:
+                logger.info(f"Fetched {len(active_map)} gift codes from ManageGiftCode consolidated source")
+                return _coerce_codes_for_posting(list(active_map.items()))
+        except Exception as e:
+            logger.warning(f"ManageGiftCode consolidated fetch failed, falling back to poster fetch: {e}")
+
+    return _coerce_codes_for_posting(await get_active_gift_codes())
+
+
+async def run_check_once(bot: discord.Client, detected_codes: Optional[List] = None):
     """Fetch active codes and post new ones to configured channels. Returns summary dict."""
     try:
-        # Try to fetch codes with retry logic
-        MAX_FETCH_RETRIES = 3
-        fetched = None
-        
-        for attempt in range(MAX_FETCH_RETRIES):
-            try:
-                fetched = await get_active_gift_codes()
-                if fetched:
-                    logger.info(f"Successfully fetched {len(fetched)} gift codes (attempt {attempt + 1})")
-                    break
-                else:
-                    logger.warning(f"No codes returned from fetch (attempt {attempt + 1})")
+        fetched = _coerce_codes_for_posting(detected_codes)
+        if fetched:
+            logger.info(f"Using {len(fetched)} detected gift code(s) supplied by auto-redeem detection")
+        else:
+            # Try to fetch codes with retry logic
+            MAX_FETCH_RETRIES = 3
+
+            for attempt in range(MAX_FETCH_RETRIES):
+                try:
+                    fetched = await _fetch_codes_for_posting(bot)
+                    if fetched:
+                        logger.info(f"Successfully fetched {len(fetched)} gift codes (attempt {attempt + 1})")
+                        break
+                    else:
+                        logger.warning(f"No codes returned from fetch (attempt {attempt + 1})")
+                        if attempt < MAX_FETCH_RETRIES - 1:
+                            await asyncio.sleep(5 * (attempt + 1))  # Exponential backoff
+                except Exception as e:
+                    logger.error(f"Error fetching codes (attempt {attempt + 1}/{MAX_FETCH_RETRIES}): {e}")
                     if attempt < MAX_FETCH_RETRIES - 1:
                         await asyncio.sleep(5 * (attempt + 1))  # Exponential backoff
-            except Exception as e:
-                logger.error(f"Error fetching codes (attempt {attempt + 1}/{MAX_FETCH_RETRIES}): {e}")
-                if attempt < MAX_FETCH_RETRIES - 1:
-                    await asyncio.sleep(5 * (attempt + 1))  # Exponential backoff
         
         if not fetched:
             logger.warning("Failed to fetch any codes after retries")
@@ -716,5 +767,5 @@ async def start_poster(bot: discord.Client, interval: int = DEFAULT_INTERVAL):
         await asyncio.sleep(interval)
 
 
-async def run_now_and_report(bot: discord.Client):
-    return await run_check_once(bot)
+async def run_now_and_report(bot: discord.Client, detected_codes: Optional[List] = None):
+    return await run_check_once(bot, detected_codes)

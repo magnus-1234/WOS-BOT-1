@@ -3804,7 +3804,7 @@ class ManageGiftCode(commands.Cog):
 
             # Trigger immediate auto-posting to configured channels
             try:
-                await giftcode_poster.run_now_and_report(self.bot)
+                await giftcode_poster.run_now_and_report(self.bot, new_codes)
                 self.logger.info("🚀 Triggered immediate gift code auto-posting")
             except Exception as e:
                 self.logger.error(f"Error triggering immediate auto-posting: {e}")
@@ -4241,6 +4241,10 @@ class ManageGiftCode(commands.Cog):
                         self._set_embed_footer(embed, message.guild)
                         
                         sent_msg = await message.reply(embed=embed)
+                        try:
+                            await message.add_reaction("✅")
+                        except discord.HTTPException as reaction_err:
+                            self.logger.warning(f"Registered FID {fid}, but failed to add success reaction: {reaction_err}")
                         self.logger.info(f"✅ Successfully auto-added {player_data['nickname']} ({fid}) from channel in guild {message.guild.id}")
                         
                         # Start immediate redemption for all active codes via the unified queue.

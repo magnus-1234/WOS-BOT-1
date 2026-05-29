@@ -352,7 +352,10 @@
       const avatarHtml = currentUser.avatar_url
         ? `<img src="${currentUser.avatar_url}" alt="" class="chat-user-identity-avatar">`
         : `<span class="chat-user-identity-initials">${initials(currentUser.name || currentUser.username)}</span>`;
-      el.identity.innerHTML = `${avatarHtml}<span class="chat-user-identity-info"><strong>${currentUser.name || currentUser.global_name || currentUser.username}</strong><em>${label} Account</em></span><button type="button" data-edit-profile class="chat-inline-edit" title="Edit Profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`;
+      const wosButton = currentUser.kind === "discord"
+        ? `<button type="button" data-connect-wos class="chat-connect-wos">Connect WOS</button>`
+        : "";
+      el.identity.innerHTML = `${avatarHtml}<span class="chat-user-identity-info"><strong>${currentUser.name || currentUser.global_name || currentUser.username}</strong><em>${label} Account</em></span>${wosButton}<button type="button" data-edit-profile class="chat-inline-edit" title="Edit Profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`;
       if (el.login) {
         el.login.classList.add("is-hidden");
         el.login.setAttribute("aria-hidden", "true");
@@ -373,7 +376,25 @@
     
     const editBtn = roomRoot.querySelector("[data-edit-profile]");
     if (editBtn) editBtn.addEventListener("click", openProfileModal);
+    const connectWosBtn = roomRoot.querySelector("[data-connect-wos]");
+    if (connectWosBtn) connectWosBtn.addEventListener("click", showWosConnectPanel);
     updateAdminView();
+  };
+
+  const showWosConnectPanel = () => {
+    if (!el.login) return;
+    el.login.classList.remove("is-hidden");
+    el.login.removeAttribute("aria-hidden");
+    roomRoot.querySelectorAll(".chat-login-tab").forEach((tab) => {
+      tab.classList.toggle("active", tab.dataset.tab === "wos");
+    });
+    roomRoot.querySelectorAll(".chat-login-pane").forEach((pane) => {
+      pane.classList.toggle("active", pane.dataset.loginPane === "wos");
+    });
+    if (el.name) {
+      el.name.value = (getWosProfile() && getWosProfile().id) || "";
+      el.name.focus();
+    }
   };
 
   const resolveDiscordIdentity = async () => {
@@ -900,7 +921,12 @@
   };
 
   const openProfile = (user) => {
-    if (!user || !el.profile) return;
+    if (!user) return;
+    if (!el.profile) {
+      selectedProfileUser = user;
+      renderMembers();
+      return;
+    }
     selectedProfileUser = user;
     const name = userDisplayName(user);
     el.profile.hidden = false;
@@ -1606,6 +1632,33 @@
     }
   };
 
+  const localGifFallbacks = (query = "") => {
+    const gifs = [
+      ["snow", "Snow celebration", "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif"],
+      ["fire", "Camp fire", "https://media.giphy.com/media/l0HlQ7LRalQqdWfao/giphy.gif"],
+      ["win", "Victory", "https://media.giphy.com/media/111ebonMs90YLu/giphy.gif"],
+      ["yes", "Yes", "https://media.giphy.com/media/3o6UB3VhArvomJHtdK/giphy.gif"],
+      ["party", "Party", "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif"],
+      ["wow", "Wow", "https://media.giphy.com/media/5VKbvrjxpVJCM/giphy.gif"],
+      ["thanks", "Thanks", "https://media.giphy.com/media/3oEdva9BUHPIs2SkGk/giphy.gif"],
+      ["hello", "Hello", "https://media.giphy.com/media/xT9IgG50Fb7Mi0prBC/giphy.gif"],
+      ["work", "Work", "https://media.giphy.com/media/13HgwGsXF0aiGY/giphy.gif"],
+      ["alert", "Alert", "https://media.giphy.com/media/3o7TKtnuHOHHUjR38Y/giphy.gif"],
+      ["cold", "Cold", "https://media.giphy.com/media/l0HlPwMAzh13pcZ20/giphy.gif"],
+      ["laugh", "Laugh", "https://media.giphy.com/media/10JhviFuU2gWD6/giphy.gif"]
+    ];
+    const normalized = query.trim().toLowerCase();
+    return gifs
+      .map(([id, title, url], index) => ({
+        id: `local-${id}`,
+        title,
+        url,
+        preview_url: url,
+        rank: normalized && title.toLowerCase().includes(normalized) ? 0 : index + 1
+      }))
+      .sort((a, b) => a.rank - b.rank);
+  };
+
   const searchTenor = async (reset = true) => {
     const q = (el.tenorSearch && el.tenorSearch.value.trim()) || "whiteout survival";
     if (gifLoading) return;
@@ -1623,13 +1676,19 @@
       let data = null;
       for (const endpoint of endpoints) {
         const cursor = gifNext ? `&pos=${encodeURIComponent(gifNext)}` : "";
-        const response = await fetch(`${endpoint}?q=${encodeURIComponent(q)}&limit=24${cursor}`, { headers: authHeaders() });
-        if (response.ok) {
-          data = await response.json();
-          if ((data.results || []).length) break;
+        try {
+          const response = await fetch(`${endpoint}?q=${encodeURIComponent(q)}&limit=24${cursor}`, { headers: authHeaders() });
+          if (response.ok) {
+            data = await response.json();
+            if ((data.results || []).length) break;
+          }
+        } catch (error) {
+          console.warn("GIF provider failed:", endpoint, error);
         }
       }
-      if (!data) throw new Error("GIF search unavailable");
+      if (!data || !(data.results || []).length) {
+        data = { results: localGifFallbacks(q), next: null };
+      }
       // Remove skeletons on first load
       if (reset) {
         el.tenorResults.querySelectorAll(".tenor-skeleton").forEach(s => s.remove());
@@ -1664,10 +1723,24 @@
       }
     } catch (error) {
       el.tenorResults.querySelectorAll(".tenor-skeleton").forEach(s => s.remove());
-      const err = document.createElement("p");
-      err.className = "tenor-empty";
-      err.textContent = "GIF search is unavailable right now.";
-      el.tenorResults.appendChild(err);
+      localGifFallbacks(q).forEach((gif) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "tenor-gif-btn";
+        const image = document.createElement("img");
+        image.src = gif.preview_url || gif.url;
+        image.alt = gif.title || "GIF";
+        image.loading = "lazy";
+        button.appendChild(image);
+        button.addEventListener("click", () => {
+          pendingAttachments.push({ name: gif.title || "GIF", url: gif.url, type: "image/gif", size: 0 });
+          renderPendingAttachments();
+          el.tenorPanel.hidden = true;
+          el.input.focus();
+        });
+        el.tenorResults.appendChild(button);
+      });
+      gifHasMore = false;
     } finally {
       gifLoading = false;
     }

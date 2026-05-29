@@ -7734,6 +7734,143 @@ body {
   }
 }
 
+/* Community chat comfort pass: rounder controls, less boxy surfaces, safer text wrapping. */
+.chat-room-body .chat-room-side,
+.chat-room-body .chat-room-main,
+.chat-room-body .chat-member-panel,
+.chat-room-body .chat-login-v2,
+.chat-room-body .chat-room-user,
+.chat-room-body .global-chat-form,
+.chat-room-body .chat-room-topbar {
+  border-radius: 1.6rem !important;
+}
+
+.chat-room-body .chat-icon-button,
+.chat-room-body .chat-send-button,
+.chat-room-body .chat-login-btn,
+.chat-room-body .chat-login-tab,
+.chat-room-body .chat-connect-wos,
+.chat-room-body .tenor-search button,
+.chat-room-body .gif-source-tabs button,
+.chat-room-body .chat-announcement-compose button {
+  border-radius: 999px !important;
+  transition:
+    transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease !important;
+}
+
+.chat-room-body .chat-icon-button:hover,
+.chat-room-body .chat-send-button:hover,
+.chat-room-body .chat-login-btn:hover,
+.chat-room-body .chat-login-tab:hover,
+.chat-room-body .chat-connect-wos:hover,
+.chat-room-body .tenor-search button:hover,
+.chat-room-body .gif-source-tabs button:hover,
+.chat-room-body .chat-announcement-compose button:hover {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.chat-room-body .chat-icon-button:active,
+.chat-room-body .chat-send-button:active,
+.chat-room-body .chat-login-btn:active,
+.chat-room-body .chat-login-tab:active,
+.chat-room-body .chat-connect-wos:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.chat-room-body .chat-bubble,
+.chat-room-body .chat-room-messages .chat-bubble,
+.chat-room-body .chat-member-item,
+.chat-room-body .tenor-panel,
+.chat-room-body .chat-attachment-chip,
+.chat-room-body .room-reply-bar,
+.chat-room-body .chat-member-search {
+  border-radius: 1.25rem !important;
+}
+
+.chat-room-body .chat-user-identity-info,
+.chat-room-body .chat-active-room,
+.chat-room-body .chat-active-room > div,
+.chat-room-body .chat-member-item > span:last-child,
+.chat-room-body .chat-bubble,
+.chat-room-body .chat-content,
+.chat-room-body .chat-profile-details dd,
+.chat-room-body .room-reply-bar p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.chat-room-body .chat-user-identity-info strong,
+.chat-room-body .chat-user-identity-info em,
+.chat-room-body .chat-active-room strong,
+.chat-room-body .chat-active-room span,
+.chat-room-body .chat-member-item strong,
+.chat-room-body .chat-member-item small {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-connect-wos {
+  flex: 0 0 auto;
+  border: 1px solid rgba(141, 232, 255, 0.34);
+  background: rgba(141, 232, 255, 0.1);
+  color: #8de8ff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.42rem 0.7rem;
+}
+
+.chat-room-body .chat-room-user {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+}
+
+.chat-room-body .chat-room-user [data-room-identity],
+.chat-room-body .chat-room-user [data-room-status] {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.chat-room-body .chat-room-user [data-room-status] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-room-body .chat-login-tabs {
+  grid-template-columns: 1fr;
+}
+
+.chat-room-body .chat-login-tab {
+  min-width: 0;
+  gap: 0.25rem;
+  padding: 0 0.32rem;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.chat-room-body .chat-login-tab svg {
+  width: 0.78rem;
+  height: 0.78rem;
+}
+
+.chat-room-body .chat-login-btn {
+  letter-spacing: 0.03em;
+  line-height: 1.15;
+  white-space: normal;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    CHAT V2 – Premium Community Chat Overhaul
    ════════════════════════════════════════════════════════════════════════════ */
@@ -8602,4 +8739,81 @@ body {
 /* ── Deleting animation ───────────────────────────────────────────────────── */
 .chat-message.deleting {
   animation: scaleOutFade 0.3s ease forwards;
+}
+
+/* Final community chat overrides kept last so theme-specific rules cannot square the UI again. */
+.chat-room-body .chat-room-side,
+.chat-room-body .chat-room-main,
+.chat-room-body .chat-member-panel,
+.chat-room-body .chat-login-v2,
+.chat-room-body .chat-room-user,
+.chat-room-body .global-chat-form,
+.chat-room-body .chat-room-topbar {
+  border-radius: 1.6rem !important;
+}
+
+.chat-room-body .chat-icon-button,
+.chat-room-body .chat-send-button,
+.chat-room-body .chat-login-btn,
+.chat-room-body .chat-login-tab,
+.chat-room-body .chat-connect-wos,
+.chat-room-body .tenor-search button,
+.chat-room-body .gif-source-tabs button,
+.chat-room-body .chat-announcement-compose button {
+  border-radius: 999px !important;
+}
+
+.chat-room-body .chat-bubble,
+.chat-room-body .chat-room-messages .chat-bubble,
+.chat-room-body .chat-member-item,
+.chat-room-body .tenor-panel,
+.chat-room-body .chat-attachment-chip,
+.chat-room-body .room-reply-bar,
+.chat-room-body .chat-member-search {
+  border-radius: 1.25rem !important;
+}
+
+.chat-room-body .chat-content,
+.chat-room-body .chat-bubble,
+.chat-room-body .chat-member-item,
+.chat-room-body .chat-active-room,
+.chat-room-body .chat-user-identity-info {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.chat-room-body .chat-login-tabs {
+  grid-template-columns: 1fr !important;
+}
+
+.chat-room-body .chat-login-tab {
+  min-width: 0;
+  overflow: hidden;
+  padding-inline: 0.32rem !important;
+  white-space: nowrap;
+}
+
+.chat-room-body .chat-login-btn {
+  letter-spacing: 0.03em !important;
+  line-height: 1.15;
+}
+
+.chat-room-body .chat-room-user {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 0.35rem !important;
+}
+
+.chat-room-body .chat-room-user [data-room-identity],
+.chat-room-body .chat-room-user [data-room-status] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.chat-room-body .chat-room-user [data-room-status] {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

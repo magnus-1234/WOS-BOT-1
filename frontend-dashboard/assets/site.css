@@ -7389,6 +7389,74 @@ body {
   scrollbar-color: rgba(141, 232, 255, 0.65) transparent !important;
 }
 
+.hero::after,
+[data-theme="light"] .hero::after,
+[data-theme="cyberpunk-cool"] .hero::after {
+  content: none !important;
+  animation: none !important;
+}
+
+.feature-showcase-section {
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-showcase-section > * {
+  position: relative;
+  z-index: 1;
+}
+
+.feature-showcase-section::before {
+  content: "" !important;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 0;
+  height: clamp(4.25rem, 9vw, 6.5rem);
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(7, 11, 18, 0.98), rgba(7, 11, 18, 0.62) 42%, rgba(7, 11, 18, 0)),
+    linear-gradient(90deg, transparent 0%, rgba(141, 232, 255, 0.48) 48%, transparent 100%),
+    repeating-linear-gradient(104deg, transparent 0 28px, rgba(141, 232, 255, 0.16) 29px 30px, transparent 31px 58px) !important;
+  background-size: 100% 100%, 220% 100%, 180px 100%;
+  background-position: 0 0, -120% 0, 0 0;
+  border-top: 1px solid rgba(141, 232, 255, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 -20px 54px -40px rgba(141, 232, 255, 0.7);
+  opacity: 0.94;
+  animation: section-separator-scan 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+[data-theme="light"] .feature-showcase-section::before {
+  background:
+    linear-gradient(180deg, rgba(244, 244, 248, 1), rgba(244, 244, 248, 0.72) 45%, rgba(244, 244, 248, 0)),
+    linear-gradient(90deg, transparent 0%, rgba(99, 102, 241, 0.34) 48%, transparent 100%),
+    repeating-linear-gradient(104deg, transparent 0 30px, rgba(99, 102, 241, 0.12) 31px 32px, transparent 33px 60px) !important;
+  border-top-color: rgba(99, 102, 241, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 -20px 50px -44px rgba(99, 102, 241, 0.46);
+}
+
+[data-theme="cyberpunk-cool"] .feature-showcase-section::before {
+  background:
+    linear-gradient(180deg, #070b12, rgba(7, 11, 18, 0.68) 42%, rgba(7, 11, 18, 0)),
+    linear-gradient(90deg, transparent 0%, rgba(0, 255, 255, 0.54) 44%, rgba(255, 0, 255, 0.22) 52%, transparent 100%),
+    repeating-linear-gradient(104deg, transparent 0 28px, rgba(0, 255, 255, 0.18) 29px 30px, transparent 31px 58px) !important;
+  border-top-color: rgba(0, 255, 255, 0.34);
+}
+
+@keyframes section-separator-scan {
+  0%,
+  100% {
+    background-position: 0 0, -120% 0, 0 0;
+    opacity: 0.86;
+  }
+
+  45% {
+    background-position: 0 0, 120% 0, 42px 0;
+    opacity: 1;
+  }
+}
+
 @media (max-width: 640px) {
   .brand {
     gap: 0.55rem;

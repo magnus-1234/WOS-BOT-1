@@ -636,8 +636,8 @@ async def get_player_info_api(request: Request):
         
         # Clean ID
         fid = ''.join(c for c in str(fid) if c.isdigit())
-        if len(fid) != 9:
-            raise HTTPException(status_code=400, detail="ID must be exactly 9 digits")
+        if not (8 <= len(fid) <= 9):
+            raise HTTPException(status_code=400, detail="ID must be 8 or 9 digits")
 
         bot = getattr(request.app.state, "bot", None)
         if bot is None:

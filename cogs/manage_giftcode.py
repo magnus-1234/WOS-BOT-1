@@ -886,12 +886,12 @@ class ManageGiftCode(commands.Cog):
         try:
             # Remove any whitespace and non-numeric characters
             clean_fid = ''.join(c for c in fid if c.isdigit())
-            if not clean_fid or len(clean_fid) != 9:
-                await ctx.send(f"❌ Invalid FID format. FID must be exactly 9 digits. You provided: `{fid}`")
+            if not clean_fid or not (8 <= len(clean_fid) <= 9):
+                await ctx.send(f"❌ Invalid FID format. FID must be 8 or 9 digits. You provided: `{fid}`")
                 return
             target_fid = clean_fid
         except Exception as e:
-            await ctx.send(f"❌ Error processing FID: `{fid}`. Please enter a valid 9-digit FID.")
+            await ctx.send(f"❌ Error processing FID: `{fid}`. Please enter a valid 8- or 9-digit FID.")
             return
 
         # If FID is provided, proceed with single member test but with improved UI
@@ -4144,9 +4144,9 @@ class ManageGiftCode(commands.Cog):
             if not monitored_channel_id or monitored_channel_id != message.channel.id:
                 return  # Not a monitored channel
             
-            # Extract 9-digit codes from message
+            # Extract 8- or 9-digit codes from message
             import re
-            fid_pattern = r'\b\d{9}\b'
+            fid_pattern = r'\b\d{8,9}\b'
             fids = re.findall(fid_pattern, message.content)
             
             if not fids:
@@ -7016,7 +7016,7 @@ class ManageGiftCode(commands.Cog):
                                 description=(
                                     f"**Channel:** {channel.mention}\n\n"
                                     "**How it works:**\n"
-                                    "▸ Bot will monitor this channel for 9-digit ID codes\n"
+                                    "▸ Bot will monitor this channel for 8- or 9-digit ID codes\n"
                                     "▸ Valid IDs will be automatically added to auto-redeem list\n"
                                     "▸ Players will receive confirmation when added\n\n"
                                     "**Example:** When someone posts `123456789`, the bot will validate and add them."
@@ -7178,7 +7178,7 @@ class ManageGiftCode(commands.Cog):
                                 description=(
                                     f"**New monitored channel:** {channel.mention}\n\n"
                                     "**How it works:**\n"
-                                    "▸ Bot will monitor this channel for 9-digit ID codes\n"
+                                    "▸ Bot will monitor this channel for 8- or 9-digit ID codes\n"
                                     "▸ Valid IDs will be automatically added to auto-redeem list\n"
                                     "▸ Players will receive confirmation when added\n\n"
                                     "**Example:** When someone posts `123456789`, the bot will validate and add them."

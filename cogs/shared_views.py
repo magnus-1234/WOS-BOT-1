@@ -1210,12 +1210,12 @@ class BirthdayDashboardView(discord.ui.View):
                 day_input = discord.ui.TextInput(label="Day (1-31)", placeholder="15", style=discord.TextStyle.short, required=True, max_length=2)
                 month_input = discord.ui.TextInput(label="Month (1-12)", placeholder="6", style=discord.TextStyle.short, required=True, max_length=2)
                 player_id_input = discord.ui.TextInput(
-                    label="Player ID (Optional - 9 digits)",
+                    label="Player ID (Optional - 8 or 9 digits)",
                     placeholder="e.g. 123456789 (for WOS avatar)",
                     style=discord.TextStyle.short,
                     required=False,
                     max_length=9,
-                    min_length=9
+                    min_length=8
                 )
                 
                 def __init__(self, birthday_system):
@@ -1233,10 +1233,10 @@ class BirthdayDashboardView(discord.ui.View):
                         # Validate and process player_id if provided
                         pid = self.player_id_input.value.strip() if self.player_id_input.value else None
                         if pid:
-                            # Validate player_id format (must be exactly 9 digits)
-                            if not pid.isdigit() or len(pid) != 9:
+                            # Validate player_id format (must be 8 or 9 digits)
+                            if not pid.isdigit() or not (8 <= len(pid) <= 9):
                                 await modal_interaction.followup.send(
-                                    "❌ Player ID must be exactly 9 digits. Please try again.",
+                                    "❌ Player ID must be 8 or 9 digits. Please try again.",
                                     ephemeral=True
                                 )
                                 return
@@ -1307,12 +1307,12 @@ class BirthdayDashboardView(discord.ui.View):
                         day_input = discord.ui.TextInput(label="Day (1-31)", placeholder="15", style=discord.TextStyle.short, required=True, max_length=2)
                         month_input = discord.ui.TextInput(label="Month (1-12)", placeholder="6", style=discord.TextStyle.short, required=True, max_length=2)
                         player_id_input = discord.ui.TextInput(
-                            label="Player ID (Optional - 9 digits)",
+                            label="Player ID (Optional - 8 or 9 digits)",
                             placeholder="e.g. 123456789 (for WOS avatar)",
                             style=discord.TextStyle.short,
                             required=False,
                             max_length=9,
-                            min_length=9
+                            min_length=8
                         )
                         
                         def __init__(self, birthday_system, target_user):
@@ -1331,10 +1331,10 @@ class BirthdayDashboardView(discord.ui.View):
                                 # Validate and process player_id if provided
                                 pid = self.player_id_input.value.strip() if self.player_id_input.value else None
                                 if pid:
-                                    # Validate player_id format (must be exactly 9 digits)
-                                    if not pid.isdigit() or len(pid) != 9:
+                                    # Validate player_id format (must be 8 or 9 digits)
+                                    if not pid.isdigit() or not (8 <= len(pid) <= 9):
                                         await modal_interaction.followup.send(
-                                            "❌ Player ID must be exactly 9 digits. Please try again.",
+                                            "❌ Player ID must be 8 or 9 digits. Please try again.",
                                             ephemeral=True
                                         )
                                         return

@@ -297,8 +297,8 @@ async def get_room_state():
 @router.get("/player/{fid}")
 async def lookup_chat_player(fid: str):
     safe_fid = re.sub(r"\D", "", fid or "")
-    if len(safe_fid) != 9:
-        raise HTTPException(status_code=400, detail="Enter a valid 9-digit player ID.")
+    if not (8 <= len(safe_fid) <= 9):
+        raise HTTPException(status_code=400, detail="Enter a valid 8- or 9-digit player ID.")
 
     player = await fetch_player_info(safe_fid)
     if not player:
@@ -568,7 +568,7 @@ def _reply_snapshot(message: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any
 
 async def _resolve_chat_actor(request: Request, display_name: Optional[str], guest_id: Optional[str], avatar_url: Optional[str] = None) -> Dict[str, Any]:
     safe_guest_id = _clean_text(guest_id or "", 80)
-    if re.fullmatch(r"\d{9}", safe_guest_id or ""):
+    if re.fullmatch(r"\d{8,9}", safe_guest_id or ""):
         return {
             "id": safe_guest_id,
             "name": _clean_name(display_name, "WOS Player"),

@@ -3280,11 +3280,11 @@ class BotOperations(commands.Cog):
                         import re
                         fids_str = self.fids_input.value.strip().replace(',', '\n')
                         fid_list = [fid.strip() for fid in fids_str.split('\n')]
-                        valid_fids = [fid for fid in fid_list if re.match(r'^\d{9}$', fid)]
+                        valid_fids = [fid for fid in fid_list if re.match(r'^\d{8,9}$', fid)]
                         
                         if not valid_fids:
                             await modal_interaction.response.send_message(
-                                "❌ No valid FIDs found. FIDs must be exactly 9 digits.",
+                                "❌ No valid FIDs found. FIDs must be 8 or 9 digits.",
                                 ephemeral=True
                             )
                             return
@@ -3443,11 +3443,11 @@ class BotOperations(commands.Cog):
                         import re
                         fids_str = self.fids_input.value.strip().replace(',', '\n')
                         fid_list = [fid.strip() for fid in fids_str.split('\n')]
-                        valid_fids = [fid for fid in fid_list if re.match(r'^\d{9}$', fid)]
+                        valid_fids = [fid for fid in fid_list if re.match(r'^\d{8,9}$', fid)]
                         
                         if not valid_fids:
                             await modal_interaction.response.send_message(
-                                "❌ No valid FIDs found. FIDs must be exactly 9 digits.",
+                                "❌ No valid FIDs found. FIDs must be 8 or 9 digits.",
                                 ephemeral=True
                             )
                             return

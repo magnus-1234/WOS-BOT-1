@@ -115,10 +115,10 @@ class PlayerIDModal(discord.ui.Modal, title="🎮 Step 3: Player Information"):
     """Step 3: Player ID input"""
     
     player_id = discord.ui.TextInput(
-        label="Player ID (9 digits)",
-        placeholder="Enter your 9-digit player ID",
+        label="Player ID (8 or 9 digits)",
+        placeholder="Enter your 8- or 9-digit player ID",
         required=True,
-        min_length=9,
+        min_length=8,
         max_length=9
     )
     
@@ -136,9 +136,9 @@ class PlayerIDModal(discord.ui.Modal, title="🎮 Step 3: Player Information"):
         player_id = self.player_id.value.strip()
         
         # Validate player ID format
-        if not re.fullmatch(r"\d{9}", player_id):
+        if not re.fullmatch(r"\d{8,9}", player_id):
             await interaction.response.send_message(
-                "❌ Invalid player ID. Must be exactly 9 digits.",
+                "❌ Invalid player ID. Must be 8 or 9 digits.",
                 ephemeral=True
             )
             return

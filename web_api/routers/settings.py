@@ -283,8 +283,8 @@ async def register_birthday_record(guild_id: int, payload: BirthdayRecordInput, 
 
     pid = payload.player_id.strip() if payload.player_id else None
     if pid:
-        if not pid.isdigit() or len(pid) != 9:
-            raise HTTPException(status_code=400, detail="Player ID must be exactly 9 digits.")
+        if not pid.isdigit() or not (8 <= len(pid) <= 9):
+            raise HTTPException(status_code=400, detail="Player ID must be 8 or 9 digits.")
 
     success = await BirthdaysAdapter.set_async(guild_id, user_id, day, month, pid)
     if not success:

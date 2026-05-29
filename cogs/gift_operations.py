@@ -791,8 +791,8 @@ class GiftOperations(commands.Cog):
             giftcode = None
             if len(content.split()) == 1:
                 if re.match(r'^[a-zA-Z0-9]+$', content):
-                    # Ignore 9-digit numbers (Player IDs) to prevent conflict with PlayerIDValidator
-                    if re.match(r'^\d{9}$', content):
+                    # Ignore 8- or 9-digit numbers (Player IDs) to prevent conflict with PlayerIDValidator
+                    if re.match(r'^\d{8,9}$', content):
                         return
                     giftcode = content
             else:

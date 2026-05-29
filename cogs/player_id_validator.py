@@ -114,11 +114,11 @@ class PlayerIDValidator(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        """Listen for messages containing 9-digit player IDs"""
+        """Listen for messages containing 8- or 9-digit player IDs"""
         if message.author.bot:
             return
         
-        pattern = r'\b\d{9}\b'
+        pattern = r'\b\d{8,9}\b'
         matches = re.findall(pattern, message.content)
         
         if not matches:

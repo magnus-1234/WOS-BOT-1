@@ -28,10 +28,10 @@ class FIDCommands(commands.Cog):
         # Split by comma and clean up
         fid_list = [fid.strip() for fid in fids_str.split(',')]
         
-        # Validate FIDs (must be exactly 9 digits)
+        # Validate FIDs (must be 8 or 9 digits)
         valid_fids = []
         for fid in fid_list:
-            if re.match(r'^\d{9}$', fid):
+            if re.match(r'^\d{8,9}$', fid):
                 valid_fids.append(fid)
         
         return command, valid_fids
@@ -677,7 +677,7 @@ class FIDCommands(commands.Cog):
                 "❌ Invalid format. Please use:\n"
                 "`!Add 123456789` or `!Add 123456789,987654321`\n"
                 "`!Remove 123456789` or `!Remove 123456789,987654321`\n"
-                "FIDs must be exactly 9 digits."
+                "FIDs must be 8 or 9 digits."
             )
             return
         

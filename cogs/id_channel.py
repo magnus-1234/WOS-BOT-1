@@ -263,7 +263,7 @@ class IDChannel(commands.Cog):
                 return
             
             content = message.content.strip()
-            # Extract 9-digit codes
+            # Extract FID codes
             import re
             fid_pattern = r'\b\d{7,12}\b'
             fids = re.findall(fid_pattern, content)

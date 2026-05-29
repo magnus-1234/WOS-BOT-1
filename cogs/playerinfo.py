@@ -73,7 +73,7 @@ def map_furnace(lv: int) -> Optional[str]:
 class PlayerInfoCog(commands.Cog):
     """Cog that adds a /playerinfo slash command.
 
-    The command accepts a 9-digit player id (fid) and returns a rich embed
+    The command accepts an 8- or 9-digit player id (fid) and returns a rich embed
     containing: nickname, fid, kid, furnace level (and FC mapping), small
     furnace icon and the avatar as the embed thumbnail.
     """
@@ -89,7 +89,7 @@ class PlayerInfoCog(commands.Cog):
     def _is_managed_channel(self, message: discord.Message) -> bool:
         """Return True if this channel is managed by another cog (auto-redeem or ID channel).
         
-        playerinfo should NOT intercept 9-digit FIDs in these channels because a
+        playerinfo should NOT intercept 8- or 9-digit FIDs in these channels because a
         dedicated cog already handles them and will produce its own response.
         """
         if not message.guild:
@@ -143,9 +143,9 @@ class PlayerInfoCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        """Listen for messages that contain a standalone 9-digit number and show player info inline.
+        """Listen for messages that contain a standalone 8- or 9-digit number and show player info inline.
 
-        If the message contains a standalone 9-digit number (anywhere in the text)
+        If the message contains a standalone 8- or 9-digit number (anywhere in the text)
         and the API returns a valid player, reply with the same embed used by the
         slash command. If the API doesn't return data or an error occurs, react
         to the message with ❌ to indicate the lookup failed.
@@ -165,7 +165,7 @@ class PlayerInfoCog(commands.Cog):
             if self._is_managed_channel(message):
                 return
             
-            m = re.search(r"\b(\d{9})\b", content)
+            m = re.search(r"\b(\d{8,9})\b", content)
             if not m:
                 return
 
@@ -179,7 +179,7 @@ class PlayerInfoCog(commands.Cog):
         """Shared handler to perform the API lookup and reply with embed.
 
         This is separated so external code (like app.py's on_message)
-        can invoke it directly when they detect a raw 9-digit message.
+        can invoke it directly when they detect a raw 8- or 9-digit message.
         """
         try:
             # Avoid running twice on the same message (app.py may delegate and
@@ -385,9 +385,9 @@ class PlayerInfoCog(commands.Cog):
 
     @discord.app_commands.command(
         name="playerinfo",
-        description="Get player info by 9-digit player id. Accepts comma-separated list (max 30).",
+        description="Get player info by 8- or 9-digit player id. Accepts comma-separated list (max 30).",
     )
-    @app_commands.describe(player_id="Single 9-digit id or comma-separated list of ids (max 30)")
+    @app_commands.describe(player_id="Single 8- or 9-digit id or comma-separated list of ids (max 30)")
     @command_animation
     async def playerinfo(self, interaction: discord.Interaction, player_id: str):
         # log invocation
@@ -407,16 +407,16 @@ class PlayerInfoCog(commands.Cog):
             return
 
         # Validate each id individually
-        invalid = [p for p in ids if not re.fullmatch(r"\d{9}", p)]
+        invalid = [p for p in ids if not re.fullmatch(r"\d{8,9}", p)]
         if invalid:
             if interaction.response.is_done():
                 await interaction.followup.send(
-                    f"The following ids are invalid (must be 9 digits): {', '.join(invalid)}",
+                    f"The following ids are invalid (must be 8 or 9 digits): {', '.join(invalid)}",
                     ephemeral=True,
                 )
             else:
                 await interaction.response.send_message(
-                    f"The following ids are invalid (must be 9 digits): {', '.join(invalid)}",
+                    f"The following ids are invalid (must be 8 or 9 digits): {', '.join(invalid)}",
                     ephemeral=True,
                 )
             return
@@ -481,7 +481,7 @@ class PlayerInfoCog(commands.Cog):
                 api_msg = str(api_msg_raw).lower().replace('_', ' ')
                 if ('role' in api_msg and ('not' in api_msg and ('exist' in api_msg or 'found' in api_msg))) \
                    or (('not' in api_msg) and ('exist' in api_msg or 'found' in api_msg)):
-                    embed.description = "Player not found — check the 9-digit player ID and try again."
+                    embed.description = "Player not found — check the 8- or 9-digit player ID and try again."
                     self._set_embed_footer(embed, interaction)
                     return embed
                 else:
@@ -577,7 +577,7 @@ class PlayerInfoCog(commands.Cog):
     )
     @app_commands.describe(
         message_id="The ID of the message to edit (must be in the current channel)",
-        player_id="The new 9-digit player ID to fetch info for"
+        player_id="The new 8- or 9-digit player ID to fetch info for"
     )
     async def editplayerinfo(self, interaction: discord.Interaction, message_id: str, player_id: str):
         """Edit an existing message with new player info."""
@@ -585,8 +585,8 @@ class PlayerInfoCog(commands.Cog):
         self.logger.info("/editplayerinfo invoked by user %s for msg=%s player_id=%s", user_id, message_id, player_id)
 
         # Validate player_id
-        if not re.fullmatch(r"\d{9}", player_id):
-            await interaction.response.send_message("Invalid player ID. Must be 9 digits.", ephemeral=True)
+        if not re.fullmatch(r"\d{8,9}", player_id):
+            await interaction.response.send_message("Invalid player ID. Must be 8 or 9 digits.", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
@@ -655,7 +655,7 @@ class PlayerInfoCog(commands.Cog):
             api_msg = str(api_msg_raw).lower().replace('_', ' ')
             if ('role' in api_msg and ('not' in api_msg and ('exist' in api_msg or 'found' in api_msg))) \
                or (('not' in api_msg) and ('exist' in api_msg or 'found' in api_msg)):
-                embed.description = "Player not found — check the 9-digit player ID and try again."
+                embed.description = "Player not found — check the 8- or 9-digit player ID and try again."
             else:
                 embed.description = f"API error: {api_msg_raw}"
             self._set_embed_footer(embed, interaction)

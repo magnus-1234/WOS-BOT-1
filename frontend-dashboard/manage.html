@@ -763,6 +763,32 @@
         .preset-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
         .preset-header h3 { font-size:1rem; margin:0; display:flex; align-items:center; gap:8px; }
         .preset-header p { color:var(--text-muted); font-size:0.82rem; margin:4px 0 0; }
+        .records-shell { display:grid;grid-template-columns:minmax(260px,360px) minmax(0,1fr);gap:18px;align-items:start; }
+        .records-toolbar { display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px; }
+        .records-list { display:flex;flex-direction:column;gap:10px;max-height:580px;overflow:auto;padding-right:4px; }
+        .record-item { width:100%;text-align:left;border:1px solid var(--glass-border);background:rgba(255,255,255,0.035);border-radius:8px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--text-main);cursor:pointer;transition:0.2s ease; }
+        .record-item:hover,.record-item.active { border-color:rgba(139,92,246,0.45);background:rgba(139,92,246,0.11); }
+        .record-item strong { display:block;font-size:0.95rem;margin-bottom:4px; }
+        .record-item span { color:var(--text-muted);font-size:0.78rem; }
+        .records-grid { display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:12px;margin-bottom:16px; }
+        .record-stat { border:1px solid var(--glass-border);background:rgba(255,255,255,0.035);border-radius:8px;padding:14px; }
+        .record-stat span { color:var(--text-muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.4px; }
+        .record-stat strong { display:block;font-family:'Outfit',sans-serif;font-size:1.25rem;margin-top:6px; }
+        .records-actions { display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 16px; }
+        .records-table-wrap { overflow:auto;border:1px solid var(--glass-border);border-radius:8px;background:rgba(0,0,0,0.12); }
+        .records-table { width:100%;border-collapse:collapse;min-width:760px; }
+        .records-table th,.records-table td { padding:11px 12px;border-bottom:1px solid var(--glass-border);font-size:0.86rem;text-align:left;vertical-align:middle; }
+        .records-table th { color:var(--text-muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.4px;background:rgba(255,255,255,0.035); }
+        .records-table tr:last-child td { border-bottom:none; }
+        .record-avatar { width:34px;height:34px;border-radius:8px;object-fit:cover;background:rgba(255,255,255,0.08); }
+        .record-member-cell { display:flex;align-items:center;gap:10px;min-width:190px; }
+        .record-member-cell strong { display:block;font-size:0.9rem; }
+        .record-member-cell span { display:block;color:var(--text-muted);font-size:0.78rem; }
+        .record-inline-input { width:100%;min-width:120px;background:rgba(255,255,255,0.04);border:1px solid transparent;border-radius:6px;color:var(--text-main);padding:7px 8px;font:inherit; }
+        .record-inline-input:focus { outline:none;border-color:var(--primary);background:rgba(255,255,255,0.08); }
+        .record-publish-panel { display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-top:14px;padding:14px;border:1px solid var(--glass-border);border-radius:8px;background:rgba(255,255,255,0.025); }
+        .record-empty { padding:36px 18px;text-align:center;color:var(--text-muted);border:1px dashed var(--glass-border);border-radius:8px;background:rgba(255,255,255,0.02); }
+        @media (max-width: 1100px) { .records-shell { grid-template-columns:1fr; } .records-grid { grid-template-columns:repeat(2,minmax(130px,1fr)); } .record-publish-panel { grid-template-columns:1fr; } }
         .preset-controls { display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
         .preset-search-wrap { position:relative; min-width:240px; flex:1 1 280px; max-width:360px; }
         .preset-search-wrap i { position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--text-muted); pointer-events:none; }
@@ -2152,6 +2178,10 @@
                         <i data-lucide="lock"></i>
                     </div>
                 </button>
+                <button class="nav-item" onclick="switchTab('records')">
+                    <i data-lucide="folder-kanban"></i>
+                    <span>Records</span>
+                </button>
                 <button class="nav-item" onclick="switchTab('reminders')">
                     <i data-lucide="clock"></i>
                     <span>Reminders</span>
@@ -3021,6 +3051,90 @@
                 </h3>
                 <div id="giftcodes-meta" class="giftcodes-meta"></div>
                 <div id="giftcodes-list"></div>
+            </div>
+
+            <!-- Records Tab -->
+            <div id="tab-records" class="tab-content">
+                <div class="reminders-toolbar">
+                    <div>
+                        <h2 class="section-title" style="margin:0;">Records</h2>
+                        <p>Manage custom player groups, member data, columns, and Discord record-view messages.</p>
+                    </div>
+                    <div class="reminder-actions">
+                        <button class="btn btn-secondary" onclick="loadRecords()"><i data-lucide="refresh-cw"></i> Refresh</button>
+                        <button class="btn btn-primary" onclick="createRecordFromDashboard()"><i data-lucide="folder-plus"></i> Create Record</button>
+                    </div>
+                </div>
+
+                <div class="records-shell">
+                    <section class="card" style="margin-bottom:0;">
+                        <div class="records-toolbar">
+                            <div>
+                                <h3 style="display:flex;align-items:center;gap:8px;margin:0;font-size:1rem;"><i data-lucide="folders" style="width:17px;color:var(--primary);"></i> Record Groups</h3>
+                                <p style="color:var(--text-muted);font-size:0.82rem;margin-top:4px;">Select a group to edit members and fields.</p>
+                            </div>
+                            <span id="records-count-badge" class="badge badge-info">0</span>
+                        </div>
+                        <input type="text" id="records-search" placeholder="Search records..." oninput="renderRecordsList()" style="width:100%;margin-bottom:14px;">
+                        <div id="records-list" class="records-list">
+                            <div class="record-empty">No records loaded.</div>
+                        </div>
+                    </section>
+
+                    <section class="card" style="margin-bottom:0;">
+                        <div id="record-detail-empty" class="record-empty">Select a record from the left panel.</div>
+                        <div id="record-detail-panel" style="display:none;">
+                            <div class="records-toolbar">
+                                <div>
+                                    <h3 id="record-detail-title" style="margin:0;font-size:1.15rem;font-family:'Outfit',sans-serif;">Record</h3>
+                                    <p id="record-detail-subtitle" style="color:var(--text-muted);font-size:0.84rem;margin-top:4px;"></p>
+                                </div>
+                                <div class="records-actions" style="margin:0;">
+                                    <button class="btn btn-secondary" onclick="renameSelectedRecord()"><i data-lucide="pencil"></i> Rename</button>
+                                    <button class="btn btn-danger" onclick="deleteSelectedRecord()"><i data-lucide="trash-2"></i> Delete</button>
+                                </div>
+                            </div>
+
+                            <div class="records-grid">
+                                <div class="record-stat"><span>Members</span><strong id="record-stat-members">0</strong></div>
+                                <div class="record-stat"><span>Highest Furnace</span><strong id="record-stat-highest">0</strong></div>
+                                <div class="record-stat"><span>Average Furnace</span><strong id="record-stat-average">0</strong></div>
+                                <div class="record-stat"><span>Columns</span><strong id="record-stat-columns">0</strong></div>
+                            </div>
+
+                            <div class="records-actions">
+                                <button class="btn btn-primary" onclick="addMembersToSelectedRecord()"><i data-lucide="user-plus"></i> Add FIDs</button>
+                                <button class="btn btn-secondary" onclick="addAllianceToSelectedRecord()"><i data-lucide="users"></i> Add Alliance</button>
+                                <button class="btn btn-secondary" onclick="removeMembersFromSelectedRecord()"><i data-lucide="user-minus"></i> Remove FIDs</button>
+                                <button class="btn btn-secondary" onclick="addRecordColumn()"><i data-lucide="columns-3"></i> Add Column</button>
+                            </div>
+
+                            <div id="record-columns-row" class="records-actions"></div>
+
+                            <div class="records-table-wrap">
+                                <table class="records-table">
+                                    <thead id="record-members-head"></thead>
+                                    <tbody id="record-members-body"></tbody>
+                                </table>
+                            </div>
+
+                            <div class="record-publish-panel">
+                                <div class="form-group" style="margin:0;">
+                                    <label>Publish Channel</label>
+                                    <select id="record-publish-channel" class="guild-channels"></select>
+                                </div>
+                                <div class="form-group" style="margin:0;">
+                                    <label>Discord View</label>
+                                    <select id="record-publish-type">
+                                        <option value="list">Record list</option>
+                                        <option value="detail">Selected record detail</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-primary" onclick="publishRecordView()"><i data-lucide="send"></i> Publish</button>
+                            </div>
+                        </div>
+                    </section>
+                </div>
             </div>
 
             <!-- Reminders Tab -->
@@ -5074,6 +5188,9 @@
             if (tabName === 'roles') {
                 switchRoleSubtab('auto');
             }
+            if (tabName === 'records') {
+                loadRecords();
+            }
             if (tabName === 'reminders') {
                 loadReminders();
                 loadCommunityPresets();
@@ -6103,6 +6220,242 @@
 
         function escapeAttribute(value) {
             return escapeHTML(value).replace(/`/g, '&#096;');
+        }
+
+        let _records = [];
+        let _selectedRecordName = null;
+        let _selectedRecord = null;
+
+        function parseFidInput(value) {
+            return String(value || '').split(/[\s,;]+/).map(v => v.trim()).filter(v => /^\d{9}$/.test(v));
+        }
+
+        function recordUrlName(name) {
+            return encodeURIComponent(name || '');
+        }
+
+        async function loadRecords() {
+            try {
+                const data = await fetchData(`/api/records/${guildId}`);
+                _records = data.records || [];
+                if (_records.length && !_selectedRecordName) _selectedRecordName = _records[0].record_name;
+                if (_selectedRecordName && !_records.some(r => r.record_name === _selectedRecordName)) _selectedRecordName = _records[0]?.record_name || null;
+                renderRecordsList();
+                if (_selectedRecordName) await loadRecordDetail(_selectedRecordName);
+                else renderRecordDetail(null);
+            } catch (e) {
+                const list = document.getElementById('records-list');
+                if (list) list.innerHTML = '<div class="record-empty">Failed to load records.</div>';
+            }
+        }
+
+        function renderRecordsList() {
+            const list = document.getElementById('records-list');
+            const badge = document.getElementById('records-count-badge');
+            if (!list) return;
+            const q = (document.getElementById('records-search')?.value || '').toLowerCase().trim();
+            const filtered = _records.filter(r => String(r.record_name || '').toLowerCase().includes(q));
+            if (badge) badge.textContent = _records.length;
+            if (!filtered.length) {
+                list.innerHTML = '<div class="record-empty">No records match this search.</div>';
+                return;
+            }
+            list.innerHTML = filtered.map(r => {
+                const name = r.record_name || r.name || 'Unnamed';
+                const active = name === _selectedRecordName ? ' active' : '';
+                return `<button class="record-item${active}" onclick="loadRecordDetail('${escapeAttribute(name)}')"><div><strong>${escapeHTML(name)}</strong><span>${Number(r.member_count || 0).toLocaleString()} members</span></div><i data-lucide="chevron-right" style="width:16px;color:var(--text-muted);"></i></button>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        async function loadRecordDetail(name) {
+            if (!name) { renderRecordDetail(null); return; }
+            _selectedRecordName = name;
+            renderRecordsList();
+            const record = await fetchData(`/api/records/${guildId}/${recordUrlName(name)}`);
+            _selectedRecord = record;
+            renderRecordDetail(record);
+        }
+
+        function renderRecordDetail(record) {
+            const empty = document.getElementById('record-detail-empty');
+            const panel = document.getElementById('record-detail-panel');
+            if (!empty || !panel) return;
+            if (!record) {
+                empty.style.display = 'block';
+                panel.style.display = 'none';
+                _selectedRecord = null;
+                return;
+            }
+            empty.style.display = 'none';
+            panel.style.display = 'block';
+            const members = record.members || [];
+            const columns = record.custom_columns || [];
+            document.getElementById('record-detail-title').textContent = record.record_name || record.name || 'Record';
+            document.getElementById('record-detail-subtitle').textContent = `Created ${record.created_at ? new Date(record.created_at).toLocaleString() : 'unknown'} / Updated ${record.updated_at ? new Date(record.updated_at).toLocaleString() : 'unknown'}`;
+            document.getElementById('record-stat-members').textContent = Number(record.member_count || members.length).toLocaleString();
+            document.getElementById('record-stat-highest').textContent = record.highest_furnace || 0;
+            document.getElementById('record-stat-average').textContent = record.average_furnace || 0;
+            document.getElementById('record-stat-columns').textContent = columns.length;
+
+            const columnRow = document.getElementById('record-columns-row');
+            columnRow.innerHTML = columns.length ? columns.map(col => `<button class="btn btn-secondary" style="padding:7px 10px;font-size:0.78rem;" onclick="removeRecordColumn('${escapeAttribute(col)}')" title="Remove column"><i data-lucide="x" style="width:13px;"></i> ${escapeHTML(col)}</button>`).join('') : '<span style="color:var(--text-muted);font-size:0.84rem;">No custom columns yet.</span>';
+
+            const head = document.getElementById('record-members-head');
+            const body = document.getElementById('record-members-body');
+            head.innerHTML = `<tr><th>Member</th><th>Furnace</th><th>Note</th>${columns.map(col => `<th>${escapeHTML(col)}</th>`).join('')}<th>Actions</th></tr>`;
+            if (!members.length) {
+                body.innerHTML = `<tr><td colspan="${4 + columns.length}" style="text-align:center;color:var(--text-muted);padding:28px;">No members in this record.</td></tr>`;
+            } else {
+                body.innerHTML = members.map(member => {
+                    const fid = member.fid || '';
+                    const avatar = member.avatar_image || 'https://cdn.discordapp.com/embed/avatars/0.png';
+                    return `<tr>
+                        <td><div class="record-member-cell"><img class="record-avatar" src="${escapeAttribute(avatar)}" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'" alt=""><div><strong>${escapeHTML(member.nickname || 'Unknown')}</strong><span>FID ${escapeHTML(fid)}</span></div></div></td>
+                        <td><input class="record-inline-input" value="${escapeAttribute(member.furnace_lv ?? 0)}" onchange="updateRecordMemberField('${escapeAttribute(fid)}','furnace_lv',this.value)"></td>
+                        <td><input class="record-inline-input" value="${escapeAttribute(member.note || '')}" placeholder="Add note" onchange="updateRecordMemberField('${escapeAttribute(fid)}','note',this.value)"></td>
+                        ${columns.map(col => `<td><input class="record-inline-input" value="${escapeAttribute(member[col] || '')}" onchange="updateRecordMemberField('${escapeAttribute(fid)}','${escapeAttribute(col)}',this.value)"></td>`).join('')}
+                        <td><button class="btn btn-danger" style="padding:7px 10px;" onclick="removeOneRecordMember('${escapeAttribute(fid)}')" title="Remove member"><i data-lucide="trash-2" style="width:14px;"></i></button></td>
+                    </tr>`;
+                }).join('');
+            }
+            lucide.createIcons();
+        }
+
+        async function createRecordFromDashboard() {
+            const name = prompt('Record name');
+            if (name === null) return;
+            const clean = name.trim();
+            if (!clean) { showNotification('Record name is required', true); return; }
+            showLoading(true);
+            try {
+                await fetchData(`/api/records/${guildId}`, { method: 'POST', body: JSON.stringify({ name: clean, created_by: _discordUserId || 0 }) });
+                _selectedRecordName = clean;
+                showNotification('Record created');
+                await loadRecords();
+            } finally { showLoading(false); }
+        }
+
+        async function renameSelectedRecord() {
+            if (!_selectedRecordName) return;
+            const next = prompt('New record name', _selectedRecordName);
+            if (next === null) return;
+            const clean = next.trim();
+            if (!clean) { showNotification('Record name is required', true); return; }
+            showLoading(true);
+            try {
+                await fetchData(`/api/records/${guildId}/${recordUrlName(_selectedRecordName)}`, { method: 'PATCH', body: JSON.stringify({ new_name: clean }) });
+                _selectedRecordName = clean;
+                showNotification('Record renamed');
+                await loadRecords();
+            } finally { showLoading(false); }
+        }
+
+        async function deleteSelectedRecord() {
+            if (!_selectedRecordName || !confirm(`Delete record "${_selectedRecordName}" permanently?`)) return;
+            showLoading(true);
+            try {
+                await fetchData(`/api/records/${guildId}/${recordUrlName(_selectedRecordName)}`, { method: 'DELETE' });
+                _selectedRecordName = null;
+                showNotification('Record deleted');
+                await loadRecords();
+            } finally { showLoading(false); }
+        }
+
+        async function addMembersToSelectedRecord() {
+            if (!_selectedRecordName) return;
+            const raw = prompt('Enter 9-digit FIDs separated by commas, spaces, or new lines');
+            if (raw === null) return;
+            const fids = parseFidInput(raw);
+            if (!fids.length) { showNotification('Enter at least one valid 9-digit FID', true); return; }
+            showLoading(true);
+            try {
+                const res = await fetchData(`/api/records/${guildId}/${recordUrlName(_selectedRecordName)}/members`, { method: 'POST', body: JSON.stringify({ fids, fetch_live: true, added_by: _discordUserId || 0 }) });
+                showNotification(`Added ${res.added || 0} member(s)`);
+                await loadRecordDetail(_selectedRecordName);
+                await loadRecords();
+            } finally { showLoading(false); }
+        }
+
+        async function addAllianceToSelectedRecord() {
+            if (!_selectedRecordName || !confirm(`Add all assigned alliance members to "${_selectedRecordName}"? Existing entries will be updated.`)) return;
+            showLoading(true);
+            try {
+                const res = await fetchData(`/api/records/${guildId}/${recordUrlName(_selectedRecordName)}/members/from-alliance`, { method: 'POST' });
+                showNotification(`Added or updated ${res.added || 0} alliance member(s)`);
+                await loadRecordDetail(_selectedRecordName);
+                await loadRecords();
+            } finally { showLoading(false); }
+        }
+
+        async function removeMembersFromSelectedRecord() {
+            if (!_selectedRecordName) return;
+            const raw = prompt('Enter FIDs to remove');
+            if (raw === null) return;
+            const fids = parseFidInput(raw);
+            if (!fids.length) { showNotification('Enter at least one valid 9-digit FID', true); return; }
+            await removeRecordMembers(fids);
+        }
+
+        async function removeOneRecordMember(fid) {
+            if (!confirm(`Remove FID ${fid} from this record?`)) return;
+            await removeRecordMembers([fid]);
+        }
+
+        async function removeRecordMembers(fids) {
+            showLoading(true);
+            try {
+                const res = await fetchData(`/api/records/${guildId}/${recordUrlName(_selectedRecordName)}/members`, { method: 'DELETE', body: JSON.stringify({ fids }) });
+                showNotification(`Removed ${res.removed || 0} member(s)`);
+                await loadRecordDetail(_selectedRecordName);
+                await loadRecords();
+            } finally { showLoading(false); }
+        }
+
+        async function addRecordColumn() {
+            if (!_selectedRecordName) return;
+            const name = prompt('Column name');
+            if (name === null) return;
+            const clean = name.trim();
+            if (!clean) { showNotification('Column name is required', true); return; }
+            showLoading(true);
+            try {
+                await fetchData(`/api/records/${guildId}/${recordUrlName(_selectedRecordName)}/columns`, { method: 'POST', body: JSON.stringify({ name: clean }) });
+                showNotification('Column added');
+                await loadRecordDetail(_selectedRecordName);
+            } finally { showLoading(false); }
+        }
+
+        async function removeRecordColumn(column) {
+            if (!_selectedRecordName || !confirm(`Remove column "${column}" from this record?`)) return;
+            showLoading(true);
+            try {
+                await fetchData(`/api/records/${guildId}/${recordUrlName(_selectedRecordName)}/columns/${encodeURIComponent(column)}`, { method: 'DELETE' });
+                showNotification('Column removed');
+                await loadRecordDetail(_selectedRecordName);
+            } finally { showLoading(false); }
+        }
+
+        async function updateRecordMemberField(fid, field, value) {
+            if (!_selectedRecordName) return;
+            try {
+                await fetchData(`/api/records/${guildId}/${recordUrlName(_selectedRecordName)}/members/${encodeURIComponent(fid)}`, { method: 'PATCH', body: JSON.stringify({ field, value }) });
+                showNotification('Member updated');
+            } catch (e) {
+                await loadRecordDetail(_selectedRecordName);
+            }
+        }
+
+        async function publishRecordView() {
+            const channelId = document.getElementById('record-publish-channel')?.value;
+            const viewType = document.getElementById('record-publish-type')?.value || 'list';
+            if (!channelId) { showNotification('Select a publish channel', true); return; }
+            if (viewType === 'detail' && !_selectedRecordName) { showNotification('Select a record for detail view', true); return; }
+            showLoading(true);
+            try {
+                const res = await fetchData(`/api/records/${guildId}/publish`, { method: 'POST', body: JSON.stringify({ channel_id: parseInt(channelId, 10), view_type: viewType, record_name: _selectedRecordName }) });
+                showNotification(res.persisted ? 'Discord record view published' : 'Discord record view published without restart persistence');
+            } finally { showLoading(false); }
         }
 
         function formatGiftDate(value) {

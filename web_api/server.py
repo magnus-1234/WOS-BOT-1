@@ -216,6 +216,13 @@ try:
 except Exception as e:
     logger.error(f"❌ Failed to load roles router: {e}")
 
+try:
+    from web_api.routers.records import router as records_router
+    app.include_router(records_router)
+    logger.info("✅ Records router loaded")
+except Exception as e:
+    logger.error(f"❌ Failed to load records router: {e}")
+
 os.makedirs("data/uploads", exist_ok=True)
 os.makedirs("data/assets", exist_ok=True)
 app.mount("/api/static", StaticFiles(directory="data/uploads"), name="static")

@@ -26,6 +26,7 @@
     tenorSearch: roomRoot.querySelector("[data-room-tenor-search]"),
     tenorGo: roomRoot.querySelector("[data-room-tenor-go]"),
     tenorResults: roomRoot.querySelector("[data-room-tenor-results]"),
+    tenorSentinel: roomRoot.querySelector("[data-room-tenor-sentinel]"),
     voice: roomRoot.querySelector("[data-room-voice]"),
     reply: roomRoot.querySelector("[data-room-reply]"),
     replyName: roomRoot.querySelector("[data-room-reply-name]"),
@@ -79,6 +80,22 @@
     callAccept: roomRoot.querySelector("[data-room-call-accept]"),
     callDecline: roomRoot.querySelector("[data-room-call-decline]")
   };
+
+  // ── Login tab switcher ──────────────────────────────────────────────────────
+  const initLoginTabs = () => {
+    const tabs = roomRoot.querySelectorAll(".chat-login-tab");
+    const panes = roomRoot.querySelectorAll(".chat-login-pane");
+    tabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        tabs.forEach(t => t.classList.remove("active"));
+        panes.forEach(p => p.classList.remove("active"));
+        tab.classList.add("active");
+        const pane = roomRoot.querySelector(`[data-login-pane="${tab.dataset.tab}"]`);
+        if (pane) pane.classList.add("active");
+      });
+    });
+  };
+  initLoginTabs();
 
   const DISCORD_CLIENT_ID = "1399025185046134866";
   const STORAGE_KEYS = {
@@ -332,14 +349,26 @@
     const guestName = getGuestName();
     if (currentUser) {
       const label = currentUser.kind === "discord" || !currentUser.kind ? "Discord" : (currentUser.kind === "wos" ? "WOS" : "Guest");
-      el.identity.innerHTML = `${label}: ${currentUser.name || currentUser.global_name || currentUser.username} <button type="button" data-edit-profile class="chat-inline-edit" title="Edit Profile">Edit</button>`;
-      if (el.login) el.login.classList.add("is-hidden");
+      const avatarHtml = currentUser.avatar_url
+        ? `<img src="${currentUser.avatar_url}" alt="" class="chat-user-identity-avatar">`
+        : `<span class="chat-user-identity-initials">${initials(currentUser.name || currentUser.username)}</span>`;
+      el.identity.innerHTML = `${avatarHtml}<span class="chat-user-identity-info"><strong>${currentUser.name || currentUser.global_name || currentUser.username}</strong><em>${label} Account</em></span><button type="button" data-edit-profile class="chat-inline-edit" title="Edit Profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`;
+      if (el.login) {
+        el.login.classList.add("is-hidden");
+        el.login.setAttribute("aria-hidden", "true");
+      }
     } else if (guestName) {
-      el.identity.innerHTML = `Guest: ${guestName} <button type="button" data-edit-profile class="chat-inline-edit" title="Edit Profile">Edit</button>`;
-      if (el.login) el.login.classList.add("is-hidden");
+      el.identity.innerHTML = `<span class="chat-user-identity-initials">${initials(guestName)}</span><span class="chat-user-identity-info"><strong>${guestName}</strong><em>Guest Account</em></span><button type="button" data-edit-profile class="chat-inline-edit" title="Edit Profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`;
+      if (el.login) {
+        el.login.classList.add("is-hidden");
+        el.login.setAttribute("aria-hidden", "true");
+      }
     } else {
-      el.identity.textContent = "Choose WOS ID, Discord, or guest";
-      if (el.login) el.login.classList.remove("is-hidden");
+      el.identity.innerHTML = `<span class="chat-user-identity-info"><strong>Not logged in</strong><em>Join to chat with others</em></span>`;
+      if (el.login) {
+        el.login.classList.remove("is-hidden");
+        el.login.removeAttribute("aria-hidden");
+      }
     }
     
     const editBtn = roomRoot.querySelector("[data-edit-profile]");
@@ -1556,14 +1585,36 @@
     el.input.dispatchEvent(new Event("input"));
   };
 
+  // ── GIF Infinite Scroll via IntersectionObserver ─────────────────────────
+  let gifObserver = null;
+  const initGifInfiniteScroll = () => {
+    if (!el.tenorSentinel || gifObserver) return;
+    gifObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !gifLoading && gifHasMore) {
+        searchTenor(false);
+      }
+    }, { root: el.tenorResults, rootMargin: "120px", threshold: 0 });
+    gifObserver.observe(el.tenorSentinel);
+  };
+
+  const showGifLoadingSkeleton = () => {
+    const skeletonCount = 9;
+    for (let i = 0; i < skeletonCount; i++) {
+      const sk = document.createElement("div");
+      sk.className = "tenor-skeleton";
+      el.tenorResults.appendChild(sk);
+    }
+  };
+
   const searchTenor = async (reset = true) => {
-    const q = el.tenorSearch.value.trim() || "whiteout survival";
+    const q = (el.tenorSearch && el.tenorSearch.value.trim()) || "whiteout survival";
     if (gifLoading) return;
     if (reset || q !== gifQuery) {
       gifQuery = q;
       gifNext = null;
       gifHasMore = true;
-      el.tenorResults.innerHTML = '<span class="global-chat-status">Loading GIFs...</span>';
+      el.tenorResults.replaceChildren();
+      showGifLoadingSkeleton();
     }
     if (!gifHasMore) return;
     gifLoading = true;
@@ -1572,20 +1623,28 @@
       let data = null;
       for (const endpoint of endpoints) {
         const cursor = gifNext ? `&pos=${encodeURIComponent(gifNext)}` : "";
-        const response = await fetch(`${endpoint}?q=${encodeURIComponent(q)}&limit=18${cursor}`, { headers: authHeaders() });
+        const response = await fetch(`${endpoint}?q=${encodeURIComponent(q)}&limit=24${cursor}`, { headers: authHeaders() });
         if (response.ok) {
           data = await response.json();
           if ((data.results || []).length) break;
         }
       }
       if (!data) throw new Error("GIF search unavailable");
-      if (reset) el.tenorResults.replaceChildren();
-      (data.results || []).forEach((gif) => {
+      // Remove skeletons on first load
+      if (reset) {
+        el.tenorResults.querySelectorAll(".tenor-skeleton").forEach(s => s.remove());
+      } else {
+        el.tenorResults.querySelectorAll(".tenor-skeleton").forEach(s => s.remove());
+      }
+      const results = data.results || [];
+      results.forEach((gif) => {
         const button = document.createElement("button");
         button.type = "button";
+        button.className = "tenor-gif-btn";
         const image = document.createElement("img");
         image.src = gif.preview_url || gif.url;
         image.alt = gif.title || "GIF";
+        image.loading = "lazy";
         button.appendChild(image);
         button.addEventListener("click", () => {
           pendingAttachments.push({ name: gif.title || "GIF", url: gif.url, type: "image/gif", size: 0 });
@@ -1596,10 +1655,19 @@
         el.tenorResults.appendChild(button);
       });
       gifNext = data.next || null;
-      gifHasMore = Boolean(gifNext) || (data.results || []).length >= 18;
-      if (!el.tenorResults.children.length) el.tenorResults.textContent = "No GIFs found";
+      gifHasMore = Boolean(gifNext) || results.length >= 24;
+      if (!el.tenorResults.querySelector(".tenor-gif-btn")) {
+        const empty = document.createElement("p");
+        empty.className = "tenor-empty";
+        empty.textContent = "No GIFs found for this search.";
+        el.tenorResults.appendChild(empty);
+      }
     } catch (error) {
-      el.tenorResults.textContent = "GIF search unavailable";
+      el.tenorResults.querySelectorAll(".tenor-skeleton").forEach(s => s.remove());
+      const err = document.createElement("p");
+      err.className = "tenor-empty";
+      err.textContent = "GIF search is unavailable right now.";
+      el.tenorResults.appendChild(err);
     } finally {
       gifLoading = false;
     }
@@ -1719,7 +1787,9 @@
     <button type="button" class="active" data-source="tenor">Tenor</button>
     <button type="button" data-source="giphy">Giphy</button>
   `;
-  el.tenorSearch.parentElement.before(gifTabs);
+  if (el.tenorSearch && el.tenorSearch.parentElement) {
+    el.tenorSearch.parentElement.before(gifTabs);
+  }
   
   gifTabs.addEventListener('click', (e) => {
     if(e.target.tagName !== 'BUTTON') return;
@@ -1728,6 +1798,18 @@
     activeGifSource = e.target.dataset.source;
     searchTenor(true);
   });
+
+  // Init GIF infinite scroll
+  initGifInfiniteScroll();
+
+  // GIF search on input with debounce
+  if (el.tenorSearch) {
+    let gifDebounceTimer = null;
+    el.tenorSearch.addEventListener("input", () => {
+      clearTimeout(gifDebounceTimer);
+      gifDebounceTimer = setTimeout(() => searchTenor(true), 400);
+    });
+  }
 
   initThemeToggle();
 
@@ -1859,21 +1941,17 @@
     el.emojiPanel.hidden = !el.emojiPanel.hidden;
     el.tenorPanel.hidden = true;
   });
-  el.tenor.addEventListener("click", () => {
+  if (el.tenor) el.tenor.addEventListener("click", () => {
     el.tenorPanel.hidden = !el.tenorPanel.hidden;
     el.emojiPanel.hidden = true;
-    if (!el.tenorPanel.hidden && !el.tenorResults.children.length) searchTenor(true);
+    if (!el.tenorPanel.hidden && !el.tenorResults.querySelector(".tenor-gif-btn")) searchTenor(true);
   });
-  el.tenorGo.addEventListener("click", () => searchTenor(true));
-  el.tenorSearch.addEventListener("keydown", (event) => {
+  if (el.tenorGo) el.tenorGo.addEventListener("click", () => searchTenor(true));
+  if (el.tenorSearch) el.tenorSearch.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
       searchTenor(true);
     }
-  });
-  el.tenorResults.addEventListener("scroll", () => {
-    const distance = el.tenorResults.scrollHeight - el.tenorResults.scrollTop - el.tenorResults.clientHeight;
-    if (distance < 80) searchTenor(false);
   });
   el.voice.addEventListener("click", toggleVoice);
   el.replyClear.addEventListener("click", clearReply);

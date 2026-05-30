@@ -63,6 +63,7 @@ frontend-dashboard/
 whiteoutsurvival_dev_backend/node_modules/
 whiteoutsurvival_dev_backend/dist/
 whiteoutsurvival_dev_backend/dev-server*.log
+whiteoutsurvival_dev_backend/
 whiteoutsurvival_dev_frontend/node_modules/
 whiteoutsurvival_dev_frontend/.next/
 whiteoutsurvival_dev_frontend/dev-server*.log

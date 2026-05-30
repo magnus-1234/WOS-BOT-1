@@ -68,6 +68,7 @@ whiteoutsurvival_dev_frontend/node_modules/
 whiteoutsurvival_dev_frontend/.next/
 whiteoutsurvival_dev_frontend/dev-server*.log
 whiteoutsurvival_dev_frontend/
+backend-main-website-/
 
 # --- Test Files ---
 tests/

@@ -29,6 +29,8 @@ mongo_uri.txt
 .vscode/
 .idea/
 *.code-workspace
+.agents/
+oracle_instance_2_credentials/
 
 # --- System Files ---
 .DS_Store

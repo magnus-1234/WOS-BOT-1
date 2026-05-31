@@ -5,7 +5,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import { MongoClient, ObjectId, type Db, type Sort } from 'mongodb';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '..', '.env') });
@@ -482,6 +482,7 @@ const toIslandResponse = (island: IslandDocument) => ({
   id: island._id?.toString(),
   title: island.title,
   creatorName: island.creatorName,
+  creatorUserId: island.creatorUserId?.toString(),
   description: island.description,
   playerId: island.playerId,
   coordinates: island.coordinates,
@@ -770,6 +771,19 @@ const uploadRemoteImageToR2 = async (remoteUrl: string, title: string) => {
       originalname: `remote.${extension}`,
     } as Express.Multer.File,
     title,
+  );
+};
+
+const deleteFromR2 = async (objectKey: string) => {
+  if (!objectKey) {
+    return;
+  }
+
+  await getR2Client().send(
+    new DeleteObjectCommand({
+      Bucket: required('CLOUDFLARE_R2_BUCKET'),
+      Key: objectKey,
+    }),
   );
 };
 
@@ -1184,6 +1198,50 @@ app.post('/api/daybreak/islands/:id/like', async (req, res) => {
   } catch (error) {
     res.status(error instanceof Error && error.message.includes('hex string') ? 400 : 500).json({
       error: 'Unable to like island',
+    });
+  }
+});
+
+app.delete('/api/daybreak/islands/:id', async (req, res) => {
+  try {
+    const user = await requireCurrentUser(req, res);
+    if (!user?._id) {
+      return;
+    }
+
+    const islandId = new ObjectId(req.params.id);
+    const { islands, likes, comments } = await getCollections();
+    const island = await islands.findOne({ _id: islandId });
+    if (!island) {
+      res.status(404).json({ error: 'Island not found' });
+      return;
+    }
+
+    const ownsByUserId = island.creatorUserId?.equals(user._id) || false;
+    const ownsLegacyLinkedPlayer = !island.creatorUserId && user.playerAccounts.some((player) => player.playerId === island.playerId);
+    if (!ownsByUserId && !ownsLegacyLinkedPlayer) {
+      res.status(403).json({ error: 'You can only delete islands you uploaded.' });
+      return;
+    }
+
+    const deleteResult = await islands.deleteOne({ _id: islandId });
+    if (!deleteResult.deletedCount) {
+      res.status(404).json({ error: 'Island not found' });
+      return;
+    }
+
+    await Promise.all([
+      likes.deleteMany({ islandId }),
+      comments.deleteMany({ islandId }),
+      deleteFromR2(island.objectKey).catch((error) => {
+        console.warn('Unable to delete island image from R2', error);
+      }),
+    ]);
+
+    res.json({ deleted: true, id: islandId.toString() });
+  } catch (error) {
+    res.status(error instanceof Error && error.message.includes('hex string') ? 400 : 500).json({
+      error: 'Unable to delete island',
     });
   }
 });

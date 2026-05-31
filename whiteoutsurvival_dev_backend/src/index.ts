@@ -478,11 +478,28 @@ const getCollections = async () => {
   return { islands, likes, comments, users, sessions, oauthStates };
 };
 
-const toIslandResponse = (island: IslandDocument) => ({
+const userCanManageIsland = (user: UserDocument | null | undefined, island: IslandDocument) => {
+  if (!user?._id) {
+    return false;
+  }
+
+  if (island.creatorUserId?.equals(user._id)) {
+    return true;
+  }
+
+  if (island.creatorUserId) {
+    return false;
+  }
+
+  return user.playerAccounts.some((player) => player.playerId === island.playerId || player.nickname === island.creatorName);
+};
+
+const toIslandResponse = (island: IslandDocument, viewer?: UserDocument | null) => ({
   id: island._id?.toString(),
   title: island.title,
   creatorName: island.creatorName,
   creatorUserId: island.creatorUserId?.toString(),
+  canManage: userCanManageIsland(viewer, island),
   description: island.description,
   playerId: island.playerId,
   coordinates: island.coordinates,
@@ -975,12 +992,13 @@ app.get('/api/daybreak/islands', async (req, res) => {
     const skip = Math.min(Math.max(Number(req.query.skip) || 0, 0), 5000);
     const tag = cleanText(req.query.tag, 60).replace(/^#/, '');
     const query = tag ? { tags: { $regex: new RegExp(`^${escapeRegExp(tag)}$`, 'i') } } : {};
+    const viewer = await getCurrentUser(req).catch(() => null);
     const { islands } = await getCollections();
     const [results, total] = await Promise.all([
       islands.find(query).sort(sort).skip(skip).limit(limit).toArray(),
       tag ? islands.countDocuments(query) : islands.estimatedDocumentCount(),
     ]);
-    res.json({ islands: results.map(toIslandResponse), page: { limit, skip, total, tag: tag || undefined } });
+    res.json({ islands: results.map((island) => toIslandResponse(island, viewer)), page: { limit, skip, total, tag: tag || undefined } });
   } catch (error) {
     sendStorageError(res, error);
   }
@@ -1000,7 +1018,7 @@ app.get('/api/daybreak/me/uploads', async (req, res) => {
       : { creatorUserId: user._id };
     const { islands } = await getCollections();
     const results = await islands.find(query).sort({ createdAt: -1 }).limit(limit).toArray();
-    res.json({ islands: results.map(toIslandResponse) });
+    res.json({ islands: results.map((island) => toIslandResponse(island, user)) });
   } catch (error) {
     sendStorageError(res, error);
   }
@@ -1023,7 +1041,7 @@ app.get('/api/daybreak/me/favorites', async (req, res) => {
     const byId = new Map(results.map((island) => [island._id?.toString(), island]));
     res.json({
       favoriteIds: islandIds.map((id) => id.toString()),
-      islands: islandIds.map((id) => byId.get(id.toString())).filter(Boolean).map((island) => toIslandResponse(island as IslandDocument)),
+      islands: islandIds.map((id) => byId.get(id.toString())).filter(Boolean).map((island) => toIslandResponse(island as IslandDocument, user)),
     });
   } catch (error) {
     sendStorageError(res, error);
@@ -1104,7 +1122,7 @@ app.post('/api/daybreak/islands', upload.single('image'), async (req: UploadedRe
 
     const { islands } = await getCollections();
     const result = await islands.insertOne(document);
-    res.status(201).json({ island: toIslandResponse({ ...document, _id: result.insertedId }) });
+    res.status(201).json({ island: toIslandResponse({ ...document, _id: result.insertedId }, user) });
   } catch (error) {
     sendStorageError(res, error);
   }
@@ -1156,7 +1174,7 @@ app.post('/api/daybreak/islands/:id/comments', async (req, res) => {
     const latest = await comments.find({ islandId }).sort({ createdAt: -1 }).limit(30).toArray();
 
     res.status(201).json({
-      island: updated ? toIslandResponse(updated) : toIslandResponse(island),
+      island: updated ? toIslandResponse(updated, user) : toIslandResponse(island, user),
       comments: latest.map(toCommentResponse),
     });
   } catch (error) {
@@ -1194,7 +1212,7 @@ app.post('/api/daybreak/islands/:id/like', async (req, res) => {
       return;
     }
 
-    res.json({ island: toIslandResponse(island), liked: true });
+    res.json({ island: toIslandResponse(island, user), liked: true });
   } catch (error) {
     res.status(error instanceof Error && error.message.includes('hex string') ? 400 : 500).json({
       error: 'Unable to like island',
@@ -1217,9 +1235,7 @@ app.delete('/api/daybreak/islands/:id', async (req, res) => {
       return;
     }
 
-    const ownsByUserId = island.creatorUserId?.equals(user._id) || false;
-    const ownsLegacyLinkedPlayer = !island.creatorUserId && user.playerAccounts.some((player) => player.playerId === island.playerId);
-    if (!ownsByUserId && !ownsLegacyLinkedPlayer) {
+    if (!userCanManageIsland(user, island)) {
       res.status(403).json({ error: 'You can only delete islands you uploaded.' });
       return;
     }
@@ -1249,6 +1265,7 @@ app.delete('/api/daybreak/islands/:id', async (req, res) => {
 app.post('/api/daybreak/islands/:id/share', async (req, res) => {
   try {
     const islandId = new ObjectId(req.params.id);
+    const viewer = await getCurrentUser(req).catch(() => null);
     const { islands } = await getCollections();
     const result = await islands.findOneAndUpdate(
       { _id: islandId },
@@ -1261,7 +1278,7 @@ app.post('/api/daybreak/islands/:id/share', async (req, res) => {
       return;
     }
 
-    res.json({ island: toIslandResponse(result) });
+    res.json({ island: toIslandResponse(result, viewer) });
   } catch (error) {
     res.status(error instanceof Error && error.message.includes('hex string') ? 400 : 500).json({
       error: 'Unable to share island',

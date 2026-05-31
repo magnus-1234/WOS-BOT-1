@@ -1246,18 +1246,23 @@ app.delete('/api/daybreak/islands/:id', async (req, res) => {
       return;
     }
 
-    await Promise.all([
+    res.json({ deleted: true, id: islandId.toString() });
+
+    void Promise.allSettled([
       likes.deleteMany({ islandId }),
       comments.deleteMany({ islandId }),
-      deleteFromR2(island.objectKey).catch((error) => {
-        console.warn('Unable to delete island image from R2', error);
-      }),
-    ]);
-
-    res.json({ deleted: true, id: islandId.toString() });
+      deleteFromR2(island.objectKey),
+    ]).then((results) => {
+      const rejected = results.filter((result) => result.status === 'rejected');
+      if (rejected.length) {
+        console.warn('Island deleted, but cleanup had failures', rejected);
+      }
+    });
   } catch (error) {
+    console.error('Unable to delete island', error);
     res.status(error instanceof Error && error.message.includes('hex string') ? 400 : 500).json({
       error: 'Unable to delete island',
+      detail: error instanceof Error ? error.message : undefined,
     });
   }
 });

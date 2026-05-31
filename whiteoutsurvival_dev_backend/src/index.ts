@@ -14,6 +14,7 @@ type IslandDocument = {
   _id?: ObjectId;
   title: string;
   creatorName: string;
+  creatorUserId?: ObjectId;
   description: string;
   playerId: string;
   coordinates: {
@@ -451,7 +452,9 @@ const getCollections = async () => {
     islands.createIndex({ createdAt: -1 }),
     islands.createIndex({ likes: -1, createdAt: -1 }),
     islands.createIndex({ playerId: 1 }),
+    islands.createIndex({ creatorUserId: 1, createdAt: -1 }),
     likes.createIndex({ islandId: 1, viewerId: 1 }, { unique: true }),
+    likes.createIndex({ viewerId: 1, createdAt: -1 }),
     comments.createIndex({ islandId: 1, createdAt: -1 }),
     users.createIndex({ 'providers.provider': 1, 'providers.providerUserId': 1 }),
     users.createIndex({ email: 1 }, { sparse: true }),
@@ -535,6 +538,8 @@ const requireCurrentUser = async (req: Request, res: Response) => {
 
   return user;
 };
+
+const viewerIdForUser = (user: UserDocument) => (user._id ? `user:${user._id.toString()}` : '');
 
 const createSession = async (res: Response, userId: ObjectId) => {
   const sessionToken = randomBytes(32).toString('base64url');
@@ -956,6 +961,50 @@ app.get('/api/daybreak/islands', async (req, res) => {
   }
 });
 
+app.get('/api/daybreak/me/uploads', async (req, res) => {
+  try {
+    const user = await requireCurrentUser(req, res);
+    if (!user?._id) {
+      return;
+    }
+
+    const limit = parsePositiveInt(req.query.limit, 24, 60);
+    const linkedPlayerIds = user.playerAccounts.map((player) => player.playerId);
+    const query = linkedPlayerIds.length
+      ? { $or: [{ creatorUserId: user._id }, { playerId: { $in: linkedPlayerIds } }] }
+      : { creatorUserId: user._id };
+    const { islands } = await getCollections();
+    const results = await islands.find(query).sort({ createdAt: -1 }).limit(limit).toArray();
+    res.json({ islands: results.map(toIslandResponse) });
+  } catch (error) {
+    sendStorageError(res, error);
+  }
+});
+
+app.get('/api/daybreak/me/favorites', async (req, res) => {
+  try {
+    const user = await requireCurrentUser(req, res);
+    if (!user?._id) {
+      return;
+    }
+
+    const limit = parsePositiveInt(req.query.limit, 24, 60);
+    const { islands, likes } = await getCollections();
+    const likeDocs = await likes.find({ viewerId: viewerIdForUser(user) }).sort({ createdAt: -1 }).limit(limit).toArray();
+    const islandIds = likeDocs.map((like) => like.islandId);
+    const results = islandIds.length
+      ? await islands.find({ _id: { $in: islandIds } }).toArray()
+      : [];
+    const byId = new Map(results.map((island) => [island._id?.toString(), island]));
+    res.json({
+      favoriteIds: islandIds.map((id) => id.toString()),
+      islands: islandIds.map((id) => byId.get(id.toString())).filter(Boolean).map((island) => toIslandResponse(island as IslandDocument)),
+    });
+  } catch (error) {
+    sendStorageError(res, error);
+  }
+});
+
 app.get('/api/daybreak/players/:playerId', async (req, res) => {
   try {
     const playerId = cleanPlayerId(req.params.playerId);
@@ -1008,6 +1057,7 @@ app.post('/api/daybreak/islands', upload.single('image'), async (req: UploadedRe
     const document: IslandDocument = {
       title,
       creatorName: player.nickname,
+      creatorUserId: user._id,
       description,
       playerId,
       coordinates: {
@@ -1094,7 +1144,9 @@ app.post('/api/daybreak/islands/:id/comments', async (req, res) => {
 app.post('/api/daybreak/islands/:id/like', async (req, res) => {
   try {
     const islandId = new ObjectId(req.params.id);
+    const user = await getCurrentUser(req).catch(() => null);
     const viewerId =
+      (user ? viewerIdForUser(user) : '') ||
       cleanText(req.body.viewerId, 120) ||
       cleanText(req.get('x-viewer-id'), 120) ||
       req.ip ||

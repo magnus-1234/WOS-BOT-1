@@ -153,15 +153,24 @@ const slugify = (value: string) =>
     .replace(/(^-|-$)/g, '')
     .slice(0, 72) || 'island';
 
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const parseTags = (value: unknown) => {
   if (typeof value !== 'string') {
     return [];
   }
 
-  return value
-    .split(',')
-    .map((tag) => tag.trim())
-    .filter(Boolean)
+  const seen = new Set<string>();
+  return (value.match(/#[\p{L}\p{N}_-]+|[\p{L}\p{N}][\p{L}\p{N}_-]*/gu) || [])
+    .map((tag) => tag.replace(/^#/, '').trim())
+    .filter((tag) => {
+      const key = tag.toLowerCase();
+      if (!key || seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    })
     .slice(0, 8);
 };
 
@@ -950,12 +959,14 @@ app.get('/api/daybreak/islands', async (req, res) => {
         : { createdAt: -1 as const };
     const limit = parsePositiveInt(req.query.limit, 24, 60);
     const skip = Math.min(Math.max(Number(req.query.skip) || 0, 0), 5000);
+    const tag = cleanText(req.query.tag, 60).replace(/^#/, '');
+    const query = tag ? { tags: { $regex: new RegExp(`^${escapeRegExp(tag)}$`, 'i') } } : {};
     const { islands } = await getCollections();
     const [results, total] = await Promise.all([
-      islands.find().sort(sort).skip(skip).limit(limit).toArray(),
-      islands.estimatedDocumentCount(),
+      islands.find(query).sort(sort).skip(skip).limit(limit).toArray(),
+      tag ? islands.countDocuments(query) : islands.estimatedDocumentCount(),
     ]);
-    res.json({ islands: results.map(toIslandResponse), page: { limit, skip, total } });
+    res.json({ islands: results.map(toIslandResponse), page: { limit, skip, total, tag: tag || undefined } });
   } catch (error) {
     sendStorageError(res, error);
   }

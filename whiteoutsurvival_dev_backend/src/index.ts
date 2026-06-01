@@ -396,6 +396,11 @@ const normalizeGiftCodeText = (value: unknown, fallback = '') => {
 
 const isLikelyGiftCode = (value: string) => /^[A-Za-z0-9]{4,30}$/.test(value.trim());
 const ignoredGiftCodeLabels = new Set(['code', 'codes', 'giftcode', 'giftcodes', 'reward', 'rewards', 'expires', 'expiry', 'status']);
+const fetchGiftCodeSource = (url: string, init: RequestInit = {}) =>
+  fetch(url, {
+    ...init,
+    signal: AbortSignal.timeout(Number(process.env.GIFT_CODE_SOURCE_TIMEOUT_MS || 7000)),
+  });
 
 const toGiftCodeItem = (
   code: string,
@@ -452,7 +457,7 @@ const parseWosGiftCodesRows = (html: string) => {
 };
 
 const fetchWosToolsGiftCodes = async (): Promise<GiftCodeItem[]> => {
-  const response = await fetch('https://wostools.net/api/gift-codes', {
+  const response = await fetchGiftCodeSource('https://wostools.net/api/gift-codes', {
     headers: {
       Accept: 'application/json',
       'User-Agent': 'Mozilla/5.0 WhiteoutSurvival.dev/1.0',
@@ -478,7 +483,7 @@ const fetchWosToolsGiftCodes = async (): Promise<GiftCodeItem[]> => {
 };
 
 const fetchWosGiftCodesHtml = async (): Promise<GiftCodeItem[]> => {
-  const response = await fetch('https://wosgiftcodes.com/', {
+  const response = await fetchGiftCodeSource('https://wosgiftcodes.com/', {
     headers: {
       Accept: 'text/html,application/xhtml+xml',
       'User-Agent': 'Mozilla/5.0 WhiteoutSurvival.dev/1.0',
@@ -492,7 +497,7 @@ const fetchWosGiftCodesHtml = async (): Promise<GiftCodeItem[]> => {
 };
 
 const fetchBotDashboardGiftCodes = async (): Promise<GiftCodeItem[]> => {
-  const response = await fetch('https://bot.whiteoutsurvival.dev/api/giftcodes', {
+  const response = await fetchGiftCodeSource('https://bot.whiteoutsurvival.dev/api/giftcodes', {
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) {

@@ -1548,6 +1548,61 @@ app.post('/api/daybreak/islands', upload.single('image'), async (req: UploadedRe
   }
 });
 
+app.patch('/api/daybreak/islands/:id', async (req, res) => {
+  try {
+    const user = await requireCurrentUser(req, res);
+    if (!user?._id) {
+      return;
+    }
+
+    const islandId = new ObjectId(req.params.id);
+    const title = cleanText(req.body.title, 90);
+    const coordinateX = parseCoordinate(req.body.coordinateX);
+    const coordinateY = parseCoordinate(req.body.coordinateY);
+
+    if (!title || coordinateX === null || coordinateY === null) {
+      res.status(400).json({ error: 'Island title and X/Y coordinates are required' });
+      return;
+    }
+
+    const { islands } = await getCollections();
+    const island = await islands.findOne({ _id: islandId });
+    if (!island) {
+      res.status(404).json({ error: 'Island not found' });
+      return;
+    }
+
+    if (!userCanManageIsland(user, island)) {
+      res.status(403).json({ error: 'You can only edit islands you uploaded.' });
+      return;
+    }
+
+    const updated = await islands.findOneAndUpdate(
+      { _id: islandId },
+      {
+        $set: {
+          title,
+          coordinates: {
+            x: coordinateX,
+            y: coordinateY,
+          },
+          tags: parseTags(req.body.tags),
+          updatedAt: new Date(),
+        },
+      },
+      { returnDocument: 'after' },
+    );
+
+    res.json({ island: toIslandResponse(updated || island, user) });
+  } catch (error) {
+    console.error('Unable to update island', error);
+    res.status(error instanceof Error && error.message.includes('hex string') ? 400 : 500).json({
+      error: 'Unable to update island',
+      detail: error instanceof Error ? error.message : undefined,
+    });
+  }
+});
+
 app.get('/api/daybreak/islands/:id/comments', async (req, res) => {
   try {
     const islandId = new ObjectId(req.params.id);

@@ -395,6 +395,7 @@ const normalizeGiftCodeText = (value: unknown, fallback = '') => {
 };
 
 const isLikelyGiftCode = (value: string) => /^[A-Za-z0-9]{4,30}$/.test(value.trim());
+const ignoredGiftCodeLabels = new Set(['code', 'codes', 'giftcode', 'giftcodes', 'reward', 'rewards', 'expires', 'expiry', 'status']);
 
 const toGiftCodeItem = (
   code: string,
@@ -402,7 +403,7 @@ const toGiftCodeItem = (
   values: GiftCodeInput = {},
 ): GiftCodeItem | null => {
   const cleanCode = cleanText(code, 40).trim();
-  if (!isLikelyGiftCode(cleanCode)) {
+  if (!isLikelyGiftCode(cleanCode) || ignoredGiftCodeLabels.has(cleanCode.toLowerCase())) {
     return null;
   }
 
@@ -594,6 +595,50 @@ const normalizeRedeemStatus = (payload: any) => {
   }
 
   return { state: 'unknown', message: message || 'Unable to redeem this code right now.' };
+};
+
+const redeemViaBotDashboard = async (playerId: string, code: string) => {
+  const response = await fetch('https://bot.whiteoutsurvival.dev/api/giftcodes/redeem', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      id: playerId,
+      fid: playerId,
+      codes: [code],
+      guild_id: 0,
+    }),
+    signal: AbortSignal.timeout(Number(process.env.GIFT_REDEEM_TIMEOUT_MS || 90000)),
+  });
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(payload?.detail || payload?.message || payload?.error || 'Automatic redeem service is unavailable.');
+  }
+
+  const result = Array.isArray(payload?.results) ? payload.results[0] : payload;
+  if (!result) {
+    throw new Error('Automatic redeem service did not return a result.');
+  }
+
+  const status = cleanText(result.status || result.message || payload.message || 'Unknown response', 160);
+  const normalized = status.toUpperCase();
+  if (result.success || normalized === 'SUCCESS') {
+    return { state: 'success', message: 'Gift code redeemed successfully.' };
+  }
+  if (result.already_redeemed || normalized.includes('ALREADY') || normalized.includes('RECEIVED')) {
+    return { state: 'already_redeemed', message: 'This player has already received this reward.' };
+  }
+  if (result.failed || normalized.includes('CDK_NOT_FOUND') || normalized.includes('NOT FOUND')) {
+    return { state: 'invalid', message: 'This gift code is no longer valid.' };
+  }
+  if (normalized.includes('TIME_ERROR') || normalized.includes('EXPIRED')) {
+    return { state: 'expired', message: 'This gift code has expired.' };
+  }
+  if (normalized.includes('RATE')) {
+    return { state: 'rate_limited', message: 'Redemption service is busy. Try again in a moment.' };
+  }
+
+  return { state: 'unknown', message: status || 'Unable to redeem this code right now.' };
 };
 
 const fetchPlayerProfile = async (playerId: string): Promise<PlayerProfile | null> => {
@@ -1153,8 +1198,25 @@ app.post('/api/gift-codes/redeem', async (req, res) => {
       res.status(400).json({ error: 'Gift code is required.' });
       return;
     }
+
+    if (!captchaCode) {
+      const player = await fetchPlayerProfile(playerId);
+      if (!player) {
+        res.status(404).json({ state: 'not_found', message: 'Player not found. Check the ID and try again.' });
+        return;
+      }
+
+      const autoResult = await redeemViaBotDashboard(playerId, code);
+      res.json({
+        ...autoResult,
+        player,
+        checkedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
     if (!/^[A-Za-z0-9]{4,8}$/.test(captchaCode)) {
-      res.status(400).json({ error: 'Enter the captcha code shown on the image.' });
+      res.status(400).json({ error: 'Captcha is invalid.' });
       return;
     }
 

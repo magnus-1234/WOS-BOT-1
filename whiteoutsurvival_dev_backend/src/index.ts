@@ -105,6 +105,27 @@ type OAuthProfile = {
   avatarUrl?: string;
 };
 
+type GiftCodeSource = 'wostools' | 'wosgiftcodes' | 'bot_dashboard';
+
+type GiftCodeItem = {
+  code: string;
+  rewards: string;
+  expiry: string;
+  description: string;
+  dateAdded?: string;
+  status: 'active';
+  isActive: boolean;
+};
+
+type RawGiftCode = Record<string, unknown>;
+
+type GiftCodeInput = {
+  rewards?: unknown;
+  expiry?: unknown;
+  description?: unknown;
+  dateAdded?: unknown;
+};
+
 type UploadedRequest = Request & {
   file?: Express.Multer.File;
 };
@@ -182,7 +203,7 @@ const cleanText = (value: unknown, maxLength: number) => {
   return value.trim().replace(/\s+/g, ' ').slice(0, maxLength);
 };
 
-const cleanPlayerId = (value: unknown) => cleanText(value, 16).replace(/\D/g, '');
+const cleanPlayerId = (value: unknown) => String(value || '').replace(/\D/g, '').slice(0, 16);
 
 const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
 
@@ -366,6 +387,213 @@ const normalizeExternalImageUrl = (value: unknown) => {
   } catch {
     return '';
   }
+};
+
+const normalizeGiftCodeText = (value: unknown, fallback = '') => {
+  const text = cleanText(value, 500).replace(/\s+/g, ' ').trim();
+  return text || fallback;
+};
+
+const isLikelyGiftCode = (value: string) => /^[A-Za-z0-9]{4,30}$/.test(value.trim());
+
+const toGiftCodeItem = (
+  code: string,
+  source: GiftCodeSource,
+  values: GiftCodeInput = {},
+): GiftCodeItem | null => {
+  const cleanCode = cleanText(code, 40).trim();
+  if (!isLikelyGiftCode(cleanCode)) {
+    return null;
+  }
+
+  return {
+    code: cleanCode,
+    rewards: normalizeGiftCodeText(values.rewards, 'Rewards not specified'),
+    expiry: normalizeGiftCodeText(values.expiry, 'Unknown'),
+    description: normalizeGiftCodeText(values.description),
+    dateAdded: normalizeGiftCodeText(values.dateAdded),
+    status: 'active',
+    isActive: true,
+  };
+};
+
+const parseWosGiftCodesRows = (html: string) => {
+  const activeSection = html.slice(0, Math.max(html.toLowerCase().indexOf('expired code'), 0) || html.length);
+  const rowPattern = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  const cellPattern = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
+  const tagPattern = /<[^>]+>/g;
+  const codes: GiftCodeItem[] = [];
+  let rowMatch: RegExpExecArray | null;
+
+  while ((rowMatch = rowPattern.exec(activeSection)) !== null) {
+    const cells: string[] = [];
+    let cellMatch: RegExpExecArray | null;
+    while ((cellMatch = cellPattern.exec(rowMatch[1])) !== null) {
+      cells.push(cellMatch[1].replace(tagPattern, '').replace(/&nbsp;/g, ' ').trim());
+    }
+
+    const code = cells[0] || '';
+    if (!code || code.toLowerCase() === 'code') {
+      continue;
+    }
+
+    const item = toGiftCodeItem(code, 'wosgiftcodes', {
+      description: cells[1],
+      rewards: cells[2] || cells[1],
+      expiry: cells[3] || 'Unknown',
+    });
+    if (item) {
+      codes.push(item);
+    }
+  }
+
+  return codes;
+};
+
+const fetchWosToolsGiftCodes = async (): Promise<GiftCodeItem[]> => {
+  const response = await fetch('https://wostools.net/api/gift-codes', {
+    headers: {
+      Accept: 'application/json',
+      'User-Agent': 'Mozilla/5.0 WhiteoutSurvival.dev/1.0',
+    },
+  });
+  if (!response.ok) {
+    return [];
+  }
+
+  const payload = await response.json().catch(() => null);
+  const rawCodes = Array.isArray(payload?.codes) ? payload.codes : [];
+  return rawCodes
+    .filter((item: RawGiftCode) => String(item.status || '').toLowerCase() === 'active')
+    .map((item: RawGiftCode) =>
+      toGiftCodeItem(String(item.code || ''), 'wostools', {
+        rewards: item.rewards || item.reward || item.rewardText || item.description || item.label,
+        expiry: item.expiry || item.expires || item.expiresAt || item.expiration || item.expirationDate,
+        description: item.description || item.label,
+        dateAdded: item.dateAdded || item.date_added || item.created_at || item.date,
+      }),
+    )
+    .filter((item: GiftCodeItem | null): item is GiftCodeItem => Boolean(item));
+};
+
+const fetchWosGiftCodesHtml = async (): Promise<GiftCodeItem[]> => {
+  const response = await fetch('https://wosgiftcodes.com/', {
+    headers: {
+      Accept: 'text/html,application/xhtml+xml',
+      'User-Agent': 'Mozilla/5.0 WhiteoutSurvival.dev/1.0',
+    },
+  });
+  if (!response.ok) {
+    return [];
+  }
+
+  return parseWosGiftCodesRows(await response.text());
+};
+
+const fetchBotDashboardGiftCodes = async (): Promise<GiftCodeItem[]> => {
+  const response = await fetch('https://bot.whiteoutsurvival.dev/api/giftcodes', {
+    headers: { Accept: 'application/json' },
+  });
+  if (!response.ok) {
+    return [];
+  }
+
+  const payload = await response.json().catch(() => null);
+  const rawCodes = Array.isArray(payload?.codes) ? payload.codes : [];
+  return rawCodes
+    .filter((item: RawGiftCode) => item.is_active !== false && item.isActive !== false)
+    .map((item: RawGiftCode) =>
+      toGiftCodeItem(String(item.code || item.giftcode || ''), 'bot_dashboard', {
+        rewards: item.rewards || item.reward || item.description,
+        expiry: item.expiry || item.expires || item.expiration,
+        description: item.description,
+        dateAdded: item.date_added || item.dateAdded || item.created_at,
+      }),
+    )
+    .filter((item: GiftCodeItem | null): item is GiftCodeItem => Boolean(item));
+};
+
+const mergeGiftCodes = (sourceLists: GiftCodeItem[][]) => {
+  const merged = new Map<string, GiftCodeItem>();
+
+  sourceLists.flat().forEach((item) => {
+    const key = item.code.toUpperCase();
+    const existing = merged.get(key);
+    if (!existing) {
+      merged.set(key, { ...item });
+      return;
+    }
+
+    if (existing.rewards === 'Rewards not specified' && item.rewards !== 'Rewards not specified') {
+      existing.rewards = item.rewards;
+    }
+    if (existing.expiry === 'Unknown' && item.expiry !== 'Unknown') {
+      existing.expiry = item.expiry;
+    }
+    if (!existing.description && item.description) {
+      existing.description = item.description;
+    }
+    if (!existing.dateAdded && item.dateAdded) {
+      existing.dateAdded = item.dateAdded;
+    }
+  });
+
+  return Array.from(merged.values()).sort((a, b) => {
+    const aTime = Date.parse(a.dateAdded || a.expiry || '');
+    const bTime = Date.parse(b.dateAdded || b.expiry || '');
+    return (Number.isFinite(bTime) ? bTime : 0) - (Number.isFinite(aTime) ? aTime : 0);
+  });
+};
+
+const wosApiHeaders = {
+  Accept: 'application/json, text/plain, */*',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Content-Type': 'application/x-www-form-urlencoded',
+  Origin: 'https://wos-giftcode.centurygame.com',
+  Referer: 'https://wos-giftcode.centurygame.com/',
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+};
+
+const encodeWosGiftPayload = (values: Record<string, string>) => {
+  const form = Object.keys(values)
+    .sort()
+    .map((key) => `${key}=${values[key]}`)
+    .join('&');
+  const sign = createHash('md5').update(`${form}tB87#kPtkxqOS2`).digest('hex');
+  return `sign=${sign}&${form}`;
+};
+
+const cleanGiftCode = (value: unknown) => cleanText(value, 40).replace(/[^A-Za-z0-9]/g, '').trim();
+
+const normalizeRedeemStatus = (payload: any) => {
+  const message = cleanText(payload?.msg || payload?.message || 'Unknown response', 120).replace(/\.$/, '');
+  const normalized = message.toUpperCase();
+  const errCode = payload?.err_code;
+
+  if (normalized === 'SUCCESS') {
+    return { state: 'success', message: 'Gift code redeemed successfully.' };
+  }
+  if (normalized === 'RECEIVED' && errCode === 40008) {
+    return { state: 'already_redeemed', message: 'This player has already received this reward.' };
+  }
+  if (normalized === 'CDK NOT FOUND') {
+    return { state: 'invalid', message: 'This gift code is no longer valid.' };
+  }
+  if (normalized === 'TIME ERROR' && errCode === 40007) {
+    return { state: 'expired', message: 'This gift code has expired.' };
+  }
+  if (normalized.includes('CAPTCHA')) {
+    return { state: 'captcha_error', message: 'Captcha was incorrect or expired. Refresh it and try again.' };
+  }
+  if (normalized === 'USAGE LIMIT' && errCode === 40009) {
+    return { state: 'limit', message: 'This gift code has reached its redemption limit.' };
+  }
+  if (normalized === 'SAME TYPE EXCHANGE' && errCode === 40011) {
+    return { state: 'already_redeemed', message: 'This reward type was already claimed.' };
+  }
+
+  return { state: 'unknown', message: message || 'Unable to redeem this code right now.' };
 };
 
 const fetchPlayerProfile = async (playerId: string): Promise<PlayerProfile | null> => {
@@ -835,6 +1063,131 @@ app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '1mb' }));
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', message: 'Whiteout Survival backend is running' });
+});
+
+app.get('/api/gift-codes', async (_req, res) => {
+  try {
+    const settled = await Promise.allSettled([
+      fetchWosToolsGiftCodes(),
+      fetchWosGiftCodesHtml(),
+      fetchBotDashboardGiftCodes(),
+    ]);
+    const sourceLists = settled.map((result) => (result.status === 'fulfilled' ? result.value : []));
+    const codes = mergeGiftCodes(sourceLists);
+
+    res.set('Cache-Control', 'public, max-age=30, s-maxage=30, stale-while-revalidate=120');
+    res.json({
+      codes,
+      lastUpdated: new Date().toISOString(),
+      refreshAfterSeconds: 30,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to fetch gift codes' });
+  }
+});
+
+app.post('/api/gift-codes/captcha', async (req, res) => {
+  try {
+    const playerId = cleanPlayerId(req.body?.playerId);
+    if (!/^\d{8,10}$/.test(playerId)) {
+      res.status(400).json({ error: 'Enter a valid player ID.' });
+      return;
+    }
+
+    const player = await fetchPlayerProfile(playerId);
+    if (!player) {
+      res.status(404).json({ error: 'Player not found. Check the ID and try again.' });
+      return;
+    }
+
+    const captchaResponse = await fetch('https://wos-giftcode-api.centurygame.com/api/captcha', {
+      method: 'POST',
+      headers: wosApiHeaders,
+      body: encodeWosGiftPayload({
+        fid: playerId,
+        time: String(Date.now()),
+      }),
+    });
+
+    if (!captchaResponse.ok) {
+      res.status(captchaResponse.status === 429 ? 429 : 502).json({
+        error: captchaResponse.status === 429 ? 'Captcha service is busy. Try again shortly.' : 'Unable to load captcha.',
+      });
+      return;
+    }
+
+    const payload = await captchaResponse.json().catch(() => null);
+    if (String(payload?.msg || '').toLowerCase() !== 'success' || !payload?.data) {
+      res.status(502).json({ error: 'Unable to load captcha. Try again.' });
+      return;
+    }
+
+    const captchaImage =
+      typeof payload.data === 'string'
+        ? payload.data
+        : payload.data.img || payload.data.data || payload.data.image || '';
+
+    res.json({
+      player,
+      captchaImage: String(captchaImage).startsWith('data:image')
+        ? captchaImage
+        : `data:image/png;base64,${captchaImage}`,
+      issuedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Unable to load captcha.' });
+  }
+});
+
+app.post('/api/gift-codes/redeem', async (req, res) => {
+  try {
+    const playerId = cleanPlayerId(req.body?.playerId);
+    const code = cleanGiftCode(req.body?.code);
+    const captchaCode = cleanText(req.body?.captchaCode, 12).replace(/[^A-Za-z0-9]/g, '').trim();
+
+    if (!/^\d{8,10}$/.test(playerId)) {
+      res.status(400).json({ error: 'Enter a valid player ID.' });
+      return;
+    }
+    if (!code) {
+      res.status(400).json({ error: 'Gift code is required.' });
+      return;
+    }
+    if (!/^[A-Za-z0-9]{4,8}$/.test(captchaCode)) {
+      res.status(400).json({ error: 'Enter the captcha code shown on the image.' });
+      return;
+    }
+
+    const response = await fetch('https://wos-giftcode-api.centurygame.com/api/gift_code', {
+      method: 'POST',
+      headers: wosApiHeaders,
+      body: encodeWosGiftPayload({
+        captcha_code: captchaCode,
+        cdk: code,
+        fid: playerId,
+        time: String(Date.now()),
+      }),
+    });
+
+    if (response.status === 429) {
+      res.status(429).json({ state: 'rate_limited', message: 'Redemption service is busy. Try again in a moment.' });
+      return;
+    }
+
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload) {
+      res.status(502).json({ state: 'error', message: 'Unable to redeem right now. Try again shortly.' });
+      return;
+    }
+
+    res.json({
+      ...normalizeRedeemStatus(payload),
+      rawCode: payload.err_code ?? null,
+      checkedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({ state: 'error', message: error instanceof Error ? error.message : 'Unable to redeem.' });
+  }
 });
 
 app.get('/api/auth/providers', (_req, res) => {

@@ -66,6 +66,8 @@ type MessageTemplateDocument = {
   description?: string;
   text: string;
   previewText?: string;
+  imageUrl?: string;
+  imageObjectKey?: string;
   category: MessageTemplateCategory;
   tags: string[];
   creatorName: string;
@@ -829,6 +831,7 @@ const toTemplateResponse = (template: MessageTemplateDocument, viewer?: UserDocu
   description: template.description || '',
   text: template.text,
   previewText: template.previewText,
+  imageUrl: template.imageUrl || '',
   category: template.category,
   tags: template.tags,
   creatorName: template.creatorName,
@@ -1080,13 +1083,13 @@ const getR2Client = () => {
   });
 };
 
-const uploadToR2 = async (file: Express.Multer.File, title: string) => {
+const uploadToR2 = async (file: Express.Multer.File, title: string, folder = 'daybreak-islands') => {
   const bucket = required('CLOUDFLARE_R2_BUCKET');
   const publicUrl = normalizePublicUrl(required('CLOUDFLARE_R2_PUBLIC_URL'));
   const extension = file.originalname.includes('.')
     ? file.originalname.split('.').pop()?.toLowerCase()
     : file.mimetype.split('/').pop();
-  const objectKey = `daybreak-islands/${Date.now()}-${slugify(title)}-${randomUUID()}.${extension || 'webp'}`;
+  const objectKey = `${folder}/${Date.now()}-${slugify(title)}-${randomUUID()}.${extension || 'webp'}`;
 
   await getR2Client().send(
     new PutObjectCommand({
@@ -1104,7 +1107,7 @@ const uploadToR2 = async (file: Express.Multer.File, title: string) => {
   };
 };
 
-const uploadRemoteImageToR2 = async (remoteUrl: string, title: string) => {
+const uploadRemoteImageToR2 = async (remoteUrl: string, title: string, folder = 'daybreak-islands') => {
   const response = await fetch(remoteUrl, {
     headers: {
       'User-Agent':
@@ -1134,6 +1137,7 @@ const uploadRemoteImageToR2 = async (remoteUrl: string, title: string) => {
       originalname: `remote.${extension}`,
     } as Express.Multer.File,
     title,
+    folder,
   );
 };
 
@@ -1544,7 +1548,7 @@ app.get('/api/message-templates/me/favorites', async (req, res) => {
   }
 });
 
-app.post('/api/message-templates', async (req, res) => {
+app.post('/api/message-templates', upload.single('image'), async (req: UploadedRequest, res) => {
   try {
     const user = await requireCurrentUser(req, res);
     if (!user?._id) {
@@ -1556,6 +1560,7 @@ app.post('/api/message-templates', async (req, res) => {
     const text = cleanTemplateBody(req.body.text);
     const previewText = cleanTemplateBody(req.body.previewText);
     const category = cleanTemplateCategory(req.body.category);
+    const imageUrlInput = normalizeExternalImageUrl(req.body.imageUrl);
 
     if (!title || !text) {
       res.status(400).json({ error: 'Template title and text are required' });
@@ -1563,11 +1568,18 @@ app.post('/api/message-templates', async (req, res) => {
     }
 
     const now = new Date();
+    const uploadedImage = req.file
+      ? await uploadToR2(req.file, title, 'message-templates')
+      : imageUrlInput
+        ? await uploadRemoteImageToR2(imageUrlInput, title, 'message-templates')
+        : null;
     const document: MessageTemplateDocument = {
       title,
       description: description || undefined,
       text,
       previewText: previewText || undefined,
+      imageUrl: uploadedImage?.imageUrl,
+      imageObjectKey: uploadedImage?.objectKey,
       category,
       tags: parseTags(req.body.tags),
       creatorName: cleanText(user.playerAccounts[0]?.nickname || user.displayName, 80) || 'WOS Player',
@@ -1586,19 +1598,20 @@ app.post('/api/message-templates', async (req, res) => {
   }
 });
 
-app.patch('/api/message-templates/:id', async (req, res) => {
+app.patch('/api/message-templates/:id', upload.single('image'), async (req: UploadedRequest, res) => {
   try {
     const user = await requireCurrentUser(req, res);
     if (!user?._id) {
       return;
     }
 
-    const templateId = new ObjectId(req.params.id);
+    const templateId = new ObjectId(String(req.params.id));
     const title = cleanText(req.body.title, 90);
     const description = cleanText(req.body.description, 360);
     const text = cleanTemplateBody(req.body.text);
     const previewText = cleanTemplateBody(req.body.previewText);
     const category = cleanTemplateCategory(req.body.category);
+    const imageUrlInput = normalizeExternalImageUrl(req.body.imageUrl);
 
     if (!title || !text) {
       res.status(400).json({ error: 'Template title and text are required' });
@@ -1616,18 +1629,30 @@ app.patch('/api/message-templates/:id', async (req, res) => {
       return;
     }
 
+    const uploadedImage = req.file
+      ? await uploadToR2(req.file, title, 'message-templates')
+      : imageUrlInput
+        ? await uploadRemoteImageToR2(imageUrlInput, title, 'message-templates')
+        : null;
+    const setFields: Partial<MessageTemplateDocument> = {
+      title,
+      description: description || undefined,
+      text,
+      previewText: previewText || undefined,
+      category,
+      tags: parseTags(req.body.tags),
+      updatedAt: new Date(),
+    };
+
+    if (uploadedImage) {
+      setFields.imageUrl = uploadedImage.imageUrl;
+      setFields.imageObjectKey = uploadedImage.objectKey;
+    }
+
     const updated = await templates.findOneAndUpdate(
       { _id: templateId },
       {
-        $set: {
-          title,
-          description: description || undefined,
-          text,
-          previewText: previewText || undefined,
-          category,
-          tags: parseTags(req.body.tags),
-          updatedAt: new Date(),
-        },
+        $set: setFields,
       },
       { returnDocument: 'after' },
     );

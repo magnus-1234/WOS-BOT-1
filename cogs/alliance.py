@@ -266,7 +266,7 @@ class Alliance(commands.Cog):
                             )
                             embed.add_field(
                                 name="🔑 Getting Access",
-                                value="To unlock these features for your server, please configure them using the **`/manage`** command and wait for administrator review.",
+                                value="To unlock these features for your server, please configure them using the **`/manage`** command or manage them from the **Web Dashboard**, then wait for administrator review.",
                                 inline=False
                             )
                             embed.set_thumbnail(url=avatar_url)
@@ -276,7 +276,7 @@ class Alliance(commands.Cog):
                         def get_page_2(self):
                             embed = discord.Embed(
                                 title="✨ Core Features",
-                                description="Once unlocked, you can configure these features via the `/manage` command:",
+                                description="Once unlocked, you can configure these features via the `/manage` command or the Web Dashboard:",
                                 color=0x06B6D4
                             )
                             embed.add_field(
@@ -370,6 +370,13 @@ class Alliance(commands.Cog):
                                 label="Support Server",
                                 style=discord.ButtonStyle.link,
                                 url="https://discord.gg/bP5JQFH2M5"
+                            ))
+
+                            # Web Dashboard button
+                            self.add_item(discord.ui.Button(
+                                label="Web Dashboard",
+                                style=discord.ButtonStyle.link,
+                                url="https://bot.whiteoutsurvival.dev/"
                             ))
 
                         async def prev_page(self, interaction: discord.Interaction):

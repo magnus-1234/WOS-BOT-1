@@ -34,6 +34,14 @@ except ImportError:
         get_recent_events = lambda limit=100: []
         get_recent_activity_sqlite = lambda limit=100: []
 
+try:
+    from gift_codes import get_active_gift_codes
+except ImportError:
+    try:
+        from src.utils.gift_codes import get_active_gift_codes
+    except ImportError:
+        get_active_gift_codes = None
+
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/bot-feed", tags=["Bot Feed"])
 
@@ -53,7 +61,7 @@ async def get_bot_feed(request: Request, limit: int = 40):
     bot = getattr(request.app.state, "bot", None)
     guilds = list(getattr(bot, "guilds", []) or [])
     server_lookup = _guild_name_lookup(guilds)
-    gift_codes = await _get_gift_codes()
+    gift_codes = await _get_gift_codes(bot)
     members = await _get_recent_members(limit=60)
     monitored_member_count = await _count_monitored_members()
     activity_events = await _get_activity_events(safe_limit)
@@ -332,7 +340,52 @@ def _get_gift_code_events(gift_codes: List[Dict[str, Any]], limit: int) -> List[
     return events
 
 
-async def _get_gift_codes() -> List[Dict[str, Any]]:
+async def _get_gift_codes(bot: Any = None) -> List[Dict[str, Any]]:
+    manage_cog = _get_cog(bot, "ManageGiftCode") if bot else None
+    if manage_cog and hasattr(manage_cog, "get_active_gift_codes_consolidated"):
+        try:
+            active_map = await manage_cog.get_active_gift_codes_consolidated(force_refresh=False)
+            codes = [
+                {
+                    "code": str(code or "").strip(),
+                    "status": "active",
+                    "auto_redeem_processed": False,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "expiry": expiry,
+                    "source": "bot_manage_cog",
+                }
+                for code, expiry in (active_map or {}).items()
+            ]
+            codes = [code for code in codes if code["code"]]
+            if codes:
+                return codes
+        except Exception as exc:
+            logger.warning("Unable to load active gift codes from manage cog: %s", exc)
+
+    if get_active_gift_codes is not None:
+        try:
+            live_codes = await get_active_gift_codes()
+            codes = []
+            for item in live_codes or []:
+                status = str(item.get("status") or item.get("validation_status") or "active").strip().lower()
+                if status != "active" or item.get("is_active") is False:
+                    continue
+                codes.append(
+                    {
+                        "code": str(item.get("code") or "").strip(),
+                        "status": "active",
+                        "auto_redeem_processed": False,
+                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                        "expiry": item.get("expiry") or item.get("expires"),
+                        "source": item.get("source") or "bot_scraper",
+                    }
+                )
+            codes = [code for code in codes if code["code"]]
+            if codes:
+                return codes
+        except Exception as exc:
+            logger.warning("Unable to load live active gift codes for bot feed: %s", exc)
+
     if not mongo_enabled() or GiftCodesAdapter is None:
         return []
     try:
@@ -341,21 +394,22 @@ async def _get_gift_codes() -> List[Dict[str, Any]]:
         logger.warning("Unable to load gift codes for bot feed: %s", exc)
         return []
 
-    active_statuses = {"active", "valid", "pending", "posted", ""}
+    active_statuses = {"active", "valid", "validated"}
     codes = []
-    for item in raw_codes[:40]:
+    for item in raw_codes:
         status = str(item.get("validation_status") or "").strip().lower()
         if status not in active_statuses:
             continue
         codes.append(
             {
                 "code": str(item.get("giftcode") or "").strip(),
-                "status": status or "pending",
+                "status": status,
                 "auto_redeem_processed": bool(item.get("auto_redeem_processed", False)),
                 "updated_at": _iso(item.get("updated_at") or item.get("created_at") or item.get("date")),
+                "source": "bot_database",
             }
         )
-    return [code for code in codes if code["code"]][:12]
+    return [code for code in codes if code["code"]]
 
 
 async def _get_monitors() -> List[Dict[str, Any]]:

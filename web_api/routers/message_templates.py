@@ -27,10 +27,16 @@ def _collection():
     mongo_uri = os.environ.get("MONGO_URI")
     if not mongo_uri:
         return None
+    mongo_db = (
+        os.environ.get("MONGO_DB_NAME")
+        or os.environ.get("MONGO_DB_WOS")
+        or os.environ.get("MONGO_DB")
+        or "wosbot"
+    )
     from pymongo import MongoClient
 
     client = MongoClient(mongo_uri, serverSelectionTimeoutMS=3000)
-    return client["wosbot"]["message_templates"]
+    return client[mongo_db]["message_templates"]
 
 
 def _public_template(doc: Dict[str, Any], user_id: Optional[str] = None) -> Dict[str, Any]:

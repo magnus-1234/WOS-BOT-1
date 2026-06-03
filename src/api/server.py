@@ -188,6 +188,13 @@ try:
 except Exception as e:
     logger.error(f"❌ Failed to load global chat router: {e}")
 
+try:
+    from web_api.routers.message_templates import router as message_templates_router
+    app.include_router(message_templates_router)
+    logger.info("✅ Message Templates router loaded")
+except Exception as e:
+    logger.error(f"❌ Failed to load message templates router: {e}")
+
 os.makedirs("data/uploads", exist_ok=True)
 app.mount("/api/static", StaticFiles(directory="data/uploads"), name="static")
 

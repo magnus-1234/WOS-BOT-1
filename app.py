@@ -890,6 +890,9 @@ class PollinateNoEditView(discord.ui.View):
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+TOPGG_TOKEN = os.getenv('TOPGG_TOKEN') or os.getenv('TOP_GG_TOKEN')
+TOPGG_METRICS_URL = "https://top.gg/api/v1/projects/@me/metrics"
+TOPGG_POST_INTERVAL_SECONDS = int(os.getenv("TOPGG_POST_INTERVAL_SECONDS", "1800"))
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -897,6 +900,79 @@ intents.members = True
 intents.presences = True
 intents.voice_states = True  # Explicitly enable for music functionality
 bot = commands.Bot(command_prefix='!', intents=intents)
+bot.topgg_stats_task = None
+
+
+def get_topgg_stats_payload() -> dict:
+    """Build the current Top.gg metrics payload from the live Discord cache."""
+    payload = {"server_count": len(bot.guilds)}
+    shard_count = getattr(bot, "shard_count", None)
+    if shard_count:
+        payload["shard_count"] = shard_count
+    return payload
+
+
+async def post_topgg_stats(reason: str = "manual") -> bool:
+    """Post the bot's live server count to Top.gg."""
+    if not TOPGG_TOKEN:
+        logger.debug("Top.gg token not configured; skipping stats post")
+        return False
+
+    payload = get_topgg_stats_payload()
+    headers = {
+        "Authorization": f"Bearer {TOPGG_TOKEN}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.patch(
+                TOPGG_METRICS_URL,
+                json=payload,
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=15),
+            ) as response:
+                if response.status == 204:
+                    logger.info(
+                        "✅ Posted Top.gg stats (%s): %s server(s)",
+                        reason,
+                        payload["server_count"],
+                    )
+                    return True
+
+                body = await response.text()
+                logger.warning(
+                    "⚠️ Top.gg stats post failed (%s): HTTP %s - %s",
+                    reason,
+                    response.status,
+                    body[:300],
+                )
+                return False
+    except Exception as e:
+        logger.warning("⚠️ Top.gg stats post error (%s): %s", reason, e)
+        return False
+
+
+async def topgg_stats_loop():
+    await bot.wait_until_ready()
+    await post_topgg_stats("startup")
+
+    while not bot.is_closed():
+        await asyncio.sleep(max(300, TOPGG_POST_INTERVAL_SECONDS))
+        await post_topgg_stats("scheduled")
+
+
+def ensure_topgg_stats_loop_started():
+    if not TOPGG_TOKEN:
+        logger.info("ℹ️ TOPGG_TOKEN/TOP_GG_TOKEN not set; Top.gg stats posting disabled")
+        return
+
+    task = getattr(bot, "topgg_stats_task", None)
+    if task and not task.done():
+        return
+
+    bot.topgg_stats_task = asyncio.create_task(topgg_stats_loop())
+    logger.info("✅ Top.gg stats updater started")
 
 @bot.event
 async def on_socket_raw_receive(msg):
@@ -1183,6 +1259,7 @@ async def on_ready():
             bot.ready_at = datetime.utcnow()
         logger.info(f"🤖 Logged in as {bot.user} (ID: {bot.user.id})")
         logger.info(f"📊 Connected to {len(bot.guilds)} guild(s)")
+        ensure_topgg_stats_loop_started()
         
         # Sync commands automatically to fix visibility issues
         try:
@@ -1208,6 +1285,18 @@ async def on_ready():
         
     except Exception as e:
         logger.error(f"❌ Error in on_ready: {e}", exc_info=True)
+
+
+@bot.event
+async def on_guild_join(guild):
+    """Update Top.gg shortly after the bot joins a server."""
+    await post_topgg_stats(f"joined {guild.id}")
+
+
+@bot.event
+async def on_guild_remove(guild):
+    """Update Top.gg shortly after the bot leaves a server."""
+    await post_topgg_stats(f"left {guild.id}")
 
 # Add on_message_delete event handler to cleanup view registrations
 @bot.event

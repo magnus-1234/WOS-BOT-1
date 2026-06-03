@@ -10,6 +10,8 @@ from .mongo_client_wrapper import get_mongo_client_sync, get_mongo_client
 
 logger = logging.getLogger(__name__)
 
+AUTO_REDEEM_DEFAULT_PRIORITY = 999
+
 
 def _get_robust_db(uri_env: str, fallback_env: str, db_name_env: str, default_db: str = 'reminderbot'):
     """Helper to get DB with failover support"""
@@ -1677,9 +1679,11 @@ class AutoRedeemSettingsAdapter:
                 return None
             return {
                 'enabled': bool(doc.get('enabled', False)),
-                'priority': int(doc.get('priority', 999)),
+                'priority': int(doc.get('priority', AUTO_REDEEM_DEFAULT_PRIORITY)),
                 'updated_by': int(doc.get('updated_by', 0)),
-                'updated_at': doc.get('updated_at')
+                'updated_at': doc.get('updated_at'),
+                'priority_set_by': int(doc.get('priority_set_by', 0) or 0),
+                'priority_set_at': doc.get('priority_set_at')
             }
         except Exception as e:
             logger.error(f'Failed to get auto redeem settings for guild {guild_id}: {e}')
@@ -1702,7 +1706,7 @@ class AutoRedeemSettingsAdapter:
                     },
                     '$setOnInsert': {
                         'created_at': now,
-                        'priority': 999
+                        'priority': AUTO_REDEEM_DEFAULT_PRIORITY
                     }
                 },
                 upsert=True
@@ -1723,9 +1727,11 @@ class AutoRedeemSettingsAdapter:
                 return None
             return {
                 'enabled': bool(doc.get('enabled', False)),
-                'priority': int(doc.get('priority', 999)),
+                'priority': int(doc.get('priority', AUTO_REDEEM_DEFAULT_PRIORITY)),
                 'updated_by': int(doc.get('updated_by', 0)),
-                'updated_at': doc.get('updated_at')
+                'updated_at': doc.get('updated_at'),
+                'priority_set_by': int(doc.get('priority_set_by', 0) or 0),
+                'priority_set_at': doc.get('priority_set_at')
             }
         except Exception as e:
             logger.error(f'Failed to get auto redeem settings (async) for guild {guild_id}: {e}')
@@ -1748,7 +1754,7 @@ class AutoRedeemSettingsAdapter:
                     },
                     '$setOnInsert': {
                         'created_at': now,
-                        'priority': 999
+                        'priority': AUTO_REDEEM_DEFAULT_PRIORITY
                     }
                 },
                 upsert=True
@@ -1771,7 +1777,9 @@ class AutoRedeemSettingsAdapter:
                         'guild_id': int(guild_id),
                         'priority': int(priority),
                         'updated_by': int(updated_by),
-                        'updated_at': now
+                        'updated_at': now,
+                        'priority_set_by': int(updated_by),
+                        'priority_set_at': now
                     },
                     '$setOnInsert': {
                         'created_at': now,
@@ -1796,9 +1804,11 @@ class AutoRedeemSettingsAdapter:
                 {
                     'guild_id': int(d.get('guild_id', d.get('_id'))),
                     'enabled': bool(d.get('enabled', False)),
-                    'priority': int(d.get('priority', 999)),
+                    'priority': int(d.get('priority', AUTO_REDEEM_DEFAULT_PRIORITY)),
                     'updated_by': int(d.get('updated_by', 0)),
                     'updated_at': d.get('updated_at'),
+                    'priority_set_by': int(d.get('priority_set_by', 0) or 0),
+                    'priority_set_at': d.get('priority_set_at'),
                     'created_at': d.get('created_at')
                 }
                 for d in docs
@@ -1817,9 +1827,11 @@ class AutoRedeemSettingsAdapter:
                 return None
             return {
                 'enabled': bool(doc.get('enabled', False)),
-                'priority': int(doc.get('priority', 999)),
+                'priority': int(doc.get('priority', AUTO_REDEEM_DEFAULT_PRIORITY)),
                 'updated_by': int(doc.get('updated_by', 0)),
-                'updated_at': doc.get('updated_at')
+                'updated_at': doc.get('updated_at'),
+                'priority_set_by': int(doc.get('priority_set_by', 0) or 0),
+                'priority_set_at': doc.get('priority_set_at')
             }
         except Exception as e:
             logger.error(f'Failed to get auto redeem settings (async) for guild {guild_id}: {e}')
@@ -1842,7 +1854,7 @@ class AutoRedeemSettingsAdapter:
                     },
                     '$setOnInsert': {
                         'created_at': now,
-                        'priority': 999
+                        'priority': AUTO_REDEEM_DEFAULT_PRIORITY
                     }
                 },
                 upsert=True
@@ -1865,7 +1877,9 @@ class AutoRedeemSettingsAdapter:
                         'guild_id': int(guild_id),
                         'priority': int(priority),
                         'updated_by': int(updated_by),
-                        'updated_at': now
+                        'updated_at': now,
+                        'priority_set_by': int(updated_by),
+                        'priority_set_at': now
                     },
                     '$setOnInsert': {
                         'created_at': now,
@@ -1890,9 +1904,11 @@ class AutoRedeemSettingsAdapter:
                 {
                     'guild_id': int(d.get('guild_id', d.get('_id'))),
                     'enabled': bool(d.get('enabled', False)),
-                    'priority': int(d.get('priority', 999)),
+                    'priority': int(d.get('priority', AUTO_REDEEM_DEFAULT_PRIORITY)),
                     'updated_by': int(d.get('updated_by', 0)),
                     'updated_at': d.get('updated_at'),
+                    'priority_set_by': int(d.get('priority_set_by', 0) or 0),
+                    'priority_set_at': d.get('priority_set_at'),
                     'created_at': d.get('created_at')
                 }
                 for d in docs

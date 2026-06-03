@@ -10,7 +10,7 @@ import logging
 from .alliance_member_operations import AllianceSelectView
 from admin_utils import is_bot_owner
 try:
-    from db.mongo_adapters import mongo_enabled, AdminsAdapter, AlliancesAdapter, ServerAllianceAdapter, AllianceMembersAdapter, RecordsAdapter, AuthSessionsAdapter, UserTimezonesAdapter as PlayerTimezonesAdapter
+    from db.mongo_adapters import mongo_enabled, AdminsAdapter, AlliancesAdapter, ServerAllianceAdapter, AllianceMembersAdapter, RecordsAdapter, AuthSessionsAdapter, UserTimezonesAdapter as PlayerTimezonesAdapter, AutoRedeemSettingsAdapter
 except Exception:
     mongo_enabled = lambda: False
     AdminsAdapter = None
@@ -20,8 +20,13 @@ except Exception:
     RecordsAdapter = None
     AuthSessionsAdapter = None
     PlayerTimezonesAdapter = None
+    AutoRedeemSettingsAdapter = None
 
 logger = logging.getLogger(__name__)
+
+AUTO_REDEEM_DEFAULT_PRIORITY = 999
+AUTO_REDEEM_PRIORITY_MAX = 9999
+AUTO_REDEEM_UNASSIGNED_SORT_PRIORITY = 1_000_000
 
 class BotOperations(commands.Cog):
     def __init__(self, bot, conn):
@@ -5323,7 +5328,6 @@ class BotOperations(commands.Cog):
                     except Exception:
                         page = 0
 
-                from db.mongo_adapters import AutoRedeemSettingsAdapter
                 from db_utils import get_db_connection
 
                 combined = {}
@@ -5335,13 +5339,13 @@ class BotOperations(commands.Cog):
                             cursor.execute("SELECT guild_id, enabled, priority FROM auto_redeem_settings")
                             for row in cursor.fetchall():
                                 if int(row[1]) == 1:
-                                    priority = int(row[2]) if len(row) > 2 and row[2] is not None else 999
+                                    priority = int(row[2]) if len(row) > 2 and row[2] is not None else AUTO_REDEEM_DEFAULT_PRIORITY
                                     combined[int(row[0])] = {"priority": priority}
                     except Exception:
                         pass
                     for s in all_mongo:
                         if s.get('enabled'):
-                            combined[int(s['guild_id'])] = {"priority": s.get('priority', 999)}
+                            combined[int(s['guild_id'])] = {"priority": s.get('priority', AUTO_REDEEM_DEFAULT_PRIORITY)}
                 except Exception as e:
                     print(f"Error fetching auto-redeem settings: {e}")
 
@@ -5349,7 +5353,9 @@ class BotOperations(commands.Cog):
                     gid, data = item
                     guild = self.bot.get_guild(gid)
                     g_name = guild.name if guild else str(gid)
-                    return (data['priority'], g_name.lower())
+                    priority = int(data.get('priority', AUTO_REDEEM_DEFAULT_PRIORITY) or AUTO_REDEEM_DEFAULT_PRIORITY)
+                    sort_priority = AUTO_REDEEM_UNASSIGNED_SORT_PRIORITY if priority == AUTO_REDEEM_DEFAULT_PRIORITY else priority
+                    return (sort_priority, g_name.lower())
 
                 sorted_combined = sorted(combined.items(), key=sort_key) if combined else []
 
@@ -5372,7 +5378,7 @@ class BotOperations(commands.Cog):
                 for index, (gid, data) in enumerate(sorted_combined[start_idx:end_idx], start=start_idx + 1):
                     guild = self.bot.get_guild(gid)
                     g_name = guild.name if guild else "Unknown Server"
-                    prio_str = f"**#{data['priority']}**" if data['priority'] != 999 else "*default*"
+                    prio_str = f"**#{data['priority']}**" if data['priority'] != AUTO_REDEEM_DEFAULT_PRIORITY else "*unassigned*"
                     lines.append(f"> **{index}.** {g_name} — {prio_str}")
 
                 all_settings_str = "\n".join(lines) if lines else "No auto-redeem servers configured."
@@ -5400,7 +5406,7 @@ class BotOperations(commands.Cog):
                             options = []
                             for gid, name, prio in page_options:
                                 label = f"{name}"[:100]
-                                desc = f"Current priority: {prio}" if prio != 999 else "Current: Default (999)"
+                                desc = f"Current priority: {prio}" if prio != AUTO_REDEEM_DEFAULT_PRIORITY else "Current: Unassigned"
                                 options.append(discord.SelectOption(
                                     label=label,
                                     value=f"{gid}:{prio}",  # embed current priority in value
@@ -5415,12 +5421,12 @@ class BotOperations(commands.Cog):
                         async def callback(self, select_int: discord.Interaction):
                             parts = self.values[0].split(":")
                             selected_gid = int(parts[0])
-                            current_prio = parts[1] if len(parts) > 1 else "999"
+                            current_prio = parts[1] if len(parts) > 1 else str(AUTO_REDEEM_DEFAULT_PRIORITY)
 
                             class PriorityUpdateModal(discord.ui.Modal, title="Update Server Priority"):
                                 priority = discord.ui.TextInput(
                                     label="New Priority Number",
-                                    placeholder="Lower number = Earlier (e.g. 1)",
+                                    placeholder="Lower number = earlier; 999 is reserved",
                                     default=current_prio,  # pre-fill with CURRENT priority
                                     max_length=4,
                                     required=True
@@ -5429,12 +5435,28 @@ class BotOperations(commands.Cog):
                                 async def on_submit(self, modal_int: discord.Interaction):
                                     try:
                                         prio = int(self.priority.value.strip())
-                                        if prio < 1:
-                                            await modal_int.response.send_message("❌ Priority must be at least 1.", ephemeral=True)
+                                        if prio < 1 or prio > AUTO_REDEEM_PRIORITY_MAX:
+                                            await modal_int.response.send_message("❌ Priority must be between 1 and 9999.", ephemeral=True)
+                                            return
+                                        if prio == AUTO_REDEEM_DEFAULT_PRIORITY:
+                                            await modal_int.response.send_message("❌ Priority 999 is reserved for unassigned/default servers.", ephemeral=True)
                                             return
 
-                                        from db.mongo_adapters import AutoRedeemSettingsAdapter
                                         from db_utils import get_db_connection
+
+                                        conflict_gid = None
+                                        for gid, data in combined.items():
+                                            if gid != selected_gid and int(data.get("priority", AUTO_REDEEM_DEFAULT_PRIORITY)) == prio:
+                                                conflict_gid = gid
+                                                break
+                                        if conflict_gid is not None:
+                                            conflict_guild = cog_ref.bot.get_guild(conflict_gid)
+                                            conflict_name = conflict_guild.name if conflict_guild else str(conflict_gid)
+                                            await modal_int.response.send_message(
+                                                f"❌ Priority **#{prio}** is already claimed by **{conflict_name}**.",
+                                                ephemeral=True,
+                                            )
+                                            return
 
                                         if mongo_enabled() and AutoRedeemSettingsAdapter and hasattr(AutoRedeemSettingsAdapter, 'set_priority'):
                                             AutoRedeemSettingsAdapter.set_priority(selected_gid, prio, modal_int.user.id)
@@ -5521,6 +5543,8 @@ class BotOperations(commands.Cog):
                 result = self.settings_cursor.fetchone()
                 if (not result or result[0] != 1) and not await is_bot_owner(self.bot, interaction.user.id):
                     return
+
+                bot_ref = self.bot
                 
                 class PriorityModal(discord.ui.Modal, title="Set Server Priority"):
                     guild_id = discord.ui.TextInput(
@@ -5531,8 +5555,8 @@ class BotOperations(commands.Cog):
                     )
                     priority = discord.ui.TextInput(
                         label="Priority Number",
-                        placeholder="Lower number = Earlier (e.g. 1)",
-                        default="999",
+                        placeholder="Lower number = earlier; 999 is reserved",
+                        default="100",
                         max_length=4,
                         required=True
                     )
@@ -5541,9 +5565,47 @@ class BotOperations(commands.Cog):
                         try:
                             gid = int(self.guild_id.value.strip())
                             prio = int(self.priority.value.strip())
-                            
-                            from db.mongo_adapters import AutoRedeemSettingsAdapter
+                            if prio < 1 or prio > AUTO_REDEEM_PRIORITY_MAX:
+                                await modal_int.response.send_message("❌ Priority must be between 1 and 9999.", ephemeral=True)
+                                return
+                            if prio == AUTO_REDEEM_DEFAULT_PRIORITY:
+                                await modal_int.response.send_message("❌ Priority 999 is reserved for unassigned/default servers.", ephemeral=True)
+                                return
+
                             from db_utils import get_db_connection
+
+                            conflict_gid = None
+                            try:
+                                with get_db_connection('giftcode.sqlite') as conn:
+                                    cursor = conn.cursor()
+                                    cursor.execute(
+                                        "SELECT guild_id FROM auto_redeem_settings WHERE priority = ? AND guild_id != ?",
+                                        (prio, gid),
+                                    )
+                                    row = cursor.fetchone()
+                                    if row:
+                                        conflict_gid = int(row[0])
+                            except Exception as db_err:
+                                print(f"SQLite manual priority conflict check error (ignoring): {db_err}")
+
+                            if conflict_gid is None and mongo_enabled() and AutoRedeemSettingsAdapter and hasattr(AutoRedeemSettingsAdapter, 'get_all_settings'):
+                                try:
+                                    for entry in AutoRedeemSettingsAdapter.get_all_settings() or []:
+                                        other_gid = int(entry.get("guild_id"))
+                                        if other_gid != gid and int(entry.get("priority", AUTO_REDEEM_DEFAULT_PRIORITY)) == prio:
+                                            conflict_gid = other_gid
+                                            break
+                                except Exception as mongo_err:
+                                    print(f"Mongo manual priority conflict check error (ignoring): {mongo_err}")
+
+                            if conflict_gid is not None:
+                                conflict_guild = bot_ref.get_guild(conflict_gid)
+                                conflict_name = conflict_guild.name if conflict_guild else str(conflict_gid)
+                                await modal_int.response.send_message(
+                                    f"❌ Priority **#{prio}** is already claimed by **{conflict_name}**.",
+                                    ephemeral=True,
+                                )
+                                return
                             
                             # MongoDB
                             if mongo_enabled() and AutoRedeemSettingsAdapter and hasattr(AutoRedeemSettingsAdapter, 'set_priority'):
@@ -5554,8 +5616,14 @@ class BotOperations(commands.Cog):
                                 with get_db_connection('giftcode.sqlite') as conn:
                                     cursor = conn.cursor()
                                     cursor.execute(
-                                        "UPDATE auto_redeem_settings SET priority = ?, updated_by = ?, updated_at = CURRENT_TIMESTAMP WHERE guild_id = ?",
-                                        (prio, modal_int.user.id, gid)
+                                        """INSERT INTO auto_redeem_settings (guild_id, enabled, priority, updated_by, updated_at)
+                                           VALUES (?, 1, ?, ?, CURRENT_TIMESTAMP)
+                                           ON CONFLICT(guild_id) DO UPDATE SET
+                                               enabled = 1,
+                                               priority = excluded.priority,
+                                               updated_by = excluded.updated_by,
+                                               updated_at = excluded.updated_at""",
+                                        (gid, prio, modal_int.user.id)
                                     )
                                     conn.commit()
                             except Exception as db_err:

@@ -176,7 +176,14 @@ async def _do_approve(interaction, guild_id: str, guild_name: str,
                             g_cursor.execute("INSERT OR REPLACE INTO auto_redeem_channels (guild_id, channel_id, role_id) VALUES (?, ?, ?)", (int(guild_id), giftcode_channel.id, 0))
                             
                             g_cursor.execute("CREATE TABLE IF NOT EXISTS auto_redeem_settings (guild_id INTEGER PRIMARY KEY, enabled INTEGER DEFAULT 0, priority INTEGER DEFAULT 999, updated_by INTEGER, updated_at TEXT)")
-                            g_cursor.execute("INSERT OR REPLACE INTO auto_redeem_settings (guild_id, enabled, updated_by, updated_at) VALUES (?, 1, ?, ?)", (int(guild_id), interaction.user.id, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+                            g_cursor.execute("""
+                                INSERT INTO auto_redeem_settings (guild_id, enabled, updated_by, updated_at)
+                                VALUES (?, 1, ?, ?)
+                                ON CONFLICT(guild_id) DO UPDATE SET
+                                    enabled = 1,
+                                    updated_by = excluded.updated_by,
+                                    updated_at = excluded.updated_at
+                            """, (int(guild_id), interaction.user.id, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
                             gcdb.commit()
                     except Exception as e:
                         logger.error(f"Failed to setup giftcode channel: {e}")

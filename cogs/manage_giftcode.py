@@ -18,6 +18,12 @@ import giftcode_poster
 from bot_activity import publish_bot_activity
 from admin_utils import is_admin, is_global_admin, is_bot_owner, format_furnace_level as shared_format_furnace_level
 
+AUTO_REDEEM_DEFAULT_PRIORITY = 999
+AUTO_REDEEM_PRIORITY_MIN = 1
+AUTO_REDEEM_PRIORITY_MAX = 9999
+AUTO_REDEEM_ADMIN_PRIORITY_MIN = 11
+AUTO_REDEEM_UNASSIGNED_SORT_PRIORITY = 1_000_000
+
 try:
     from db.mongo_adapters import mongo_enabled, GiftCodesAdapter, AutoRedeemSettingsAdapter, AutoRedeemChannelsAdapter, GiftCodeRedemptionAdapter, AutoRedeemMembersAdapter, AutoRedeemedCodesAdapter, _get_db, ServerLimitsAdapter
 except Exception:
@@ -197,9 +203,17 @@ class ManageGiftCode(commands.Cog):
             settings_cols = [col[1] for col in self.cursor.fetchall()]
             if 'priority' not in settings_cols:
                 self.logger.info("Schema migration: Adding 'priority' column to auto_redeem_settings table...")
-                self.cursor.execute("ALTER TABLE auto_redeem_settings ADD COLUMN priority INTEGER DEFAULT 999")
+                self.cursor.execute(f"ALTER TABLE auto_redeem_settings ADD COLUMN priority INTEGER DEFAULT {AUTO_REDEEM_DEFAULT_PRIORITY}")
                 self.giftcode_db.commit()
                 self.logger.info("Schema migration priority successful.")
+            for col_name, col_type in (
+                ("priority_set_by", "INTEGER"),
+                ("priority_set_at", "TIMESTAMP"),
+            ):
+                if col_name not in settings_cols:
+                    self.logger.info(f"Schema migration: Adding '{col_name}' column to auto_redeem_settings table...")
+                    self.cursor.execute(f"ALTER TABLE auto_redeem_settings ADD COLUMN {col_name} {col_type}")
+                    self.giftcode_db.commit()
         except Exception as e:
             self.logger.error(f"Error checking/migrating schema: {e}")
         
@@ -293,6 +307,126 @@ class ManageGiftCode(commands.Cog):
     def _guild_display_name(self, guild_id):
         guild = self.bot.get_guild(int(guild_id)) if guild_id else None
         return guild.name if guild else f"Server {guild_id}"
+
+    def _priority_sort_value(self, priority):
+        try:
+            priority = int(priority)
+        except (TypeError, ValueError):
+            priority = AUTO_REDEEM_DEFAULT_PRIORITY
+        if priority == AUTO_REDEEM_DEFAULT_PRIORITY:
+            return AUTO_REDEEM_UNASSIGNED_SORT_PRIORITY
+        return priority
+
+    def _priority_label(self, priority):
+        try:
+            priority = int(priority)
+        except (TypeError, ValueError):
+            priority = AUTO_REDEEM_DEFAULT_PRIORITY
+        if priority == AUTO_REDEEM_DEFAULT_PRIORITY:
+            return "Unassigned"
+        return str(priority)
+
+    def _is_claimed_priority(self, priority):
+        try:
+            priority = int(priority)
+        except (TypeError, ValueError):
+            return False
+        return priority != AUTO_REDEEM_DEFAULT_PRIORITY
+
+    async def _fetch_auto_redeem_priority_settings(self):
+        """Return merged auto-redeem settings from MongoDB and SQLite keyed by guild id."""
+        settings = {}
+
+        if mongo_enabled() and AutoRedeemSettingsAdapter and hasattr(AutoRedeemSettingsAdapter, "get_all_settings"):
+            try:
+                for entry in AutoRedeemSettingsAdapter.get_all_settings() or []:
+                    gid = int(entry.get("guild_id"))
+                    settings[gid] = {
+                        "guild_id": gid,
+                        "enabled": bool(entry.get("enabled", False)),
+                        "priority": int(entry.get("priority", AUTO_REDEEM_DEFAULT_PRIORITY) or AUTO_REDEEM_DEFAULT_PRIORITY),
+                        "updated_at": entry.get("updated_at"),
+                        "source": "mongo",
+                    }
+            except Exception as e:
+                self.logger.warning(f"Failed to load priority settings from MongoDB: {e}")
+
+        try:
+            self.cursor.execute(
+                "SELECT guild_id, enabled, priority, updated_at FROM auto_redeem_settings"
+            )
+            for guild_id, enabled, priority, updated_at in self.cursor.fetchall():
+                gid = int(guild_id)
+                existing = settings.get(gid)
+                if existing and existing.get("priority") != AUTO_REDEEM_DEFAULT_PRIORITY:
+                    existing["enabled"] = existing.get("enabled") or bool(enabled)
+                    continue
+                settings[gid] = {
+                    "guild_id": gid,
+                    "enabled": bool(enabled),
+                    "priority": int(priority) if priority is not None else AUTO_REDEEM_DEFAULT_PRIORITY,
+                    "updated_at": updated_at,
+                    "source": "sqlite",
+                }
+        except Exception as e:
+            self.logger.warning(f"Failed to load priority settings from SQLite: {e}")
+
+        return settings
+
+    async def _find_priority_conflict(self, target_guild_id, priority):
+        if not self._is_claimed_priority(priority):
+            return None
+        settings = await self._fetch_auto_redeem_priority_settings()
+        for gid, entry in settings.items():
+            if gid == int(target_guild_id):
+                continue
+            try:
+                if int(entry.get("priority", AUTO_REDEEM_DEFAULT_PRIORITY)) == int(priority):
+                    return gid
+            except (TypeError, ValueError):
+                continue
+        return None
+
+    async def _next_available_priority(self, preferred_start):
+        settings = await self._fetch_auto_redeem_priority_settings()
+        claimed = {
+            int(entry.get("priority"))
+            for entry in settings.values()
+            if self._is_claimed_priority(entry.get("priority"))
+        }
+        start = max(AUTO_REDEEM_ADMIN_PRIORITY_MIN, int(preferred_start))
+        for priority in range(start, AUTO_REDEEM_PRIORITY_MAX + 1):
+            if priority == AUTO_REDEEM_DEFAULT_PRIORITY:
+                continue
+            if priority not in claimed:
+                return priority
+        return None
+
+    async def _save_auto_redeem_priority(self, guild_id, priority, updated_by):
+        now = datetime.now()
+        self.cursor.execute(
+            """INSERT INTO auto_redeem_settings
+               (guild_id, enabled, priority, updated_by, updated_at, priority_set_by, priority_set_at)
+               VALUES (?, 1, ?, ?, ?, ?, ?)
+               ON CONFLICT(guild_id) DO UPDATE SET
+                   enabled = 1,
+                   priority = excluded.priority,
+                   updated_by = excluded.updated_by,
+                   updated_at = excluded.updated_at,
+                   priority_set_by = excluded.priority_set_by,
+                   priority_set_at = excluded.priority_set_at""",
+            (int(guild_id), int(priority), int(updated_by), now, int(updated_by), now),
+        )
+        self.giftcode_db.commit()
+
+        if mongo_enabled() and AutoRedeemSettingsAdapter:
+            try:
+                if hasattr(AutoRedeemSettingsAdapter, "set_priority_async"):
+                    await AutoRedeemSettingsAdapter.set_priority_async(guild_id, priority, updated_by)
+                else:
+                    AutoRedeemSettingsAdapter.set_priority(guild_id, priority, updated_by)
+            except Exception as e:
+                self.logger.warning(f"Failed to sync auto-redeem priority to MongoDB: {e}")
 
     async def _publish_redeem_activity(self, event_type, status, message, guild_id, giftcode, **kwargs):
         await publish_bot_activity(
@@ -455,6 +589,20 @@ class ManageGiftCode(commands.Cog):
             stop_sigs         = {gid for gid, v in self.stop_signals.items() if v}
             live_stats        = dict(self._guild_live_stats)      # per-job detailed progress
             last_jobs         = list(self._last_completed_jobs)   # recent completed job summaries
+            priority_settings = await self._fetch_auto_redeem_priority_settings()
+            enabled_priority_settings = {
+                gid: entry for gid, entry in priority_settings.items() if entry.get("enabled")
+            }
+            this_server_priority = None
+            if interaction.guild:
+                this_server_priority = priority_settings.get(interaction.guild.id, {}).get(
+                    "priority", AUTO_REDEEM_DEFAULT_PRIORITY
+                )
+            claimed_count = sum(
+                1 for entry in priority_settings.values()
+                if self._is_claimed_priority(entry.get("priority"))
+            )
+            next_free_priority = await self._next_available_priority(AUTO_REDEEM_ADMIN_PRIORITY_MIN)
 
             # ── Colour & title ────────────────────────────────────────────
             is_busy = bool(active_jobs or queue_size)
@@ -474,6 +622,15 @@ class ManageGiftCode(commands.Cog):
                 f"⚡ **Concurrent Slots/Worker:** `{self.concurrent_redemptions}`",
             ]
             embed.add_field(name="📊 System Overview", value="\n".join(overview_lines), inline=False)
+
+            priority_lines = [
+                f"🏰 **Enabled Servers:** `{len(enabled_priority_settings)}`",
+                f"🏅 **Claimed Priority Slots:** `{claimed_count}`",
+                f"📍 **This Server:** `{self._priority_label(this_server_priority)}`",
+                f"➕ **Next Free Normal Slot:** `{next_free_priority if next_free_priority else 'Full'}`",
+                "`999` is now treated as unassigned and is processed after claimed slots.",
+            ]
+            embed.add_field(name="🏅 Auto-Redeem Priority", value="\n".join(priority_lines), inline=False)
 
             # ── Active workers with per-guild progress ─────────────────────
             if active_jobs:
@@ -602,29 +759,12 @@ class ManageGiftCode(commands.Cog):
         try:
             # Fetch sorted guild list from the same function the queue uses
             sorted_guilds = await self._get_enabled_guilds()   # [(guild_id,), ...]
-
-            # Also pull raw priorities from DB for display
-            priority_map = {}
-            try:
-                if mongo_enabled() and AutoRedeemSettingsAdapter and \
-                        hasattr(AutoRedeemSettingsAdapter, 'get_all_settings'):
-                    all_s = AutoRedeemSettingsAdapter.get_all_settings()
-                    if all_s:
-                        for s in all_s:
-                            if s.get('enabled', False):
-                                priority_map[int(s['guild_id'])] = s.get('priority', 999)
-            except Exception:
-                pass
-
-            if not priority_map:
-                try:
-                    self.cursor.execute(
-                        "SELECT guild_id, priority FROM auto_redeem_settings WHERE enabled = 1"
-                    )
-                    for row in self.cursor.fetchall():
-                        priority_map[int(row[0])] = int(row[1]) if row[1] is not None else 999
-                except Exception:
-                    pass
+            settings = await self._fetch_auto_redeem_priority_settings()
+            priority_map = {
+                gid: entry.get("priority", AUTO_REDEEM_DEFAULT_PRIORITY)
+                for gid, entry in settings.items()
+                if entry.get("enabled")
+            }
 
             if not sorted_guilds:
                 await interaction.followup.send(
@@ -633,19 +773,26 @@ class ManageGiftCode(commands.Cog):
                 return
 
             lines = []
+            unassigned_count = 0
             for rank, (gid,) in enumerate(sorted_guilds, start=1):
                 g = self.bot.get_guild(gid)
                 gname = f"**{g.name}**" if g else f"Server `{gid}`"
-                prio  = priority_map.get(gid, 999)
+                prio  = priority_map.get(gid, AUTO_REDEEM_DEFAULT_PRIORITY)
+                if not self._is_claimed_priority(prio):
+                    unassigned_count += 1
                 badge = "🥇" if rank == 1 else ("🥈" if rank == 2 else ("🥉" if rank == 3 else f"`#{rank}`"))
-                lines.append(f"{badge} {gname} — Priority `{prio}`")
+                lines.append(f"{badge} {gname} — Priority `{self._priority_label(prio)}`")
+
+            next_free_priority = await self._next_available_priority(AUTO_REDEEM_ADMIN_PRIORITY_MIN)
 
             embed = discord.Embed(
                 title="🏅 Server Redemption Priority Order",
                 description=(
-                    "Servers are processed **strictly** in this order when a code is redeemed.\n"
-                    "Lower priority number = processed **first**.\n"
-                    "Equal priorities are shuffled randomly each run.\n\n"
+                    "Servers with a claimed priority are processed first. Lower number = earlier.\n"
+                    "`999` is an unassigned/default slot and stays after claimed priorities.\n"
+                    "A server cannot take a priority already claimed by another server.\n\n"
+                    f"**Next free normal slot:** `{next_free_priority if next_free_priority else 'Full'}`\n"
+                    f"**Unassigned enabled servers:** `{unassigned_count}`\n\n"
                     "━━━━━━━━━━━━━━━━━━━━━━\n"
                     + "\n".join(lines[:25])
                 ),
@@ -662,17 +809,20 @@ class ManageGiftCode(commands.Cog):
 
             view = discord.ui.View()
             view.add_item(discord.ui.Button(
-                label="✏️ Set a Server's Priority",
+                label="Set Priority",
+                emoji="✏️",
                 style=discord.ButtonStyle.primary,
                 custom_id="giftcode_set_priority_confirm",
             ))
             view.add_item(discord.ui.Button(
-                label="🔴 Live Status",
+                label="Live Status",
+                emoji="🔴",
                 style=discord.ButtonStyle.danger,
                 custom_id="giftcode_live_status",
             ))
             view.add_item(discord.ui.Button(
-                label="◀ Back",
+                label="Back",
+                emoji="◀",
                 style=discord.ButtonStyle.secondary,
                 custom_id="giftcode_configure_auto_redeem",
             ))
@@ -786,10 +936,27 @@ class ManageGiftCode(commands.Cog):
                             if not guild_id:
                                 continue
                             self.cursor.execute("""
-                                INSERT OR REPLACE INTO auto_redeem_settings
-                                (guild_id, enabled, updated_by, updated_at)
-                                VALUES (?, ?, ?, ?)
-                            """, (guild_id, enabled, updated_by, updated_at))
+                                INSERT INTO auto_redeem_settings
+                                (guild_id, enabled, priority, updated_by, updated_at)
+                                VALUES (?, ?, ?, ?, ?)
+                                ON CONFLICT(guild_id) DO UPDATE SET
+                                    enabled = excluded.enabled,
+                                    priority = CASE
+                                        WHEN auto_redeem_settings.priority IS NULL
+                                             OR auto_redeem_settings.priority = ?
+                                        THEN excluded.priority
+                                        ELSE auto_redeem_settings.priority
+                                    END,
+                                    updated_by = excluded.updated_by,
+                                    updated_at = excluded.updated_at
+                            """, (
+                                guild_id,
+                                enabled,
+                                int(s.get('priority', AUTO_REDEEM_DEFAULT_PRIORITY) or AUTO_REDEEM_DEFAULT_PRIORITY),
+                                updated_by,
+                                updated_at,
+                                AUTO_REDEEM_DEFAULT_PRIORITY,
+                            ))
                             synced_settings += 1
                         except Exception as se:
                             self.logger.warning(f"Failed to sync settings for guild {s.get('guild_id')}: {se}")
@@ -1072,13 +1239,23 @@ class ManageGiftCode(commands.Cog):
                     enabled INTEGER DEFAULT 0,
                     priority INTEGER DEFAULT 999,
                     updated_by INTEGER,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    priority_set_by INTEGER,
+                    priority_set_at TIMESTAMP
                 )
             """)
             try:
-                self.cursor.execute("ALTER TABLE auto_redeem_settings ADD COLUMN priority INTEGER DEFAULT 999")
+                self.cursor.execute(f"ALTER TABLE auto_redeem_settings ADD COLUMN priority INTEGER DEFAULT {AUTO_REDEEM_DEFAULT_PRIORITY}")
             except Exception:
                 pass # Column already exists
+            for col_name, col_type in (
+                ("priority_set_by", "INTEGER"),
+                ("priority_set_at", "TIMESTAMP"),
+            ):
+                try:
+                    self.cursor.execute(f"ALTER TABLE auto_redeem_settings ADD COLUMN {col_name} {col_type}")
+                except Exception:
+                    pass
             
             # Auto redeem completed guilds table - track per-guild code processing to prevent restart loops
             # Standardize on case-insensitive gift codes
@@ -3893,7 +4070,7 @@ class ManageGiftCode(commands.Cog):
                     for s in all_settings:
                         if s.get('enabled', False):
                             gid = int(s['guild_id'])
-                            priority = s.get('priority', 999)
+                            priority = s.get('priority', AUTO_REDEEM_DEFAULT_PRIORITY)
                             enabled_guilds_dict[gid] = priority
                             mongo_count += 1
                     self.logger.info(f"✅ MongoDB: Found {mongo_count} enabled guilds")
@@ -3909,14 +4086,15 @@ class ManageGiftCode(commands.Cog):
             for row in sqlite_rows:
                 gid = int(row[0])
                 if gid not in enabled_guilds_dict:
-                    enabled_guilds_dict[gid] = int(row[1]) if len(row) > 1 and row[1] is not None else 999
+                    enabled_guilds_dict[gid] = int(row[1]) if len(row) > 1 and row[1] is not None else AUTO_REDEEM_DEFAULT_PRIORITY
         except Exception as e:
             self.logger.error(f"❌ SQLite query failed: {e}")
         
-        # Sort by priority ascending, then randomize among the same priority
-        # enabled_guilds_dict = {guild_id: priority}
-        # We'll map them as (priority, random_float, guild_id)
-        sortable_list = [(priority, random.random(), gid) for gid, priority in enabled_guilds_dict.items()]
+        # Claimed priority slots run first. The default/unassigned slot is always parked last.
+        sortable_list = [
+            (self._priority_sort_value(priority), random.random(), gid)
+            for gid, priority in enabled_guilds_dict.items()
+        ]
         sortable_list.sort() # Sorts by priority first, then random
         
         # Convert back to expected format: list of tuples [(gid,), ...]
@@ -4346,9 +4524,13 @@ class ManageGiftCode(commands.Cog):
         # Also update SQLite for backward compatibility
         try:
             self.cursor.execute("""
-                INSERT OR REPLACE INTO auto_redeem_settings 
+                INSERT INTO auto_redeem_settings
                 (guild_id, enabled, updated_by, updated_at)
                 VALUES (?, 0, ?, ?)
+                ON CONFLICT(guild_id) DO UPDATE SET
+                    enabled = 0,
+                    updated_by = excluded.updated_by,
+                    updated_at = excluded.updated_at
             """, (guild_id, ctx.author.id, datetime.now()))
             self.giftcode_db.commit()
         except Exception as e:
@@ -4516,9 +4698,9 @@ class ManageGiftCode(commands.Cog):
                     max_length=20
                 )
                 priority_input = discord.ui.TextInput(
-                    label="Priority (1–10 = Global Admin only  |  11–9999 = Normal Admin)",
-                    placeholder="e.g. 50",
-                    required=True,
+                    label="Priority (blank = next free, 999 = unassigned)",
+                    placeholder="e.g. 50, or leave blank for next free slot",
+                    required=False,
                     max_length=5
                 )
 
@@ -4532,25 +4714,57 @@ class ManageGiftCode(commands.Cog):
                         if not await self.cog.check_admin_permission(modal_interaction.user.id):
                             await modal_interaction.response.send_message("❌ Admin only.", ephemeral=True)
                             return
-                            
-                        raw_gid = self.guild_id_input.value.strip()
-                        target_guild_id = int(raw_gid) if raw_gid.isdigit() else modal_interaction.guild.id
-                        priority_val = int(self.priority_input.value.strip())
 
-                        # ── Permission-tiered validation ──────────────────
-                        if not (1 <= priority_val <= 9999):
-                            await modal_interaction.response.send_message(
-                                "❌ Priority must be between **1** and **9999**.", ephemeral=True
-                            )
-                            return
-
-                        # Determine caller's permission tier
                         caller_is_superadmin = (
                             await is_bot_owner(self.cog.bot, modal_interaction.user.id)
                             or is_global_admin(modal_interaction.user.id)
                         )
 
-                        if priority_val <= 10 and not caller_is_superadmin:
+                        raw_gid = self.guild_id_input.value.strip()
+                        if raw_gid:
+                            if not caller_is_superadmin:
+                                await modal_interaction.response.send_message(
+                                    "🔒 Only Global Administrators can set priority for another server ID.",
+                                    ephemeral=True,
+                                )
+                                return
+                            if not raw_gid.isdigit():
+                                await modal_interaction.response.send_message(
+                                    "❌ Server ID must contain digits only.", ephemeral=True
+                                )
+                                return
+                            target_guild_id = int(raw_gid)
+                        else:
+                            target_guild_id = modal_interaction.guild.id
+
+                        raw_priority = self.priority_input.value.strip()
+                        if raw_priority:
+                            priority_val = int(raw_priority)
+                        else:
+                            priority_val = await self.cog._next_available_priority(AUTO_REDEEM_ADMIN_PRIORITY_MIN)
+                            if priority_val is None:
+                                await modal_interaction.response.send_message(
+                                    "❌ No free normal priority slots are available.",
+                                    ephemeral=True,
+                                )
+                                return
+
+                        # ── Permission-tiered validation ──────────────────
+                        if not (AUTO_REDEEM_PRIORITY_MIN <= priority_val <= AUTO_REDEEM_PRIORITY_MAX):
+                            await modal_interaction.response.send_message(
+                                "❌ Priority must be between **1** and **9999**.", ephemeral=True
+                            )
+                            return
+
+                        if priority_val == AUTO_REDEEM_DEFAULT_PRIORITY:
+                            await modal_interaction.response.send_message(
+                                "❌ Priority **999** is reserved as the unassigned/default slot. "
+                                "Leave the field blank to auto-pick the next free slot.",
+                                ephemeral=True,
+                            )
+                            return
+
+                        if priority_val < AUTO_REDEEM_ADMIN_PRIORITY_MIN and not caller_is_superadmin:
                             await modal_interaction.response.send_message(
                                 "🔒 **Priority 1–10 is reserved for Global Administrators only.**\n"
                                 "Your account can set priorities **11–9999**.",
@@ -4558,36 +4772,32 @@ class ManageGiftCode(commands.Cog):
                             )
                             return
 
-                        # ── Persist to SQLite ─────────────────────────────
-                        self.cog.cursor.execute(
-                            """INSERT INTO auto_redeem_settings (guild_id, enabled, priority, updated_by, updated_at)
-                               VALUES (?, 1, ?, ?, ?)
-                               ON CONFLICT(guild_id) DO UPDATE SET priority = excluded.priority""",
-                            (target_guild_id, priority_val, modal_interaction.user.id, datetime.now())
-                        )
-                        self.cog.giftcode_db.commit()
+                        conflict_gid = await self.cog._find_priority_conflict(target_guild_id, priority_val)
+                        if conflict_gid is not None:
+                            conflict_guild = self.cog.bot.get_guild(conflict_gid)
+                            conflict_name = conflict_guild.name if conflict_guild else f"ID {conflict_gid}"
+                            next_free = await self.cog._next_available_priority(max(AUTO_REDEEM_ADMIN_PRIORITY_MIN, priority_val + 1))
+                            await modal_interaction.response.send_message(
+                                f"❌ Priority **`{priority_val}`** is already claimed by **{conflict_name}**.\n"
+                                f"Choose another free slot"
+                                f"{f' such as `{next_free}`' if next_free else ''}.",
+                                ephemeral=True,
+                            )
+                            return
 
-                        # ── Persist to MongoDB ────────────────────────────
-                        if mongo_enabled() and AutoRedeemSettingsAdapter:
-                            try:
-                                from db.mongo_adapters import _get_db as get_db
-                                db = get_db()
-                                if db is not None:
-                                    db[AutoRedeemSettingsAdapter.COLL].update_one(
-                                        {'guild_id': str(target_guild_id)},
-                                        {'$set': {'priority': priority_val,
-                                                  'priority_set_by': str(modal_interaction.user.id)}},
-                                        upsert=True
-                                    )
-                            except Exception as me:
-                                self.cog.logger.warning(f"Failed to sync priority to MongoDB: {me}")
+                        await self.cog._save_auto_redeem_priority(
+                            target_guild_id,
+                            priority_val,
+                            modal_interaction.user.id,
+                        )
 
                         guild_obj = self.cog.bot.get_guild(target_guild_id)
                         guild_name = guild_obj.name if guild_obj else f"ID {target_guild_id}"
-                        tier_note  = "🔑 (Global Admin slot)" if priority_val <= 10 else "🔓 (Normal Admin slot)"
+                        tier_note  = "🔑 (Global Admin slot)" if priority_val < AUTO_REDEEM_ADMIN_PRIORITY_MIN else "🔓 (Normal Admin slot)"
                         await modal_interaction.response.send_message(
                             f"✅ **{guild_name}** priority set to **`{priority_val}`** {tier_note}\n"
-                            f"Lower number = processed **earlier** in the redemption queue.",
+                            "Lower number = processed **earlier** in the redemption queue. "
+                            "Existing server slots were not changed.",
                             ephemeral=True
                         )
                     except ValueError:
@@ -7258,9 +7468,13 @@ class ManageGiftCode(commands.Cog):
             try:
                 self.logger.info(f"📂 SQLite: Saving auto-redeem ENABLED for guild {interaction.guild.id}...")
                 self.cursor.execute("""
-                    INSERT OR REPLACE INTO auto_redeem_settings 
+                    INSERT INTO auto_redeem_settings
                     (guild_id, enabled, updated_by, updated_at)
                     VALUES (?, 1, ?, ?)
+                    ON CONFLICT(guild_id) DO UPDATE SET
+                        enabled = 1,
+                        updated_by = excluded.updated_by,
+                        updated_at = excluded.updated_at
                 """, (interaction.guild.id, interaction.user.id, datetime.now()))
                 self.giftcode_db.commit()
                 sqlite_saved = True
@@ -7328,9 +7542,13 @@ class ManageGiftCode(commands.Cog):
             try:
                 self.logger.info(f"📂 SQLite: Saving auto-redeem DISABLED for guild {interaction.guild.id}...")
                 self.cursor.execute("""
-                    INSERT OR REPLACE INTO auto_redeem_settings 
+                    INSERT INTO auto_redeem_settings
                     (guild_id, enabled, updated_by, updated_at)
                     VALUES (?, 0, ?, ?)
+                    ON CONFLICT(guild_id) DO UPDATE SET
+                        enabled = 0,
+                        updated_by = excluded.updated_by,
+                        updated_at = excluded.updated_at
                 """, (interaction.guild.id, interaction.user.id, datetime.now()))
                 self.giftcode_db.commit()
                 sqlite_saved = True

@@ -189,7 +189,10 @@ except Exception as e:
     logger.error(f"❌ Failed to load global chat router: {e}")
 
 try:
-    from web_api.routers.message_templates import router as message_templates_router
+    try:
+        from web_api.routers.message_templates import router as message_templates_router
+    except Exception:
+        from src.api.routers.message_templates import router as message_templates_router
     app.include_router(message_templates_router)
     logger.info("✅ Message Templates router loaded")
 except Exception as e:

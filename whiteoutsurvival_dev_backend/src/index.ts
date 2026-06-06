@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomUUID } from 'crypto';
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'crypto';
 import path from 'path';
 import express, { ErrorRequestHandler, Request, Response } from 'express';
 import cors from 'cors';
@@ -123,6 +123,37 @@ type OAuthStateDocument = {
   expiresAt: Date;
 };
 
+type SiteVisitDocument = {
+  _id?: ObjectId;
+  id: string;
+  visitorId: string;
+  ip: string;
+  country: string;
+  region: string;
+  city: string;
+  browser: string;
+  os: string;
+  device: string;
+  page: string;
+  referrer: string;
+  userAgent: string;
+  language: string;
+  timezone: string;
+  screen: string;
+  viewport: string;
+  timestamp: Date;
+  createdAt: Date;
+};
+
+type AdminSessionDocument = {
+  _id?: ObjectId;
+  tokenHash: string;
+  createdAt: Date;
+  expiresAt: Date;
+  ip: string;
+  userAgent: string;
+};
+
 type OAuthProfile = {
   provider: AuthProvider;
   providerUserId: string;
@@ -239,6 +270,10 @@ const authCookieName = process.env.AUTH_COOKIE_NAME || 'wos_session';
 const authCookieSecure = process.env.AUTH_COOKIE_SECURE === 'true' || apiUrl.startsWith('https://');
 const authCookieSameSite = (process.env.AUTH_COOKIE_SAMESITE || (authCookieSecure ? 'None' : 'Lax')) as 'Lax' | 'Strict' | 'None';
 const authCookieMaxAgeMs = Number(process.env.AUTH_SESSION_TTL_MS || 30 * 24 * 60 * 60 * 1000);
+const adminCookieName = process.env.ADMIN_COOKIE_NAME || 'wos_admin_session';
+const adminCookieSecure = process.env.ADMIN_COOKIE_SECURE === 'true' || apiUrl.startsWith('https://');
+const adminCookieSameSite = (process.env.ADMIN_COOKIE_SAMESITE || (adminCookieSecure ? 'None' : 'Lax')) as 'Lax' | 'Strict' | 'None';
+const adminSessionTtlMs = Number(process.env.ADMIN_SESSION_TTL_MS || 12 * 60 * 60 * 1000);
 
 const oauthConfig = {
   google: {
@@ -325,6 +360,114 @@ const clearSessionCookie = (res: Response) => {
   }
 
   res.setHeader('Set-Cookie', parts.join('; '));
+};
+
+const setAdminCookie = (res: Response, sessionToken: string, expiresAt: Date) => {
+  const parts = [
+    `${adminCookieName}=${encodeURIComponent(sessionToken)}`,
+    'Path=/',
+    'HttpOnly',
+    `Max-Age=${Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000))}`,
+    `SameSite=${adminCookieSameSite}`,
+  ];
+
+  if (adminCookieSecure) {
+    parts.push('Secure');
+  }
+  if (process.env.ADMIN_COOKIE_DOMAIN) {
+    parts.push(`Domain=${process.env.ADMIN_COOKIE_DOMAIN}`);
+  }
+
+  res.setHeader('Set-Cookie', parts.join('; '));
+};
+
+const clearAdminCookie = (res: Response) => {
+  const parts = [
+    `${adminCookieName}=`,
+    'Path=/',
+    'HttpOnly',
+    'Max-Age=0',
+    `SameSite=${adminCookieSameSite}`,
+  ];
+
+  if (adminCookieSecure) {
+    parts.push('Secure');
+  }
+  if (process.env.ADMIN_COOKIE_DOMAIN) {
+    parts.push(`Domain=${process.env.ADMIN_COOKIE_DOMAIN}`);
+  }
+
+  res.setHeader('Set-Cookie', parts.join('; '));
+};
+
+const adminSecret = () => process.env.ADMIN_PASSWORD || process.env.ADMIN_ACCESS_TOKEN || '';
+
+const isAdminConfigured = () => Boolean(adminSecret());
+
+const verifyAdminSecret = (value: unknown) => {
+  const secret = adminSecret();
+  const provided = typeof value === 'string' ? value : '';
+  if (!secret || !provided) {
+    return false;
+  }
+
+  const expected = Buffer.from(sha256(secret), 'hex');
+  const actual = Buffer.from(sha256(provided), 'hex');
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
+};
+
+const getRequestIp = (req: Request) => {
+  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0]?.trim();
+  return (
+    String(req.headers['cf-connecting-ip'] || '') ||
+    String(req.headers['x-real-ip'] || '') ||
+    forwarded ||
+    req.ip ||
+    'unknown'
+  );
+};
+
+const getRequestGeo = (req: Request) => ({
+  country:
+    String(req.headers['x-vercel-ip-country'] || '') ||
+    String(req.headers['cf-ipcountry'] || '') ||
+    String(req.headers['x-country-code'] || '') ||
+    'unknown',
+  region: String(req.headers['x-vercel-ip-country-region'] || req.headers['x-region'] || ''),
+  city: String(req.headers['x-vercel-ip-city'] || req.headers['x-city'] || ''),
+});
+
+const browserPatterns: [RegExp, string][] = [
+  [/edg\/([\d.]+)/i, 'Edge'],
+  [/opr\/([\d.]+)/i, 'Opera'],
+  [/chrome\/([\d.]+)/i, 'Chrome'],
+  [/firefox\/([\d.]+)/i, 'Firefox'],
+  [/version\/([\d.]+).*safari/i, 'Safari'],
+  [/safari\/([\d.]+)/i, 'Safari'],
+];
+
+const parseBrowser = (userAgent: string) => {
+  const match = browserPatterns.find(([pattern]) => pattern.test(userAgent));
+  if (!match) {
+    return 'Unknown';
+  }
+  const version = userAgent.match(match[0])?.[1]?.split('.')[0];
+  return version ? `${match[1]} ${version}` : match[1];
+};
+
+const parseOs = (userAgent: string) => {
+  if (/windows nt/i.test(userAgent)) return 'Windows';
+  if (/android/i.test(userAgent)) return 'Android';
+  if (/(iphone|ipad|ipod)/i.test(userAgent)) return 'iOS';
+  if (/mac os x/i.test(userAgent)) return 'macOS';
+  if (/linux/i.test(userAgent)) return 'Linux';
+  return 'Unknown';
+};
+
+const parseDevice = (userAgent: string) => {
+  if (/ipad|tablet/i.test(userAgent)) return 'Tablet';
+  if (/mobile|android|iphone|ipod/i.test(userAgent)) return 'Mobile';
+  return 'Desktop';
 };
 
 const safeReturnTo = (value: unknown) => {
@@ -762,6 +905,8 @@ const getCollections = async () => {
   const users = db.collection<UserDocument>('users');
   const sessions = db.collection<SessionDocument>('auth_sessions');
   const oauthStates = db.collection<OAuthStateDocument>('auth_oauth_states');
+  const siteVisits = db.collection<SiteVisitDocument>('site_visits');
+  const adminSessions = db.collection<AdminSessionDocument>('admin_sessions');
 
   indexesReady ??= Promise.all([
     islands.createIndex({ createdAt: -1 }),
@@ -785,10 +930,15 @@ const getCollections = async () => {
     sessions.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
     oauthStates.createIndex({ stateHash: 1 }, { unique: true }),
     oauthStates.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+    siteVisits.createIndex({ timestamp: -1 }),
+    siteVisits.createIndex({ visitorId: 1 }),
+    siteVisits.createIndex({ page: 1, timestamp: -1 }),
+    adminSessions.createIndex({ tokenHash: 1 }, { unique: true }),
+    adminSessions.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
   ]).then(() => undefined);
 
   await indexesReady;
-  return { islands, likes, comments, templates, templateLikes, users, sessions, oauthStates };
+  return { islands, likes, comments, templates, templateLikes, users, sessions, oauthStates, siteVisits, adminSessions };
 };
 
 const userCanManageIsland = (user: UserDocument | null | undefined, island: IslandDocument) => {
@@ -1185,6 +1335,200 @@ app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '1mb' }));
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', message: 'Whiteout Survival backend is running' });
+});
+
+const serializeVisit = (visit: SiteVisitDocument) => ({
+  id: visit.id,
+  visitorId: visit.visitorId,
+  ip: visit.ip,
+  country: visit.country,
+  region: visit.region,
+  city: visit.city,
+  browser: visit.browser,
+  os: visit.os,
+  device: visit.device,
+  page: visit.page,
+  referrer: visit.referrer,
+  userAgent: visit.userAgent,
+  language: visit.language,
+  timezone: visit.timezone,
+  screen: visit.screen,
+  viewport: visit.viewport,
+  timestamp: visit.timestamp.toISOString(),
+});
+
+const getAdminSession = async (req: Request) => {
+  const token = parseCookies(req.get('cookie'))[adminCookieName];
+  if (!token || !isAdminConfigured()) {
+    return null;
+  }
+
+  const { adminSessions } = await getCollections();
+  return adminSessions.findOne({ tokenHash: sha256(token), expiresAt: { $gt: new Date() } });
+};
+
+const requireAdminSession = async (req: Request, res: Response) => {
+  const session = await getAdminSession(req);
+  if (!session) {
+    res.status(401).json({ authenticated: false, error: 'Admin access required' });
+    return null;
+  }
+
+  return session;
+};
+
+app.get('/api/admin/status', async (req, res) => {
+  try {
+    if (!isAdminConfigured()) {
+      res.json({ configured: false, authenticated: false });
+      return;
+    }
+
+    const session = await getAdminSession(req);
+    res.json({
+      configured: true,
+      authenticated: Boolean(session),
+      expiresAt: session?.expiresAt.toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Admin status failed' });
+  }
+});
+
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    if (!isAdminConfigured()) {
+      res.status(503).json({ error: 'Admin secret is not configured' });
+      return;
+    }
+
+    if (!verifyAdminSecret(req.body?.password || req.body?.token)) {
+      res.status(401).json({ error: 'Invalid admin secret' });
+      return;
+    }
+
+    const token = randomBytes(32).toString('base64url');
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + adminSessionTtlMs);
+    const { adminSessions } = await getCollections();
+    await adminSessions.insertOne({
+      tokenHash: sha256(token),
+      createdAt: now,
+      expiresAt,
+      ip: getRequestIp(req),
+      userAgent: req.get('user-agent') || '',
+    });
+
+    setAdminCookie(res, token, expiresAt);
+    res.json({ authenticated: true, expiresAt: expiresAt.toISOString() });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Admin login failed' });
+  }
+});
+
+app.post('/api/admin/logout', async (req, res) => {
+  try {
+    const token = parseCookies(req.get('cookie'))[adminCookieName];
+    if (token) {
+      const { adminSessions } = await getCollections();
+      await adminSessions.deleteOne({ tokenHash: sha256(token) });
+    }
+    clearAdminCookie(res);
+    res.json({ authenticated: false });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Admin logout failed' });
+  }
+});
+
+app.post('/api/admin/track', async (req, res) => {
+  try {
+    const userAgent = req.get('user-agent') || '';
+    const existingVisitorId = parseCookies(req.get('cookie')).wos_visitor_id;
+    const visitorId = existingVisitorId || randomUUID();
+    const geo = getRequestGeo(req);
+    const now = new Date();
+    const { siteVisits } = await getCollections();
+
+    await siteVisits.insertOne({
+      id: randomUUID(),
+      visitorId,
+      ip: getRequestIp(req),
+      country: cleanText(geo.country, 80) || 'unknown',
+      region: cleanText(geo.region, 120),
+      city: cleanText(geo.city, 120),
+      browser: parseBrowser(userAgent),
+      os: parseOs(userAgent),
+      device: parseDevice(userAgent),
+      page: cleanText(req.body?.page || req.get('referer') || '/', 500) || '/',
+      referrer: cleanText(req.body?.referrer, 500),
+      userAgent,
+      language: cleanText(req.body?.language, 80),
+      timezone: cleanText(req.body?.timezone, 100),
+      screen: cleanText(req.body?.screen, 80),
+      viewport: cleanText(req.body?.viewport, 80),
+      timestamp: now,
+      createdAt: now,
+    });
+
+    if (!existingVisitorId) {
+      res.cookie('wos_visitor_id', visitorId, {
+        sameSite: 'lax',
+        secure: adminCookieSecure,
+        path: '/',
+        maxAge: 365 * 24 * 60 * 60 * 1000,
+      });
+    }
+
+    res.json({ ok: true });
+  } catch {
+    res.status(202).json({ ok: false });
+  }
+});
+
+app.get('/api/admin/visits', async (req, res) => {
+  try {
+    const session = await requireAdminSession(req, res);
+    if (!session) {
+      return;
+    }
+
+    const { siteVisits, users, adminSessions } = await getCollections();
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 100, 500));
+    const page = cleanText(req.query.page, 500);
+    const ip = cleanText(req.query.ip, 80);
+    const query: Record<string, unknown> = {};
+    if (page) query.page = page;
+    if (ip) query.ip = ip;
+
+    const [visitDocs, totalVisits, uniqueVisitors, uniqueIps, userCount, activeSessions, topPages, topCountries, topBrowsers] =
+      await Promise.all([
+        siteVisits.find(query).sort({ timestamp: -1 }).limit(limit).toArray(),
+        siteVisits.countDocuments(query),
+        siteVisits.distinct('visitorId').then((values) => values.filter(Boolean).length),
+        siteVisits.distinct('ip').then((values) => values.filter(Boolean).length),
+        users.countDocuments().catch(() => 0),
+        adminSessions.countDocuments({ expiresAt: { $gt: new Date() } }),
+        siteVisits.aggregate([{ $group: { _id: '$page', count: { $sum: 1 } } }, { $sort: { count: -1 } }, { $limit: 8 }]).toArray(),
+        siteVisits.aggregate([{ $group: { _id: '$country', count: { $sum: 1 } } }, { $sort: { count: -1 } }, { $limit: 8 }]).toArray(),
+        siteVisits.aggregate([{ $group: { _id: '$browser', count: { $sum: 1 } } }, { $sort: { count: -1 } }, { $limit: 8 }]).toArray(),
+      ]);
+
+    res.json({
+      summary: {
+        totalVisits,
+        uniqueVisitors,
+        uniqueIps,
+        userCount,
+        activeAdminSessions: activeSessions,
+      },
+      visits: visitDocs.map(serializeVisit),
+      topPages: topPages.map((item) => ({ name: item._id || 'unknown', count: item.count })),
+      topCountries: topCountries.map((item) => ({ name: item._id || 'unknown', count: item.count })),
+      topBrowsers: topBrowsers.map((item) => ({ name: item._id || 'unknown', count: item.count })),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Admin visits failed' });
+  }
 });
 
 app.get('/api/gift-codes', async (_req, res) => {

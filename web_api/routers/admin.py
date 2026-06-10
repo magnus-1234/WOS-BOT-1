@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
 BOT_OWNER_ID = os.getenv("BOT_OWNER_ID", "")
+TOPGG_REVIEW_URL = "https://top.gg/bot/1399025185046134866?s=0e3c921b2b5f8"
 SETTINGS_DB = Path("db/settings.sqlite")
 
 
@@ -55,6 +56,18 @@ class RegistrationLimitPayload(BaseModel):
 
 class ReviewPayload(BaseModel):
     action: str
+
+
+def _approval_dm_message(guild_name: str, alliance_name: str) -> str:
+    return (
+        f"✅ **Your registration has been approved!**\n\n"
+        f"**Server:** {guild_name}\n"
+        f"**Alliance:** `{alliance_name}`\n\n"
+        f"Your access code is now active. You can use `/manage` on the dashboard.\n"
+        f"Use the code you set during registration to unlock the dashboard.\n\n"
+        f"If Whiteout Survival Bot helps your server, please share a quick "
+        f"review or feedback on Top.gg:\n{TOPGG_REVIEW_URL}"
+    )
 
 
 async def _discord_user_from_request(request: Request) -> Dict[str, Any]:
@@ -385,10 +398,36 @@ async def admin_review_registration(guild_id: int, payload: ReviewPayload, reque
         raise HTTPException(status_code=400, detail="Action must be approve or deny")
     if not mongo_enabled() or not PendingConfigAdapter:
         raise HTTPException(status_code=500, detail="MongoDB not available")
+
+    doc = await PendingConfigAdapter.get_by_guild_async(guild_id)
+    if not doc or doc.get("status") != "pending":
+        raise HTTPException(status_code=404, detail="No pending registration found")
+
     if payload.action == "approve":
         ok = await PendingConfigAdapter.approve_async(guild_id, int(user["id"]))
     else:
         ok = await PendingConfigAdapter.deny_async(guild_id, int(user["id"]))
     if not ok:
         raise HTTPException(status_code=404, detail="No pending registration found")
+
+    try:
+        bot = getattr(request.app.state, "bot", None)
+        if bot and doc.get("discord_user_id"):
+            discord_user = await bot.fetch_user(int(doc["discord_user_id"]))
+            if payload.action == "approve":
+                msg = _approval_dm_message(
+                    doc.get("guild_name", "Unknown Server"),
+                    doc.get("alliance_name", "Unknown Alliance"),
+                )
+            else:
+                msg = (
+                    f"❌ **Your registration request was denied.**\n\n"
+                    f"**Server:** {doc.get('guild_name', 'Unknown Server')}\n"
+                    f"Please contact the bot administrator for more information.\n"
+                    f"You can submit a new registration request when ready."
+                )
+            await discord_user.send(msg)
+    except Exception as dm_err:
+        logger.warning(f"Could not DM submitter about admin review decision: {dm_err}")
+
     return {"status": "success", "action": payload.action}

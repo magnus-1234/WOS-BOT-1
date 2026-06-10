@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/register", tags=["Registration"])
 
 BOT_OWNER_ID = os.getenv("BOT_OWNER_ID", "")
+TOPGG_REVIEW_URL = "https://top.gg/bot/1399025185046134866?s=0e3c921b2b5f8"
 
 
 # ── Request Models ─────────────────────────────────────────────────────────────
@@ -63,6 +64,18 @@ class QuickSetupRequest(BaseModel):
     state: Optional[int] = Field(default=None, ge=1)
     discord_user_id: str = "0"
     discord_username: str = "Unknown"
+
+
+def _approval_dm_message(guild_name: str, alliance_name: str) -> str:
+    return (
+        f"✅ **Your registration has been approved!**\n\n"
+        f"**Server:** {guild_name}\n"
+        f"**Alliance:** `{alliance_name}`\n\n"
+        f"Your access code is now active. You can use `/manage` on the dashboard.\n"
+        f"Use the code you set during registration to unlock the dashboard.\n\n"
+        f"If Whiteout Survival Bot helps your server, please share a quick "
+        f"review or feedback on Top.gg:\n{TOPGG_REVIEW_URL}"
+    )
 
 
 async def _get_registration_status(guild_id: int):
@@ -550,12 +563,9 @@ async def review_registration(body: ReviewRequest, request: Request):
             user = await bot.fetch_user(int(doc["discord_user_id"]))
             if user:
                 if body.action == "approve":
-                    msg = (
-                        f"✅ **Your registration has been approved!**\n\n"
-                        f"**Server:** {doc.get('guild_name')}\n"
-                        f"**Alliance:** `{doc.get('alliance_name')}`\n\n"
-                        f"Your access code is now active. You can use `/manage` on the dashboard.\n"
-                        f"Use the code you set during registration to unlock the dashboard."
+                    msg = _approval_dm_message(
+                        doc.get("guild_name", "Unknown Server"),
+                        doc.get("alliance_name", "Unknown Alliance"),
                     )
                 else:
                     msg = (

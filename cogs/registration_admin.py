@@ -11,11 +11,25 @@ import os
 logger = logging.getLogger(__name__)
 
 BOT_OWNER_ID = int(os.getenv("BOT_OWNER_ID", "0"))
+TOPGG_REVIEW_URL = "https://top.gg/bot/1399025185046134866?s=0e3c921b2b5f8"
 
 
 async def _is_global_admin(interaction: discord.Interaction) -> bool:
     """Check if the interaction user is the global admin (bot owner)."""
     return interaction.user.id == BOT_OWNER_ID
+
+
+def _approval_dm_message(guild_name: str, alliance_name: str) -> str:
+    return (
+        f"✅ **Your registration has been approved!**\n\n"
+        f"**Server:** {guild_name}\n"
+        f"**Alliance:** `{alliance_name}`\n\n"
+        f"Your access code is now active. Visit the dashboard and use "
+        f"`/manage` or click **Alliance Monitor / Gift Codes** — then enter "
+        f"the code you set during registration.\n\n"
+        f"If Whiteout Survival Bot helps your server, please share a quick "
+        f"review or feedback on Top.gg:\n{TOPGG_REVIEW_URL}"
+    )
 
 
 class ApproveView(discord.ui.View):
@@ -207,14 +221,7 @@ async def _do_approve(interaction, guild_id: str, guild_name: str,
             # Notify submitter
             try:
                 user = await interaction.client.fetch_user(int(submitter_id))
-                await user.send(
-                    f"✅ **Your registration has been approved!**\n\n"
-                    f"**Server:** {guild_name}\n"
-                    f"**Alliance:** `{alliance_name}`\n\n"
-                    f"Your access code is now active. Visit the dashboard and use "
-                    f"`/manage` or click **Alliance Monitor / Gift Codes** — then enter "
-                    f"the code you set during registration."
-                )
+                await user.send(_approval_dm_message(guild_name, alliance_name))
             except Exception as dm_err:
                 logger.warning(f"Could not DM submitter {submitter_id}: {dm_err}")
             await interaction.followup.send(

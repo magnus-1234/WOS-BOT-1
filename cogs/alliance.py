@@ -12,6 +12,8 @@ from command_animator import command_animation
 from bot_activity import publish_bot_activity
 from admin_utils import is_admin, is_global_admin, grant_admin_if_discord_admin, is_bot_owner, get_level_mapping, format_furnace_level
 from .pagination_helper import ResultsPaginationView
+TOPGG_REVIEW_URL = "https://top.gg/bot/1399025185046134866?s=0e3c921b2b5f8"
+
 try:
     from db.mongo_adapters import mongo_enabled, AdminsAdapter, AlliancesAdapter, AllianceSettingsAdapter, AllianceMembersAdapter, FurnaceHistoryAdapter, AllianceMonitoringAdapter, ServerLimitsAdapter, AllianceEventsAdapter
 except Exception as import_error:
@@ -269,6 +271,11 @@ class Alliance(commands.Cog):
                                 value="To unlock these features for your server, please configure them using the **`/manage`** command or manage them from the **Web Dashboard**, then wait for administrator review.",
                                 inline=False
                             )
+                            embed.add_field(
+                                name="⭐ Share Feedback",
+                                value="After setup, please share a quick review or feedback on Top.gg if the bot helps your server.",
+                                inline=False
+                            )
                             embed.set_thumbnail(url=avatar_url)
                             embed.set_footer(text="Page 1 of 3 • Use the buttons below to navigate")
                             return embed
@@ -377,6 +384,13 @@ class Alliance(commands.Cog):
                                 label="Web Dashboard",
                                 style=discord.ButtonStyle.link,
                                 url="https://bot.whiteoutsurvival.dev/"
+                            ))
+
+                            # Top.gg Review button
+                            self.add_item(discord.ui.Button(
+                                label="Review on Top.gg",
+                                style=discord.ButtonStyle.link,
+                                url=TOPGG_REVIEW_URL
                             ))
 
                         async def prev_page(self, interaction: discord.Interaction):

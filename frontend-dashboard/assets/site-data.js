@@ -1,0 +1,90 @@
+window.whiteoutSiteData = {
+  features: [
+    ["Activity", "Alliance monitoring", "Track furnace changes, activity trends, and alliance growth signals before they become problems."],
+    ["Gift", "Auto gift codes", "Find, announce, and redeem active gift codes with server-level settings for your alliance."],
+    ["Music", "Premium music", "Queue voice-channel music with clean playback controls, now playing status, and server-friendly commands."],
+    ["Languages", "DeepL translation", "Create real-time channel translation bridges so multilingual alliances stay aligned."],
+    ["Calendar", "Birthday manager", "Keep birthday entries organized and celebrate alliance members automatically."],
+    ["Message", "Smart reminders", "Set reminders, manage time zones, and review active reminders from an interactive dashboard."],
+    ["Trophy", "Event guides", "Surface Whiteout Survival event details and alliance-ready timing information on demand."],
+    ["User", "Player info", "Look up player profiles, update embeds, and inspect member data with fast slash commands."],
+    ["Sparkles", "AI chat ֎", "Ask Molly for game help, server support, web research, or general answers inside Discord."],
+    ["Bot", "Welcome messages", "Configure polished onboarding messages that make new members feel instantly oriented."],
+    ["Gamepad", "Games", "Bring light competitive moments to chat with Tic-Tac-Toe, dice rolls, and dice battles."],
+    ["Shield", "Admin tools", "Refresh data, register persistent views, manage settings, and keep bot operations clean."]
+  ],
+  featureSections: [
+    {
+      eyebrow: "Monitoring",
+      title: "Alliance activity without spreadsheet chaos.",
+      body: "Whiteout Survival turns small changes into major alliance decisions. The monitoring layer keeps furnace movement, player records, server age, and activity signals available from Discord, so leadership can react quickly without hunting through external sheets.",
+      bullets: ["7-day furnace change tracking", "Player lookup for up to 30 IDs", "Server age milestones", "Activity graph snapshots"],
+      commands: ["/allianceactivity", "/alliancemonitor", "/playerinfo", "/server_age", "/mostactive"]
+    },
+    {
+      eyebrow: "Automation",
+      title: "Gift codes, reminders, and data refreshes on command.",
+      body: "Routine admin work should not interrupt battle planning. Whiteout Survival helps teams manage gift code settings, synchronize remote cache data, and keep reminders organized with focused slash commands and clean dashboards.",
+      bullets: ["Gift code settings dashboard", "Remote cache synchronization", "Reminder dashboard", "Persistent view registration"],
+      commands: ["/giftcode", "/giftcodesettings", "/refresh", "/syncdata", "/reminderdashboard"]
+    },
+    {
+      eyebrow: "Translation",
+      title: "Real-time translation bridges powered by DeepL.",
+      body: "Global alliances need fast communication across language channels. Translation configurations can be created, edited, toggled, listed, and removed without leaving Discord.",
+      bullets: ["Channel-to-channel translation", "Config list and edit tools", "Fast enable or disable", "Clear operational visibility"],
+      commands: ["/autotranslatecreate", "/autotranslateedit", "/autotranslatelist", "/autotranslatetoggle", "/autotranslatedelete"]
+    },
+    {
+      eyebrow: "AI & voice",
+      title: "Molly answers, speaks, searches, and stays in flow.",
+      body: "The AI layer brings direct answers, personalized chat, image generation, organized web search, and voice-channel responses into one assistant experience for the server.",
+      bullets: ["AI questions and personalization", "Text-to-speech voice controls", "Voice conversations", "Web search and AI images"],
+      commands: ["/ask", "/personalisechat", "/tts", "/tts_voice", "/voice_chat", "/websearch", "/imagine"]
+    }
+  ],
+  commands: [
+    ["/allianceactivity", "Show player growth based on furnace changes over the last 7 days", "Alliance"],
+    ["/alliancemonitor", "Alliance monitoring dashboard with quick access to all monitoring features", "Alliance"],
+    ["/editplayerinfo", "Update an existing player info message with new player data", "Alliance"],
+    ["/event", "Get information about Whiteout Survival events", "Alliance"],
+    ["/ministerappointment", "Manage minister appointments", "Alliance"],
+    ["/mostactive", "Show the top 3 active users and monthly message activity graph", "Alliance"],
+    ["/playerinfo", "Get player info by 9-digit player ID; accepts comma-separated lists up to 30", "Alliance"],
+    ["/server_age", "Check your server age and upcoming milestones", "Alliance"],
+    ["/autotranslatecreate", "Create automatic translation between channels", "Translation"],
+    ["/autotranslatedelete", "Delete an auto-translate configuration", "Translation"],
+    ["/autotranslateedit", "Edit an auto-translate configuration", "Translation"],
+    ["/autotranslatelist", "View all auto-translate configurations", "Translation"],
+    ["/autotranslatetoggle", "Enable or disable an auto-translate configuration", "Translation"],
+    ["/birthday", "Manage your birthday entry by day and month", "Reminders"],
+    ["/reminder", "Set a reminder with time and message", "Reminders"],
+    ["/reminderdashboard", "Open interactive reminder dashboard for list, delete, and timezone settings", "Reminders"],
+    ["/dice", "Roll a six-sided dice", "Games"],
+    ["/dicebattle", "Challenge someone to a dice battle", "Games"],
+    ["/tictactoe", "Play Tic-Tac-Toe", "Games"],
+    ["/ttt", "Play Tic-Tac-Toe", "Games"],
+    ["/ask", "Ask Molly anything about Whiteout Survival or any topic", "AI & Voice"],
+    ["/end_voice_chat", "End voice conversation", "AI & Voice"],
+    ["/imagine", "Generate AI images with Pollinations compatibility", "AI & Voice"],
+    ["/personalisechat", "Personalize your chat experience with the bot", "AI & Voice"],
+    ["/tts", "Speak text in a voice channel using AI voice", "AI & Voice"],
+    ["/tts_leave", "Disconnect bot from voice channel", "AI & Voice"],
+    ["/tts_stop", "Stop TTS playback and clear queue", "AI & Voice"],
+    ["/tts_voice", "List or set TTS voice", "AI & Voice"],
+    ["/voice_chat", "Start voice conversation where typed messages get voice replies", "AI & Voice"],
+    ["/websearch", "Search the web with powerful, organized results", "AI & Voice"],
+    ["/giftcode", "Show active gift codes", "Admin"],
+    ["/giftcodesettings", "Open interactive gift code settings dashboard for this server", "Admin"],
+    ["/initcredentials", "Initialize system credentials for the owner", "Admin"],
+    ["/manage", "Quick access to management operations", "Admin"],
+    ["/refresh", "Clear cached alliance data and reload from Google Sheets", "Admin"],
+    ["/register_view", "Register a persistent view for an existing message", "Admin"],
+    ["/settings", "Open settings menu", "Admin"],
+    ["/syncdata", "Synchronize data cache from remote source", "Admin"],
+    ["/welcome", "Configure welcome message settings", "Admin"],
+    ["/help", "Show information about available commands", "Utility"],
+    ["/serverstats", "Show detailed server statistics", "Utility"],
+    ["/start", "Show the main menu", "Utility"]
+  ]
+};

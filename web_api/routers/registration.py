@@ -549,6 +549,148 @@ async def review_registration(body: ReviewRequest, request: Request):
     if body.action == "approve":
         ok = await PendingConfigAdapter.approve_async(int(body.guild_id), int(body.admin_user_id))
         status_msg = "approved"
+
+        # Create auto-channels
+        try:
+            bot = getattr(request.app.state, "bot", None)
+            if bot:
+                guild = bot.get_guild(int(body.guild_id))
+                if guild:
+                    # player-ids channel
+                    player_ids_channel = discord.utils.get(guild.text_channels, name="🆔┃player-ids")
+                    if not player_ids_channel:
+                        player_ids_channel = await guild.create_text_channel("🆔┃player-ids")
+                        
+                    # giftcode channel (auto redeem log)
+                    giftcode_channel = discord.utils.get(guild.text_channels, name="🎁┃𝐠𝐢𝐟𝐭𝐜𝐨𝐝𝐞")
+                    if not giftcode_channel:
+                        giftcode_channel = await guild.create_text_channel("🎁┃𝐠𝐢𝐟𝐭𝐜𝐨𝐝𝐞")
+                        
+                    # welcome channel
+                    welcome_channel = discord.utils.get(guild.text_channels, name="🎉┃welcome")
+                    if not welcome_channel:
+                        welcome_channel = await guild.create_text_channel("🎉┃welcome")
+                    
+                    import sqlite3
+                    from datetime import datetime
+                    
+                    alliance_name = doc.get("alliance_name", "")
+                    submitter_id = doc.get("discord_user_id", "0")
+                    
+                    # 1. Player IDs config
+                    try:
+                        alliance_id = 0
+                        try:
+                            with sqlite3.connect('db/alliance.sqlite', timeout=10) as alliance_db:
+                                ac_cursor = alliance_db.cursor()
+                                ac_cursor.execute("SELECT alliance_id FROM alliance_list WHERE name = ?", (alliance_name,))
+                                row = ac_cursor.fetchone()
+                                if row:
+                                    alliance_id = row[0]
+                                else:
+                                    ac_cursor.execute("INSERT INTO alliance_list (name, discord_server_id) VALUES (?, ?)", (alliance_name, int(body.guild_id)))
+                                    alliance_id = ac_cursor.lastrowid
+                                    alliance_db.commit()
+                                    try:
+                                        from db.mongo_adapters import AlliancesAdapter
+                                        if mongo_enabled() and hasattr(AlliancesAdapter, 'upsert_async'):
+                                            await AlliancesAdapter.upsert_async(alliance_id, alliance_name, int(body.guild_id))
+                                        elif mongo_enabled() and hasattr(AlliancesAdapter, 'upsert'):
+                                            AlliancesAdapter.upsert(alliance_id, alliance_name, int(body.guild_id))
+                                    except Exception as mongo_err:
+                                        logger.error(f"Error saving new alliance to mongo: {mongo_err}")
+                        except Exception as e:
+                            logger.error(f"Error finding/creating alliance_id for {alliance_name}: {e}")
+                            
+                        if alliance_id:
+                            try:
+                                from db.mongo_adapters import ServerAllianceAdapter
+                                if mongo_enabled():
+                                    if hasattr(ServerAllianceAdapter, 'set_alliance_async'):
+                                        await ServerAllianceAdapter.set_alliance_async(int(body.guild_id), alliance_id, int(submitter_id))
+                                    else:
+                                        ServerAllianceAdapter.set_alliance(int(body.guild_id), alliance_id, int(submitter_id))
+                            except Exception as e:
+                                logger.error(f"Failed to set server alliance for {body.guild_id}: {e}")
+
+                            try:
+                                with sqlite3.connect('db/settings.sqlite', timeout=10) as sdb:
+                                    sc = sdb.cursor()
+                                    sc.execute("INSERT OR IGNORE INTO admin (id, is_initial) VALUES (?, 0)", (int(submitter_id),))
+                                    sc.execute("INSERT OR IGNORE INTO adminserver (admin, alliances_id) VALUES (?, ?)", (int(submitter_id), alliance_id))
+                                    sdb.commit()
+                            except Exception as e:
+                                logger.error(f"Failed to update sqlite adminserver for {submitter_id}: {e}")
+
+                        with sqlite3.connect('db/id_channel.sqlite', timeout=10) as db:
+                            cursor = db.cursor()
+                            cursor.execute('''CREATE TABLE IF NOT EXISTS id_channels
+                                         (guild_id INTEGER, alliance_id INTEGER, channel_id INTEGER, created_at TEXT, created_by INTEGER, UNIQUE(guild_id, channel_id))''')
+                            cursor.execute("INSERT OR REPLACE INTO id_channels (guild_id, alliance_id, channel_id, created_at, created_by) VALUES (?, ?, ?, ?, ?)",
+                                         (int(body.guild_id), alliance_id, player_ids_channel.id, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), int(body.admin_user_id)))
+                            db.commit()
+                            
+                        try:
+                            from db.mongo_adapters import IDChannelsAdapter
+                            if mongo_enabled() and hasattr(IDChannelsAdapter, 'set_channel_async'):
+                                await IDChannelsAdapter.set_channel_async(int(body.guild_id), player_ids_channel.id, alliance_id)
+                        except Exception:
+                            pass
+                            
+                        await player_ids_channel.send(
+                            "This channel has been configured for auto redeem, alliance members can write their player id here to get registered for fastest redeem."
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to setup player_ids channel: {e}")
+
+                    # 2. Giftcode Channel config
+                    try:
+                        try:
+                            from db.mongo_adapters import AutoRedeemChannelsAdapter, AutoRedeemSettingsAdapter
+                            if mongo_enabled():
+                                if hasattr(AutoRedeemChannelsAdapter, 'set_channel_async'):
+                                    await AutoRedeemChannelsAdapter.set_channel_async(int(body.guild_id), giftcode_channel.id, 0)
+                                elif hasattr(AutoRedeemChannelsAdapter, 'set_channel'):
+                                    AutoRedeemChannelsAdapter.set_channel(int(body.guild_id), giftcode_channel.id, 0)
+                                    
+                                if hasattr(AutoRedeemSettingsAdapter, 'update_settings_async'):
+                                    await AutoRedeemSettingsAdapter.update_settings_async(int(body.guild_id), {'enabled': True})
+                        except Exception:
+                            pass
+                        
+                        with sqlite3.connect('db/giftcode.sqlite', timeout=10) as gcdb:
+                            g_cursor = gcdb.cursor()
+                            g_cursor.execute("CREATE TABLE IF NOT EXISTS auto_redeem_channels (guild_id INTEGER, channel_id INTEGER, role_id INTEGER, PRIMARY KEY (guild_id))")
+                            g_cursor.execute("INSERT OR REPLACE INTO auto_redeem_channels (guild_id, channel_id, role_id) VALUES (?, ?, ?)", (int(body.guild_id), giftcode_channel.id, 0))
+                            
+                            g_cursor.execute("CREATE TABLE IF NOT EXISTS auto_redeem_settings (guild_id INTEGER PRIMARY KEY, enabled INTEGER DEFAULT 0, priority INTEGER DEFAULT 999, updated_by INTEGER, updated_at TEXT)")
+                            g_cursor.execute("""
+                                INSERT INTO auto_redeem_settings (guild_id, enabled, updated_by, updated_at)
+                                VALUES (?, 1, ?, ?)
+                                ON CONFLICT(guild_id) DO UPDATE SET
+                                    enabled = 1,
+                                    updated_by = excluded.updated_by,
+                                    updated_at = excluded.updated_at
+                            """, (int(body.guild_id), int(body.admin_user_id), datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+                            gcdb.commit()
+                    except Exception as e:
+                        logger.error(f"Failed to setup giftcode channel: {e}")
+                        
+                    # 3. Welcome Channel config
+                    try:
+                        try:
+                            from db.mongo_adapters import WelcomeChannelAdapter
+                            if mongo_enabled():
+                                if hasattr(WelcomeChannelAdapter, 'set_async'):
+                                    await WelcomeChannelAdapter.set_async(int(body.guild_id), welcome_channel.id, enabled=True)
+                                elif hasattr(WelcomeChannelAdapter, 'set'):
+                                    WelcomeChannelAdapter.set(int(body.guild_id), welcome_channel.id, enabled=True)
+                        except Exception:
+                            pass
+                    except Exception as e:
+                        logger.error(f"Failed to setup welcome channel: {e}")
+        except Exception as e:
+            logger.error(f"Error creating auto-channels for {body.guild_id} via API: {e}")
     else:
         ok = await PendingConfigAdapter.deny_async(int(body.guild_id), int(body.admin_user_id))
         status_msg = "denied"

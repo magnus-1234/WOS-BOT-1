@@ -154,6 +154,17 @@ type AdminSessionDocument = {
   userAgent: string;
 };
 
+type FoundryPlanDocument = {
+  _id?: ObjectId;
+  id: string;
+  creatorUserId?: ObjectId;
+  payload: string;
+  access: 'editable' | 'view-only';
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 type OAuthProfile = {
   provider: AuthProvider;
   providerUserId: string;
@@ -907,6 +918,7 @@ const getCollections = async () => {
   const oauthStates = db.collection<OAuthStateDocument>('auth_oauth_states');
   const siteVisits = db.collection<SiteVisitDocument>('site_visits');
   const adminSessions = db.collection<AdminSessionDocument>('admin_sessions');
+  const foundryPlans = db.collection<FoundryPlanDocument>('foundry_plans');
 
   indexesReady ??= Promise.all([
     islands.createIndex({ createdAt: -1 }),
@@ -935,10 +947,12 @@ const getCollections = async () => {
     siteVisits.createIndex({ page: 1, timestamp: -1 }),
     adminSessions.createIndex({ tokenHash: 1 }, { unique: true }),
     adminSessions.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+    foundryPlans.createIndex({ id: 1 }, { unique: true }),
+    foundryPlans.createIndex({ creatorUserId: 1, createdAt: -1 }),
   ]).then(() => undefined);
 
   await indexesReady;
-  return { islands, likes, comments, templates, templateLikes, users, sessions, oauthStates, siteVisits, adminSessions };
+  return { islands, likes, comments, templates, templateLikes, users, sessions, oauthStates, siteVisits, adminSessions, foundryPlans };
 };
 
 const userCanManageIsland = (user: UserDocument | null | undefined, island: IslandDocument) => {
@@ -2449,6 +2463,131 @@ app.post('/api/daybreak/islands/:id/share', async (req, res) => {
     res.status(error instanceof Error && error.message.includes('hex string') ? 400 : 500).json({
       error: 'Unable to share island',
     });
+  }
+});
+
+app.get('/api/foundry-planner/me', async (req, res) => {
+  try {
+    const user = await getCurrentUser(req).catch(() => null);
+    if (!user?._id) {
+      res.json({ plans: [] });
+      return;
+    }
+
+    const { foundryPlans } = await getCollections();
+    const docs = await foundryPlans.find({ creatorUserId: user._id }).sort({ createdAt: -1 }).toArray();
+    res.json({ plans: docs.map((doc) => ({ ...doc, creatorUserId: undefined, _id: undefined })) });
+  } catch (error) {
+    res.status(500).json({ error: 'Unable to list shared plans' });
+  }
+});
+
+app.get('/api/foundry-planner/:id', async (req, res) => {
+  try {
+    const { foundryPlans } = await getCollections();
+    const doc = await foundryPlans.findOne({ id: String(req.params.id) });
+    if (!doc || !doc.isActive) {
+      res.status(404).json({ error: 'Foundry plan not found or no longer active' });
+      return;
+    }
+    res.json({ plan: { ...doc, creatorUserId: undefined, _id: undefined } });
+  } catch (error) {
+    res.status(500).json({ error: 'Unable to fetch plan' });
+  }
+});
+
+app.post('/api/foundry-planner', express.json({ limit: '1mb' }), async (req, res) => {
+  try {
+    const user = await getCurrentUser(req).catch(() => null);
+    if (!user?._id) {
+      res.status(401).json({ error: 'Sign in to share foundry plans' });
+      return;
+    }
+
+    const { payload, access } = req.body;
+    if (typeof payload !== 'string' || !payload) {
+      res.status(400).json({ error: 'Missing plan payload' });
+      return;
+    }
+
+    const { foundryPlans } = await getCollections();
+    const now = new Date();
+    const nanoid = Buffer.from(randomBytes(8)).toString('base64url').replace(/[-_]/g, 'a').slice(0, 10);
+
+    const doc: FoundryPlanDocument = {
+      id: nanoid,
+      creatorUserId: user._id,
+      payload,
+      access: access === 'view-only' ? 'view-only' : 'editable',
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await foundryPlans.insertOne(doc);
+    res.status(201).json({ plan: { ...doc, creatorUserId: undefined, _id: undefined } });
+  } catch (error) {
+    res.status(500).json({ error: 'Unable to create shared plan' });
+  }
+});
+
+app.patch('/api/foundry-planner/:id', express.json(), async (req, res) => {
+  try {
+    const user = await requireCurrentUser(req, res);
+    if (!user?._id) return;
+
+    const { foundryPlans } = await getCollections();
+    const doc = await foundryPlans.findOne({ id: String(req.params.id) });
+    if (!doc) {
+      res.status(404).json({ error: 'Plan not found' });
+      return;
+    }
+
+    if (!doc.creatorUserId?.equals(user._id)) {
+      res.status(403).json({ error: 'You can only edit your own plans' });
+      return;
+    }
+
+    const updates: Partial<FoundryPlanDocument> = { updatedAt: new Date() };
+    if (req.body.access === 'view-only' || req.body.access === 'editable') {
+      updates.access = req.body.access;
+    }
+    if (typeof req.body.isActive === 'boolean') {
+      updates.isActive = req.body.isActive;
+    }
+
+    const result = await foundryPlans.findOneAndUpdate(
+      { id: String(req.params.id) },
+      { $set: updates },
+      { returnDocument: 'after' }
+    );
+    res.json({ plan: result ? { ...result, creatorUserId: undefined, _id: undefined } : null });
+  } catch (error) {
+    res.status(500).json({ error: 'Unable to update plan' });
+  }
+});
+
+app.delete('/api/foundry-planner/:id', async (req, res) => {
+  try {
+    const user = await requireCurrentUser(req, res);
+    if (!user?._id) return;
+
+    const { foundryPlans } = await getCollections();
+    const doc = await foundryPlans.findOne({ id: String(req.params.id) });
+    if (!doc) {
+      res.status(404).json({ error: 'Plan not found' });
+      return;
+    }
+
+    if (!doc.creatorUserId?.equals(user._id)) {
+      res.status(403).json({ error: 'You can only delete your own plans' });
+      return;
+    }
+
+    await foundryPlans.deleteOne({ id: String(req.params.id) });
+    res.json({ deleted: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Unable to delete plan' });
   }
 });
 

@@ -1481,33 +1481,43 @@ class ServerSelect(discord.ui.Select):
 class ChannelSelect(discord.ui.Select):
     """Dropdown for selecting a channel."""
     
-    def __init__(self, guild: discord.Guild):
+    def __init__(self, guild: discord.Guild, page: int = 0, all_channels: list = None):
         self.guild = guild
-        # Include both text channels and voice channels
-        text_channels = [c for c in guild.channels if isinstance(c, discord.TextChannel)]
-        voice_channels = [c for c in guild.channels if isinstance(c, discord.VoiceChannel)]
+        self.page = page
         
-        # Combine and sort channels
-        all_channels = []
+        if all_channels is None:
+            # Include both text channels and voice channels
+            text_channels = [c for c in guild.channels if isinstance(c, discord.TextChannel)]
+            voice_channels = [c for c in guild.channels if isinstance(c, discord.VoiceChannel)]
+            
+            # Combine and sort channels
+            all_channels = []
+            
+            # Add text channels with 💬 emoji
+            for channel in text_channels:
+                all_channels.append({
+                    'channel': channel,
+                    'emoji': '💬',
+                    'type': 'Text'
+                })
+            
+            # Add voice channels with 🔊 emoji
+            for channel in voice_channels:
+                all_channels.append({
+                    'channel': channel,
+                    'emoji': '🔊',
+                    'type': 'Voice'
+                })
+            
+            # Sort by name
+            all_channels.sort(key=lambda x: x['channel'].name.lower())
+            
+        self.all_channels = all_channels
+        self.total_pages = max(1, (len(all_channels) - 1) // 25 + 1)
         
-        # Add text channels with 💬 emoji
-        for channel in text_channels:
-            all_channels.append({
-                'channel': channel,
-                'emoji': '💬',
-                'type': 'Text'
-            })
-        
-        # Add voice channels with 🔊 emoji
-        for channel in voice_channels:
-            all_channels.append({
-                'channel': channel,
-                'emoji': '🔊',
-                'type': 'Voice'
-            })
-        
-        # Sort by name
-        all_channels.sort(key=lambda x: x['channel'].name.lower())
+        start_idx = page * 25
+        end_idx = min(start_idx + 25, len(all_channels))
+        current_page_channels = all_channels[start_idx:end_idx]
         
         options = [
             discord.SelectOption(
@@ -1516,11 +1526,11 @@ class ChannelSelect(discord.ui.Select):
                 value=str(item['channel'].id),
                 emoji=item['emoji']
             )
-            for item in all_channels[:25]  # Discord limit
+            for item in current_page_channels
         ]
         
         super().__init__(
-            placeholder="🔍 Choose a channel (Text or Voice)...",
+            placeholder=f"🔍 Choose a channel (Page {page + 1}/{self.total_pages})...",
             min_values=1,
             max_values=1,
             options=options
@@ -2008,12 +2018,115 @@ class ServerSelectionForChannelsView(discord.ui.View):
 class ChannelSelectionView(discord.ui.View):
     """View for channel selection."""
     
-    def __init__(self, bot, guild: discord.Guild, cog):
+    def __init__(self, bot, guild: discord.Guild, cog, page: int = 0, all_channels: list = None):
         super().__init__(timeout=180)
         self.bot = bot
         self.guild = guild
         self.cog = cog
-        self.add_item(ChannelSelect(guild))
+        self.page = page
+        
+        if all_channels is None:
+            text_channels = [c for c in guild.channels if isinstance(c, discord.TextChannel)]
+            voice_channels = [c for c in guild.channels if isinstance(c, discord.VoiceChannel)]
+            
+            all_channels_list = []
+            for channel in text_channels:
+                all_channels_list.append({
+                    'channel': channel,
+                    'emoji': '💬',
+                    'type': 'Text'
+                })
+            for channel in voice_channels:
+                all_channels_list.append({
+                    'channel': channel,
+                    'emoji': '🔊',
+                    'type': 'Voice'
+                })
+            all_channels_list.sort(key=lambda x: x['channel'].name.lower())
+            all_channels = all_channels_list
+            
+        self.all_channels = all_channels
+        self.total_pages = max(1, (len(self.all_channels) - 1) // 25 + 1)
+        
+        self.add_item(ChannelSelect(guild, page=self.page, all_channels=self.all_channels))
+        
+        # Add pagination buttons if needed
+        if self.total_pages > 1:
+            prev_button = discord.ui.Button(
+                emoji="⬅️",
+                style=discord.ButtonStyle.secondary,
+                disabled=(page == 0),
+                row=1
+            )
+            prev_button.callback = self.previous_page
+            self.add_item(prev_button)
+            
+            page_button = discord.ui.Button(
+                label=f"Page {page + 1}/{self.total_pages}",
+                style=discord.ButtonStyle.secondary,
+                disabled=True,
+                row=1
+            )
+            self.add_item(page_button)
+            
+            next_button = discord.ui.Button(
+                emoji="➡️",
+                style=discord.ButtonStyle.secondary,
+                disabled=(page >= self.total_pages - 1),
+                row=1
+            )
+            next_button.callback = self.next_page
+            self.add_item(next_button)
+
+        # Search button
+        search_button = discord.ui.Button(
+            label="Search",
+            emoji="🔍",
+            style=discord.ButtonStyle.primary,
+            row=2
+        )
+        search_button.callback = self.search_callback
+        self.add_item(search_button)
+        
+    async def previous_page(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        self.page = max(0, self.page - 1)
+        view = ChannelSelectionView(self.bot, self.guild, self.cog, self.page, self.all_channels)
+        await interaction.edit_original_response(view=view)
+
+    async def next_page(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        self.page = min(self.total_pages - 1, self.page + 1)
+        view = ChannelSelectionView(self.bot, self.guild, self.cog, self.page, self.all_channels)
+        await interaction.edit_original_response(view=view)
+
+    async def search_callback(self, interaction: discord.Interaction):
+        from discord.ui import Modal, TextInput
+        
+        class SearchModal(Modal, title="Search Channel"):
+            query = TextInput(label="Channel Name", placeholder="Enter partial name...", required=True)
+            
+            def __init__(self, parent_view):
+                super().__init__()
+                self.parent_view = parent_view
+                
+            async def on_submit(self, modal_inter: discord.Interaction):
+                search_query = self.query.value.lower()
+                filtered_channels = [c for c in self.parent_view.all_channels if search_query in c['channel'].name.lower()]
+                
+                if not filtered_channels:
+                    await modal_inter.response.send_message(f"❌ No channels found matching '{self.query.value}'", ephemeral=True)
+                    return
+                
+                view = ChannelSelectionView(self.parent_view.bot, self.parent_view.guild, self.parent_view.cog, 0, filtered_channels)
+                embed = discord.Embed(
+                    title=f"🔍 Search Results: {self.query.value}",
+                    description="Choose a channel from the search results:",
+                    color=discord.Color.blue()
+                )
+                await modal_inter.response.send_message(embed=embed, view=view, ephemeral=True)
+        
+        await interaction.response.send_modal(SearchModal(self))
 
 
 class FormatSelectionView(discord.ui.View):

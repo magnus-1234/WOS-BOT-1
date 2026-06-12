@@ -165,6 +165,13 @@ type FoundryPlanDocument = {
   updatedAt: Date;
 };
 
+type FoundryPersonalPlanDocument = {
+  _id?: ObjectId;
+  userId: string;
+  payload: string;
+  savedAt: string;
+};
+
 type OAuthProfile = {
   provider: AuthProvider;
   providerUserId: string;
@@ -919,6 +926,7 @@ const getCollections = async () => {
   const siteVisits = db.collection<SiteVisitDocument>('site_visits');
   const adminSessions = db.collection<AdminSessionDocument>('admin_sessions');
   const foundryPlans = db.collection<FoundryPlanDocument>('foundry_plans');
+  const foundryPersonalPlans = db.collection<FoundryPersonalPlanDocument>('foundry_personal_plans');
 
   indexesReady ??= Promise.all([
     islands.createIndex({ createdAt: -1 }),
@@ -952,7 +960,7 @@ const getCollections = async () => {
   ]).then(() => undefined);
 
   await indexesReady;
-  return { islands, likes, comments, templates, templateLikes, users, sessions, oauthStates, siteVisits, adminSessions, foundryPlans };
+  return { islands, likes, comments, templates, templateLikes, users, sessions, oauthStates, siteVisits, adminSessions, foundryPlans, foundryPersonalPlans };
 };
 
 const userCanManageIsland = (user: UserDocument | null | undefined, island: IslandDocument) => {
@@ -2463,6 +2471,60 @@ app.post('/api/daybreak/islands/:id/share', async (req, res) => {
     res.status(error instanceof Error && error.message.includes('hex string') ? 400 : 500).json({
       error: 'Unable to share island',
     });
+  }
+});
+
+app.get('/api/foundry-planner/personal', async (req, res) => {
+  try {
+    const user = await getCurrentUser(req).catch(() => null);
+    if (!user?._id) {
+      res.status(401).json({ error: 'Sign in to access personal plan' });
+      return;
+    }
+
+    const { foundryPersonalPlans } = await getCollections();
+    const doc = await foundryPersonalPlans.findOne({ userId: String(user._id) });
+    if (!doc) {
+      res.json({ plan: null });
+      return;
+    }
+    
+    res.json({ plan: { ...doc, _id: undefined } });
+  } catch (error) {
+    res.status(500).json({ error: 'Unable to load personal plan' });
+  }
+});
+
+app.post('/api/foundry-planner/personal', express.json({ limit: '1mb' }), async (req, res) => {
+  try {
+    const user = await getCurrentUser(req).catch(() => null);
+    if (!user?._id) {
+      res.status(401).json({ error: 'Sign in to save personal plan' });
+      return;
+    }
+
+    const { payload, savedAt } = req.body;
+    if (typeof payload !== 'string' || !payload) {
+      res.status(400).json({ error: 'Missing plan payload' });
+      return;
+    }
+
+    const { foundryPersonalPlans } = await getCollections();
+    const doc: FoundryPersonalPlanDocument = {
+      userId: String(user._id),
+      payload,
+      savedAt: savedAt || new Date().toISOString(),
+    };
+
+    await foundryPersonalPlans.updateOne(
+      { userId: String(user._id) },
+      { $set: doc },
+      { upsert: true }
+    );
+    
+    res.json({ success: true, savedAt: doc.savedAt });
+  } catch (error) {
+    res.status(500).json({ error: 'Unable to save personal plan' });
   }
 });
 

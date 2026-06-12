@@ -967,7 +967,7 @@ const getCollections = async () => {
   ]).then(() => undefined);
 
   await indexesReady;
-  return { islands, likes, comments, templates, templateLikes, users, sessions, oauthStates, siteVisits, adminSessions, foundryPlans, gameMapPlans };
+  return { islands, likes, comments, templates, templateLikes, users, sessions, oauthStates, siteVisits, adminSessions, foundryPlans };
 };
 
 const userCanManageIsland = (user: UserDocument | null | undefined, island: IslandDocument) => {

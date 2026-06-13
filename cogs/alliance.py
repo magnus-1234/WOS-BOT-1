@@ -3058,6 +3058,13 @@ class Alliance(commands.Cog):
                 custom_id="other_features",
                 row=3
             ))
+            view.add_item(discord.ui.Button(
+                label="PFP Event",
+                emoji="✨",
+                style=discord.ButtonStyle.success,
+                custom_id="pfp_voting_menu",
+                row=4
+            ))
 
 
             await interaction.response.edit_message(embed=embed, view=view)
@@ -3083,6 +3090,24 @@ class Alliance(commands.Cog):
                 else:
                     await interaction.followup.send(
                         "An error occurred while loading Other Features menu.",
+                        ephemeral=True
+                    )
+
+        elif custom_id == "pfp_voting_menu":
+            try:
+                pfp_cog = interaction.client.get_cog("PFPVoting")
+                if pfp_cog:
+                    await pfp_cog.show_admin_menu(interaction)
+                else:
+                    await interaction.response.send_message(
+                        "❌ PFP Voting module not found.",
+                        ephemeral=True
+                    )
+            except Exception as e:
+                print(f"PFP Voting menu error: {e}")
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(
+                        "An error occurred while loading PFP Voting menu.",
                         ephemeral=True
                     )
 
@@ -3189,6 +3214,13 @@ class Alliance(commands.Cog):
                 style=discord.ButtonStyle.primary,
                 custom_id="other_features",
                 row=3
+            ))
+            view.add_item(discord.ui.Button(
+                label="PFP Event",
+                emoji="✨",
+                style=discord.ButtonStyle.success,
+                custom_id="pfp_voting_menu",
+                row=4
             ))
 
             try:

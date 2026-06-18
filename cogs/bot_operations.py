@@ -5314,10 +5314,13 @@ class BotOperations(commands.Cog):
 
         elif custom_id == "set_auto_redeem_order" or custom_id.startswith("autoredeem_page_"):
             try:
+                if not interaction.response.is_done():
+                    await interaction.response.defer()
+                
                 self.settings_cursor.execute("SELECT is_initial FROM admin WHERE id = ?", (interaction.user.id,))
                 result = self.settings_cursor.fetchone()
                 if (not result or result[0] != 1) and not await is_bot_owner(self.bot, interaction.user.id):
-                    await interaction.response.send_message("❌ Only global administrators can configure the auto-redeem server ordering.", ephemeral=True)
+                    await interaction.followup.send("❌ Only global administrators can configure the auto-redeem server ordering.", ephemeral=True)
                     return
 
                 # Determine which page we're on

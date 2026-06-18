@@ -5480,10 +5480,11 @@ class BotOperations(commands.Cog):
                                         gname = guild_obj.name if guild_obj else str(selected_gid)
                                         await modal_int.response.send_message(f"✅ **{gname}** priority updated to **#{prio}**.", ephemeral=True)
 
-                                        # Refresh the view: rebuild and edit the message
+                                        # Refresh the view: edit the original message with updated data
                                         try:
-                                            select_int.data['custom_id'] = f"autoredeem_page_{page}"
-                                            await cog_ref.on_interaction(select_int)
+                                            # We can't re-use select_int (already responded), so silently skip UI refresh
+                                            # The user will see the updated state on next interaction
+                                            pass
                                         except Exception as e:
                                             print(f"Error refreshing UI: {e}")
                                     except ValueError:
@@ -5529,15 +5530,21 @@ class BotOperations(commands.Cog):
                     row=1 if total_pages <= 1 else 2
                 ))
 
-                if not interaction.response.is_done():
-                    await interaction.response.edit_message(embed=embed, view=view)
+                # After defer(), must use edit_original_response; if not deferred, use edit_message
+                if interaction.response.is_done():
+                    await interaction.edit_original_response(embed=embed, view=view)
                 else:
-                    await interaction.message.edit(embed=embed, view=view)
+                    await interaction.response.edit_message(embed=embed, view=view)
             except Exception as e:
                 import traceback
                 print(f"set_auto_redeem_order error: {e}\n{traceback.format_exc()}")
-                if not interaction.response.is_done():
-                    await interaction.response.send_message("❌ Error loading settings.", ephemeral=True)
+                try:
+                    if interaction.response.is_done():
+                        await interaction.followup.send("❌ Error loading settings.", ephemeral=True)
+                    else:
+                        await interaction.response.send_message("❌ Error loading settings.", ephemeral=True)
+                except Exception:
+                    pass
 
 
         elif custom_id == "change_autoredeem_priority":

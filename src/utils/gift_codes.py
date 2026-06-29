@@ -546,6 +546,8 @@ async def get_active_gift_codes():
         key = code_dict.get('code', '').strip().upper()
         if not key:
             return
+        if key == 'WOSTOOLSDOTNET':
+            return
         if key not in merged_dict:
             merged_dict[key] = code_dict
         else:

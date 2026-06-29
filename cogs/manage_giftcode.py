@@ -3270,6 +3270,9 @@ class ManageGiftCode(commands.Cog):
                         if not re.match("^[a-zA-Z0-9]+$", code):
                             continue
                         
+                        if code.lower() == "wostoolsdotnet":
+                            continue
+                        
                         try:
                             date_obj = datetime.strptime(date_str, "%d.%m.%Y")
                             valid_codes.append((code, date_obj.strftime("%Y-%m-%d")))
@@ -3300,6 +3303,8 @@ class ManageGiftCode(commands.Cog):
                 for item in website_codes:
                     if item.get('code') and item.get('is_active', True):
                         code_key = item['code']
+                        if code_key.lower() == 'wostoolsdotnet':
+                            continue
                         expiry = item.get('expiry', 'Unknown')
                         # Case-insensitive deduplication, but preserve original case in map
                         existing_keys = {k.upper(): k for k in active_codes_map.keys()}

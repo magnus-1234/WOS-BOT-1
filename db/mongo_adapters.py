@@ -3323,7 +3323,7 @@ class AllianceMonitoringAdapter:
             docs = list(db[AllianceMonitoringAdapter.COLL].find({'enabled': 1}))
             return [{
                 'guild_id': int(d.get('guild_id')),
-                'alliance_id': int(d.get('alliance_id')),
+                'alliance_id': int(d.get('alliance_id') or d.get('alliances_id') or 0),
                 'channel_id': int(d.get('channel_id')),
                 'enabled': int(d.get('enabled', 1)),
                 'check_interval': int(d.get('check_interval', 240))
@@ -3468,7 +3468,11 @@ class ServerAllianceAdapter:
             
             if doc:
                 # Legacy field is 'alliances_id', modern might be 'alliance_id'
-                return int(doc.get('alliances_id') or doc.get('alliance_id'))
+                val = doc.get('alliances_id')
+                if val is None:
+                    val = doc.get('alliance_id')
+                if val is not None:
+                    return int(val)
             return None
         except Exception as e:
             logger.error(f'Failed to get alliance for server {guild_id}: {e}')
@@ -3491,7 +3495,11 @@ class ServerAllianceAdapter:
 
             if doc:
                 # Legacy field is 'alliances_id', modern might be 'alliance_id'
-                return int(doc.get('alliances_id') or doc.get('alliance_id'))
+                val = doc.get('alliances_id')
+                if val is None:
+                    val = doc.get('alliance_id')
+                if val is not None:
+                    return int(val)
             return None
         except Exception as e:
             logger.error(f'Failed to get alliance (async) for server {guild_id}: {e}')
@@ -3580,19 +3588,6 @@ class ServerAllianceAdapter:
             logger.error(f'Failed to assign alliance (async) to server {guild_id}: {e}')
             return False
 
-    @staticmethod
-    async def get_alliance_async(guild_id: int) -> Optional[int]:
-        try:
-            db = await _get_db_main_async()
-            doc = await db[ServerAllianceAdapter.COLL].find_one({'_id': str(guild_id)})
-            if not doc: doc = await db[ServerAllianceAdapter.COLL].find_one({'_id': int(guild_id)})
-            if not doc: doc = await db[ServerAllianceAdapter.COLL].find_one({'id': str(guild_id)})
-            if not doc: doc = await db[ServerAllianceAdapter.COLL].find_one({'id': int(guild_id)})
-            if doc: return int(doc.get('alliances_id') or doc.get('alliance_id'))
-            return None
-        except Exception as e:
-            logger.error(f'Failed to get alliance (async) for server {guild_id}: {e}')
-            return None
 
     @staticmethod
     async def remove_alliance_async(guild_id: int) -> bool:
@@ -3612,7 +3607,7 @@ class ServerAllianceAdapter:
             docs = await cursor.to_list(length=None)
             return [{
                 'guild_id': int(d.get('guild_id') or d.get('id') or d.get('_id')),
-                'alliance_id': int(d.get('alliances_id') or d.get('alliance_id')),
+                'alliance_id': int(d.get('alliances_id') or d.get('alliance_id') or 0),
                 'assigned_by': int(d.get('assigned_by')),
                 'assigned_at': d.get('assigned_at')
             } for d in docs]
@@ -5391,8 +5386,12 @@ class PendingConfigAdapter:
             return []
 
     @staticmethod
-    async def approve_async(guild_id: int, admin_user_id: int) -> bool:
-        """Approve request: apply access code + alliance name to server_alliances collection."""
+    async def approve_async(guild_id: int, admin_user_id: int, alliance_id: int = None) -> bool:
+        """Approve request: apply access code + alliance name to server_alliances collection.
+        
+        If alliance_id is provided, writes alliances_id atomically to server_alliances.
+        If not provided, attempts to resolve it from SQLite alliance_list, then MongoDB alliances.
+        """
         try:
             db = await _get_db_main_async()
             doc = await db[PendingConfigAdapter.COLL].find_one(
@@ -5401,9 +5400,45 @@ class PendingConfigAdapter:
             if not doc:
                 return False
             now = datetime.utcnow().isoformat()
+            alliance_name = doc.get('alliance_name', '')
+            
+            # --- Resolve numeric alliance_id if not supplied ---
+            resolved_alliance_id = alliance_id
+            if not resolved_alliance_id:
+                # Try SQLite first
+                try:
+                    import sqlite3
+                    db_path = 'db/alliance.sqlite'
+                    with sqlite3.connect(db_path, timeout=10) as adb:
+                        cur = adb.cursor()
+                        cur.execute("SELECT alliance_id FROM alliance_list WHERE name = ?", (alliance_name,))
+                        row = cur.fetchone()
+                        if row:
+                            resolved_alliance_id = int(row[0])
+                        elif alliance_name:
+                            cur.execute(
+                                "INSERT INTO alliance_list (name, discord_server_id) VALUES (?, ?)",
+                                (alliance_name, int(guild_id))
+                            )
+                            adb.commit()
+                            resolved_alliance_id = cur.lastrowid
+                except Exception as sqlite_err:
+                    logger.warning(f'SQLite alliance lookup failed for guild {guild_id}: {sqlite_err}')
+
+            if not resolved_alliance_id:
+                # Try MongoDB alliances collection
+                try:
+                    alliance_doc = await db['alliances'].find_one({'name': str(alliance_name)})
+                    if alliance_doc:
+                        resolved_alliance_id = int(
+                            alliance_doc.get('alliance_id') or alliance_doc.get('alliances_id') or 0
+                        ) or None
+                except Exception as mongo_err:
+                    logger.warning(f'MongoDB alliances lookup failed for guild {guild_id}: {mongo_err}')
+
             server_payload = {
                 'id': int(guild_id),
-                'alliance_name': doc['alliance_name'],
+                'alliance_name': alliance_name,
                 'member_list_password': doc['access_code'],
                 'password_set_by': int(admin_user_id),
                 'password_set_at': now,
@@ -5411,6 +5446,10 @@ class PendingConfigAdapter:
             }
             if doc.get('state') is not None:
                 server_payload['state'] = int(doc['state'])
+            # Critically: write alliances_id if we resolved one
+            if resolved_alliance_id:
+                server_payload['alliances_id'] = int(resolved_alliance_id)
+                logger.info(f'Writing alliances_id={resolved_alliance_id} to server_alliances for guild {guild_id}')
 
             await db[ServerAllianceAdapter.COLL].update_one(
                 {'_id': str(guild_id)},

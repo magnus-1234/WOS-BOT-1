@@ -71,8 +71,7 @@ module.exports = {
     },
     {
       name: "musicbot",
-      script: "-m",
-      args: "music_bot.bot",
+      script: "music_bot/bot.py",
       interpreter: "python3",
       cwd: "/home/ubuntu/bot",
 

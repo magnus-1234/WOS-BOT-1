@@ -1048,6 +1048,7 @@ const toUserResponse = (user: UserDocument) => ({
   email: user.email,
   displayName: user.displayName,
   avatarUrl: user.avatarUrl,
+  discordUserId: user.providers.find((provider) => provider.provider === 'discord')?.providerUserId,
   providers: user.providers.map((provider) => provider.provider),
   playerAccounts: user.playerAccounts.map((player) => ({
     playerId: player.playerId,

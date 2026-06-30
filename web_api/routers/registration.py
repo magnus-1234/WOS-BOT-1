@@ -56,6 +56,13 @@ class ReviewRequest(BaseModel):
     admin_user_id: str
 
 
+class DeleteRegistrationRequest(BaseModel):
+    """Request body for a user self-deleting their own server registration."""
+    guild_id: str          # The guild_id to delete
+    discord_user_id: str   # The Discord user requesting deletion (must match the registration owner)
+
+
+
 class QuickSetupRequest(BaseModel):
     guild_id: str
     guild_name: str
@@ -444,8 +451,23 @@ async def submit_registration(body: SubmitRegistrationRequest, request: Request)
         existing_user = active_user_regs[0] if active_user_regs else {}
         raise HTTPException(
             status_code=409,
-            detail=f"Limit reached. You already have {len(active_user_regs)} of {max_servers} allowed server registration(s). "
-                   f"Current server: '{existing_user.get('guild_name', 'another server')}'."
+            detail={
+                "code": "limit_reached",
+                "message": (
+                    f"Limit reached. You already have {len(active_user_regs)} of "
+                    f"{max_servers} allowed server registration(s)."
+                ),
+                "existing_registration": {
+                    "guild_id": existing_user.get("guild_id"),
+                    "guild_name": existing_user.get("guild_name", "Unknown Server"),
+                    "alliance_name": existing_user.get("alliance_name", "Unknown"),
+                    "state": existing_user.get("state"),
+                    "status": existing_user.get("status"),
+                    "submitted_at": existing_user.get("submitted_at"),
+                },
+                "max_servers": max_servers,
+                "active_count": len(active_user_regs),
+            }
         )
 
     # Check if this guild already has an approved registration
@@ -725,4 +747,77 @@ async def review_registration(body: ReviewRequest, request: Request):
         "action": body.action,
         "guild_id": body.guild_id,
         "message": f"Registration {status_msg} successfully"
+    }
+
+
+@router.post("/delete")
+async def delete_own_registration(body: DeleteRegistrationRequest, request: Request):
+    """
+    Self-service registration deletion.
+
+    Allows a Discord user to permanently delete their own server registration so they can
+    register a different server. The requesting user must be the original submitter.
+
+    Steps the frontend should take:
+      1. Call POST /api/register/submit → receives 409 with code='limit_reached'
+      2. Show warning UI with existing server details (from the 409 response)
+      3. User confirms twice (Step 1 of 2 / Step 2 of 2)
+      4. Frontend calls POST /api/register/delete with guild_id + discord_user_id
+      5. On 200: allow the user to submit a new registration immediately
+    """
+    if not mongo_enabled() or not PendingConfigAdapter:
+        raise HTTPException(status_code=500, detail="Database not available")
+
+    guild_id = int(body.guild_id)
+    user_id = int(body.discord_user_id)
+
+    # Fetch the registration document for this guild
+    doc = await PendingConfigAdapter.get_by_guild_async(guild_id)
+    if not doc:
+        raise HTTPException(
+            status_code=404,
+            detail="No registration found for this server. It may have already been deleted."
+        )
+
+    # Security: only the original submitter can self-delete
+    owner_id = str(doc.get("discord_user_id", ""))
+    if owner_id != str(user_id):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "You are not the owner of this registration. "
+                "Only the original submitter can delete it."
+            )
+        )
+
+    ok = await PendingConfigAdapter.delete_registration_async(guild_id, user_id)
+    if not ok:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to delete registration. Please try again later."
+        )
+
+    # Notify user via DM if bot is available
+    try:
+        bot = getattr(request.app.state, "bot", None)
+        if bot and user_id:
+            user = await bot.fetch_user(user_id)
+            if user:
+                await user.send(
+                    f"🗑️ **Registration Deleted**\n\n"
+                    f"The registration for **{doc.get('guild_name', body.guild_id)}** "
+                    f"has been permanently deleted.\n\n"
+                    f"You can now register a new server at any time."
+                )
+    except Exception as dm_err:
+        logger.warning(f"Could not DM user {user_id} about self-deletion: {dm_err}")
+
+    return {
+        "success": True,
+        "message": (
+            f"Registration for '{doc.get('guild_name', body.guild_id)}' permanently deleted. "
+            "You may now register a new server."
+        ),
+        "deleted_guild_id": body.guild_id,
+        "deleted_guild_name": doc.get("guild_name"),
     }

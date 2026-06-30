@@ -5494,3 +5494,33 @@ class PendingConfigAdapter:
         except Exception as e:
             logger.error(f'Failed to deny pending config for guild {guild_id}: {e}')
             return False
+
+    @staticmethod
+    async def delete_registration_async(guild_id: int, deleted_by: int) -> bool:
+        """Permanently delete a server registration requested by the user themselves.
+
+        Removes from pending_configs AND wipes the server_alliances document so the
+        user can submit a fresh registration for a different server.
+        """
+        try:
+            db = await _get_db_main_async()
+            now = datetime.utcnow().isoformat()
+
+            # 1. Hard-delete from pending_configs
+            await db[PendingConfigAdapter.COLL].delete_one({'guild_id': str(guild_id)})
+
+            # 2. Clear the server_alliances document (remove password + alliance so
+            #    bot no longer treats this guild as registered)
+            await db[ServerAllianceAdapter.COLL].delete_one({'_id': str(guild_id)})
+            # Fallback — some docs have numeric _id
+            await db[ServerAllianceAdapter.COLL].delete_one({'_id': int(guild_id)})
+
+            logger.info(
+                f'Registration permanently deleted for guild {guild_id} by user {deleted_by}'
+            )
+            return True
+        except Exception as e:
+            logger.error(
+                f'Failed to delete registration for guild {guild_id}: {e}'
+            )
+            return False

@@ -6065,9 +6065,161 @@ class BotOperations(commands.Cog):
                             max_servers = await RegistrationUserLimitsAdapter.get_limit_async(user_id)
                             has_same_guild = any(str(item.get("guild_id")) == str(guild_id) for item in active_user_regs)
                             if not has_same_guild and len(active_user_regs) >= max_servers:
+                                existing_reg = active_user_regs[0] if active_user_regs else {}
+                                existing_guild_id = existing_reg.get("guild_id", "Unknown")
+                                existing_guild_name = existing_reg.get("guild_name", "Unknown Server")
+                                existing_alliance = existing_reg.get("alliance_name", "Unknown")
+                                existing_status = existing_reg.get("status", "unknown").capitalize()
+                                existing_state = existing_reg.get("state", "N/A")
+
+                                limit_embed = discord.Embed(
+                                    title="⚠️ Registration Limit Reached",
+                                    description=(
+                                        f"Your account can register **{max_servers} server(s)**. "
+                                        f"You have already used your slot.\n\n"
+                                        "To register this server, you must first **permanently delete** "
+                                        "your existing registration."
+                                    ),
+                                    color=0xf59e0b
+                                )
+                                limit_embed.add_field(
+                                    name="📋 Your Current Registration",
+                                    value=(
+                                        f"**Server:** {existing_guild_name}\n"
+                                        f"**Guild ID:** `{existing_guild_id}`\n"
+                                        f"**Alliance:** `{existing_alliance}`\n"
+                                        f"**State:** `{existing_state}`\n"
+                                        f"**Status:** {existing_status}"
+                                    ),
+                                    inline=False
+                                )
+                                limit_embed.add_field(
+                                    name="🗑️ Want to switch servers?",
+                                    value=(
+                                        "Click **Delete Registration** below.\n"
+                                        "⚠️ This will **permanently delete** all configuration data "
+                                        "for your registered server and cannot be undone."
+                                    ),
+                                    inline=False
+                                )
+                                limit_embed.set_footer(text="Ask a global admin to increase your limit if you need more slots.")
+
+                                class DeleteRegistrationView(discord.ui.View):
+                                    def __init__(self):
+                                        super().__init__(timeout=120)
+                                        self._existing_reg = existing_reg
+
+                                    @discord.ui.button(
+                                        label="🗑️ Delete Registration",
+                                        style=discord.ButtonStyle.danger,
+                                        custom_id="del_reg_step1"
+                                    )
+                                    async def delete_step1(self, btn_interaction: discord.Interaction, button: discord.ui.Button):
+                                        # Step 1 — first confirmation
+                                        if btn_interaction.user.id != modal_interaction.user.id:
+                                            await btn_interaction.response.send_message(
+                                                "❌ Only the original requester can use this.", ephemeral=True
+                                            )
+                                            return
+
+                                        confirm_embed = discord.Embed(
+                                            title="⚠️ Confirm Deletion — Step 1 of 2",
+                                            description=(
+                                                f"You are about to permanently delete the registration for:\n\n"
+                                                f"🏰 **{existing_guild_name}**\n"
+                                                f"Alliance: `{existing_alliance}` | State: `{existing_state}`\n\n"
+                                                "**This will:**\n"
+                                                "• Remove all bot configuration for that server\n"
+                                                "• Delete the access code (password)\n"
+                                                "• Remove the server-alliance link\n\n"
+                                                "**This action is irreversible.** Are you sure?"
+                                            ),
+                                            color=0xef4444
+                                        )
+
+                                        class ConfirmDeleteView(discord.ui.View):
+                                            def __init__(self_inner):
+                                                super().__init__(timeout=60)
+
+                                            @discord.ui.button(
+                                                label="✅ Yes, Delete Permanently",
+                                                style=discord.ButtonStyle.danger,
+                                                custom_id="del_reg_step2_confirm"
+                                            )
+                                            async def confirm_delete(self_inner, confirm_interaction: discord.Interaction, btn2: discord.ui.Button):
+                                                if confirm_interaction.user.id != modal_interaction.user.id:
+                                                    await confirm_interaction.response.send_message(
+                                                        "❌ Only the original requester can use this.", ephemeral=True
+                                                    )
+                                                    return
+                                                await confirm_interaction.response.defer()
+
+                                                try:
+                                                    from db.mongo_adapters import PendingConfigAdapter as PCA
+                                                    ok = await PCA.delete_registration_async(
+                                                        int(existing_guild_id),
+                                                        confirm_interaction.user.id
+                                                    )
+                                                except Exception as del_err:
+                                                    logger.error(f"Error deleting registration: {del_err}")
+                                                    ok = False
+
+                                                if ok:
+                                                    done_embed = discord.Embed(
+                                                        title="✅ Registration Deleted",
+                                                        description=(
+                                                            f"The registration for **{existing_guild_name}** has been permanently deleted.\n\n"
+                                                            "You can now submit a new registration request by clicking **Register Server** again."
+                                                        ),
+                                                        color=0x22c55e
+                                                    )
+                                                    for item in self_inner.children:
+                                                        item.disabled = True
+                                                    await confirm_interaction.edit_original_response(embed=done_embed, view=self_inner)
+                                                else:
+                                                    await confirm_interaction.followup.send(
+                                                        "❌ Failed to delete registration. Please try again or contact the bot owner.",
+                                                        ephemeral=True
+                                                    )
+
+                                            @discord.ui.button(
+                                                label="❌ Cancel",
+                                                style=discord.ButtonStyle.secondary,
+                                                custom_id="del_reg_step2_cancel"
+                                            )
+                                            async def cancel_delete(self_inner, cancel_interaction: discord.Interaction, btn3: discord.ui.Button):
+                                                cancel_embed = discord.Embed(
+                                                    title="Cancelled",
+                                                    description="Deletion cancelled. Your existing registration is still active.",
+                                                    color=0x6b7280
+                                                )
+                                                for item in self_inner.children:
+                                                    item.disabled = True
+                                                await cancel_interaction.response.edit_message(embed=cancel_embed, view=self_inner)
+
+                                        await btn_interaction.response.edit_message(embed=confirm_embed, view=ConfirmDeleteView())
+
+                                    @discord.ui.button(
+                                        label="❌ Cancel",
+                                        style=discord.ButtonStyle.secondary,
+                                        custom_id="del_reg_step1_cancel"
+                                    )
+                                    async def cancel_step1(self, btn_interaction: discord.Interaction, button: discord.ui.Button):
+                                        if btn_interaction.user.id != modal_interaction.user.id:
+                                            await btn_interaction.response.send_message("❌ Only the original requester can cancel.", ephemeral=True)
+                                            return
+                                        cancelled_embed = discord.Embed(
+                                            title="Cancelled",
+                                            description="No changes made. Your existing registration remains active.",
+                                            color=0x6b7280
+                                        )
+                                        for item in self.children:
+                                            item.disabled = True
+                                        await btn_interaction.response.edit_message(embed=cancelled_embed, view=self)
+
                                 await modal_interaction.followup.send(
-                                    f"⚠️ Limit reached. Your account can register {max_servers} server(s). "
-                                    "Ask a global admin to increase your limit if you need another server.",
+                                    embed=limit_embed,
+                                    view=DeleteRegistrationView(),
                                     ephemeral=True
                                 )
                                 return

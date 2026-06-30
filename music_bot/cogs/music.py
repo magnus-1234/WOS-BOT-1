@@ -19,14 +19,14 @@ load_dotenv()
 
 # Import playlist UI components
 try:
-    from cogs.playlist_ui import PlaylistManagementView, AddToPlaylistView
+    from music_bot.cogs.playlist_ui import PlaylistManagementView, AddToPlaylistView
 except ImportError:
     PlaylistManagementView = None
     AddToPlaylistView = None
 
 # Import music state storage
 try:
-    from music_state_storage import music_state_storage
+    from music_bot.storage.music_state_storage import music_state_storage
 except ImportError:
     music_state_storage = None
 
@@ -111,7 +111,7 @@ class CustomPlayer(wavelink.Player):
                     
                     # Perform the update
                     try:
-                        from cogs.music import PlayerControlView  # Import here to avoid circular import
+                        from music_bot.cogs.music import PlayerControlView  # Import here to avoid circular import
                         embed = music_cog.create_now_playing_embed(self)
                         view = PlayerControlView(self)
                         await self.now_playing_message.edit(embed=embed, view=view)
@@ -296,7 +296,7 @@ class CustomPlayer(wavelink.Player):
                         # Send a fresh message and delete the old one
                         try:
                             if self.text_channel:
-                                from cogs.music import PlayerControlView
+                                from music_bot.cogs.music import PlayerControlView
                                 embed = music_cog.create_now_playing_embed(self)
                                 view = PlayerControlView(self)
                                 
@@ -2772,9 +2772,19 @@ class Music(commands.Cog):
             if not player:
                 return
                 
-            # Search for tracks with error handling for Spotify
+            # Search for tracks with error handling and SoundCloud fallback
             try:
                 tracks = await wavelink.Playable.search(query)
+            except Exception as e:
+                # If the search failed and it is not a direct URL, attempt a SoundCloud fallback
+                if not (query.startswith("http://") or query.startswith("https://")):
+                    try:
+                        tracks = await wavelink.Playable.search(f"scsearch:{query}")
+                    except Exception:
+                        # If fallback also fails, raise the original exception
+                        raise e
+                else:
+                    raise e
             except wavelink.LavalinkLoadException as e:
                 # Check if it's a Spotify-related error
                 error_msg = str(e)

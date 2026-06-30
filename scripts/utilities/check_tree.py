@@ -14,10 +14,10 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 async def check_commands():
     # Load music cog
     try:
-        await bot.load_extension('cogs.music')
-        print("✅ Loaded cogs.music")
+        await bot.load_extension('music_bot.cogs.music')
+        print("✅ Loaded music_bot.cogs.music")
     except Exception as e:
-        print(f"❌ Failed to load cogs.music: {e}")
+        print(f"❌ Failed to load music_bot.cogs.music: {e}")
         return
 
     print("\n--- Global Commands in Tree ---")

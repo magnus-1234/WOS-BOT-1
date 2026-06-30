@@ -69,5 +69,31 @@ module.exports = {
       log_date_format: "YYYY-MM-DD HH:mm:ss",
       merge_logs: false,
     },
+    {
+      name: "musicbot",
+      script: "-m",
+      args: "music_bot.bot",
+      interpreter: "python3",
+      cwd: "/home/ubuntu/bot",
+
+      max_restarts: 5,
+      restart_delay: 30000,
+      min_uptime: "60s",
+      kill_timeout: 15000,
+      max_memory_restart: "700M",
+
+      watch: false,
+      autorestart: true,
+
+      env: {
+        SKIP_INSTALL: "true",
+        PYTHONUNBUFFERED: "1",
+      },
+
+      out_file: "/home/ubuntu/bot/musicbot-out.log",
+      error_file: "/home/ubuntu/bot/musicbot-error.log",
+      log_date_format: "YYYY-MM-DD HH:mm:ss",
+      merge_logs: false,
+    },
   ],
 };

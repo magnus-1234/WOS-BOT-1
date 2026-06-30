@@ -1011,7 +1011,7 @@ async def setup_hook():
         "cogs.events",
         "cogs.server_age",
         "cogs.personalise_chat",
-        # "cogs.music",  # Music bot functionality (Disabled to save memory)
+        # Music commands run in the separate music_bot process.
         # "cogs.voicetest", # Diagnostic cog (Disabled)
         "cogs.presence",  # Rotating Rich Presence
         # "cogs.voice_conversation",  # Voice chat with AI
@@ -1064,26 +1064,6 @@ async def setup_hook():
         logger.info("✅ User profiles loaded successfully")
     except Exception as e:
         logger.error(f"❌ Failed to load user profiles: {e}")
-    
-    # Initialize playlist storage with timeout to prevent hanging
-    try:
-        from playlist_storage import playlist_storage
-        await asyncio.wait_for(playlist_storage.initialize(), timeout=15.0)
-        logger.info("✅ Playlist storage initialized")
-    except asyncio.TimeoutError:
-        logger.warning("⚠️ Playlist storage initialization timed out")
-    except Exception as e:
-        logger.error(f"❌ Failed to initialize playlist storage: {e}")
-    
-    # Initialize music state storage with timeout
-    try:
-        from music_state_storage import music_state_storage
-        await asyncio.wait_for(music_state_storage.initialize(), timeout=15.0)
-        logger.info("✅ Music state storage initialized")
-    except asyncio.TimeoutError:
-        logger.warning("⚠️ Music state storage initialization timed out")
-    except Exception as e:
-        logger.error(f"❌ Failed to initialize music state storage: {e}")
     
     # Start keep-alive task for Render
     async def keep_alive_task():

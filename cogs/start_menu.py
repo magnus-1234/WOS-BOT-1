@@ -798,48 +798,10 @@ class StartView(discord.ui.View):
     @discord.ui.button(label="Music", style=discord.ButtonStyle.success, emoji="🎵", custom_id="start_music")
     async def music_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
-            # Create a modal for music search query
-            class MusicSearchModal(discord.ui.Modal, title="🎵 Music Player"):
-                query_input = discord.ui.TextInput(
-                    label="Search for a song",
-                    placeholder="Enter song name, artist, or URL...",
-                    style=discord.TextStyle.short,
-                    required=True,
-                    max_length=100
-                )
-                
-                def __init__(self, bot_instance):
-                    super().__init__()
-                    self.bot = bot_instance
-                
-                async def on_submit(self, modal_interaction: discord.Interaction):
-                    try:
-                        query = self.query_input.value.strip()
-                        
-                        # Get the play command from the Music cog
-                        music_cog = self.bot.get_cog("Music")
-                        if music_cog and hasattr(music_cog, 'play'):
-                            # Call the play command with the query
-                            await music_cog.play.callback(music_cog, modal_interaction, query)
-                        else:
-                            await modal_interaction.response.send_message(
-                                "❌ Music system is not available.",
-                                ephemeral=True
-                            )
-                    
-                    except Exception as e:
-                        logger.error(f"Error in music search modal: {e}")
-                        import traceback
-                        traceback.print_exc()
-                        if not modal_interaction.response.is_done():
-                            await modal_interaction.response.send_message(
-                                "❌ An error occurred while searching for music.",
-                                ephemeral=True
-                            )
-            
-            # Show the music search modal
-            modal = MusicSearchModal(self.bot)
-            await interaction.response.send_modal(modal)
+            await interaction.response.send_message(
+                "🎵 Music now runs on the separate music bot. Use `/play` from that bot in a voice channel.",
+                ephemeral=True,
+            )
             
         except Exception as e:
             logger.error(f"Error in music button: {e}")

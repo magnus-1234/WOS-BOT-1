@@ -10,7 +10,7 @@ from typing import Optional, List
 from datetime import datetime
 import wavelink
 
-from playlist_storage import playlist_storage
+from music_bot.storage.playlist_storage import playlist_storage
 
 
 class SavePlaylistModal(discord.ui.Modal, title="Save Playlist"):
@@ -387,7 +387,7 @@ class PlaylistLoadedView(discord.ui.View):
     async def view_queue(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Show the current queue"""
         # Import here to avoid circular imports
-        from cogs.music import QueuePaginationView
+        from music_bot.cogs.music import QueuePaginationView
         
         view = QueuePaginationView(self.player, page=0)
         await interaction.response.send_message(embed=view.get_embed(), view=view, ephemeral=True)
@@ -413,7 +413,7 @@ class PlaylistLoadedView(discord.ui.View):
     @discord.ui.button(emoji="🎵", label="Now Playing", style=discord.ButtonStyle.primary, row=1)
     async def now_playing(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Show now playing info"""
-        from cogs.music import Music, PlayerControlView
+        from music_bot.cogs.music import Music, PlayerControlView
         
         if not self.player.current:
             await interaction.response.send_message("❌ Nothing is playing!", ephemeral=True)

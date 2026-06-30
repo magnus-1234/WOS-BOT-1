@@ -1775,6 +1775,7 @@ class AutoRedeemSettingsAdapter:
                 {
                     '$set': {
                         'guild_id': int(guild_id),
+                        'enabled': True,
                         'priority': int(priority),
                         'updated_by': int(updated_by),
                         'updated_at': now,
@@ -1782,8 +1783,7 @@ class AutoRedeemSettingsAdapter:
                         'priority_set_at': now
                     },
                     '$setOnInsert': {
-                        'created_at': now,
-                        'enabled': False
+                        'created_at': now
                     }
                 },
                 upsert=True
@@ -1875,6 +1875,7 @@ class AutoRedeemSettingsAdapter:
                 {
                     '$set': {
                         'guild_id': int(guild_id),
+                        'enabled': True,
                         'priority': int(priority),
                         'updated_by': int(updated_by),
                         'updated_at': now,
@@ -1882,8 +1883,7 @@ class AutoRedeemSettingsAdapter:
                         'priority_set_at': now
                     },
                     '$setOnInsert': {
-                        'created_at': now,
-                        'enabled': False
+                        'created_at': now
                     }
                 },
                 upsert=True

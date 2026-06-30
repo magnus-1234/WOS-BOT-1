@@ -407,15 +407,15 @@ class ManageGiftCode(commands.Cog):
         self.cursor.execute(
             """INSERT INTO auto_redeem_settings
                (guild_id, enabled, priority, updated_by, updated_at, priority_set_by, priority_set_at)
-               VALUES (?, 1, ?, ?, ?, ?, ?)
+               VALUES (?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(guild_id) DO UPDATE SET
-                   enabled = 1,
+                   enabled = excluded.enabled,
                    priority = excluded.priority,
                    updated_by = excluded.updated_by,
                    updated_at = excluded.updated_at,
                    priority_set_by = excluded.priority_set_by,
                    priority_set_at = excluded.priority_set_at""",
-            (int(guild_id), int(priority), int(updated_by), now, int(updated_by), now),
+            (int(guild_id), 1, int(priority), int(updated_by), now, int(updated_by), now),
         )
         self.giftcode_db.commit()
 
@@ -4703,7 +4703,7 @@ class ManageGiftCode(commands.Cog):
                     max_length=20
                 )
                 priority_input = discord.ui.TextInput(
-                    label="Priority (blank = next free, 999 = unassigned)",
+                    label="Priority",
                     placeholder="e.g. 50, or leave blank for next free slot",
                     required=False,
                     max_length=5
@@ -4740,6 +4740,12 @@ class ManageGiftCode(commands.Cog):
                                 return
                             target_guild_id = int(raw_gid)
                         else:
+                            if not modal_interaction.guild:
+                                await modal_interaction.response.send_message(
+                                    "❌ Open this from a server, or enter a Server ID.",
+                                    ephemeral=True,
+                                )
+                                return
                             target_guild_id = modal_interaction.guild.id
 
                         raw_priority = self.priority_input.value.strip()
@@ -4758,14 +4764,6 @@ class ManageGiftCode(commands.Cog):
                         if not (AUTO_REDEEM_PRIORITY_MIN <= priority_val <= AUTO_REDEEM_PRIORITY_MAX):
                             await modal_interaction.response.send_message(
                                 "❌ Priority must be between **1** and **9999**.", ephemeral=True
-                            )
-                            return
-
-                        if priority_val == AUTO_REDEEM_DEFAULT_PRIORITY:
-                            await modal_interaction.response.send_message(
-                                "❌ Priority **999** is reserved as the unassigned/default slot. "
-                                "Leave the field blank to auto-pick the next free slot.",
-                                ephemeral=True,
                             )
                             return
 
@@ -4798,24 +4796,44 @@ class ManageGiftCode(commands.Cog):
 
                         guild_obj = self.cog.bot.get_guild(target_guild_id)
                         guild_name = guild_obj.name if guild_obj else f"ID {target_guild_id}"
-                        tier_note  = "🔑 (Global Admin slot)" if priority_val < AUTO_REDEEM_ADMIN_PRIORITY_MIN else "🔓 (Normal Admin slot)"
+                        if priority_val == AUTO_REDEEM_DEFAULT_PRIORITY:
+                            tier_note = "Unassigned/default slot"
+                            status_note = "This server remains enabled but stays after claimed priorities."
+                        else:
+                            tier_note = "🔑 Global Admin slot" if priority_val < AUTO_REDEEM_ADMIN_PRIORITY_MIN else "🔓 Normal Admin slot"
+                            status_note = "Lower number = processed **earlier** in the redemption queue. Existing server slots were not changed."
                         await modal_interaction.response.send_message(
-                            f"✅ **{guild_name}** priority set to **`{priority_val}`** {tier_note}\n"
-                            "Lower number = processed **earlier** in the redemption queue. "
-                            "Existing server slots were not changed.",
+                            f"✅ **{guild_name}** priority set to **`{self.cog._priority_label(priority_val)}`** ({tier_note})\n"
+                            f"{status_note}",
                             ephemeral=True
                         )
                     except ValueError:
-                        await modal_interaction.response.send_message(
-                            "❌ Invalid input. Priority must be a whole number.", ephemeral=True
-                        )
+                        if not modal_interaction.response.is_done():
+                            await modal_interaction.response.send_message(
+                                "❌ Invalid input. Priority must be a whole number.", ephemeral=True
+                            )
                     except Exception as e:
                         self.cog.logger.exception(f"Error setting priority: {e}")
-                        await modal_interaction.response.send_message(
-                            f"❌ Error: {e}", ephemeral=True
-                        )
+                        if modal_interaction.response.is_done():
+                            await modal_interaction.followup.send(f"❌ Error: {e}", ephemeral=True)
+                        else:
+                            await modal_interaction.response.send_message(
+                                f"❌ Error: {e}", ephemeral=True
+                            )
 
-            await interaction.response.send_modal(SetPriorityModal(self))
+            try:
+                await interaction.response.send_modal(SetPriorityModal(self))
+            except discord.errors.InteractionResponded:
+                await interaction.followup.send(
+                    "❌ This interaction was already handled. Reopen the priority panel and try again.",
+                    ephemeral=True,
+                )
+            except Exception as e:
+                self.logger.exception(f"Error opening priority modal: {e}")
+                if interaction.response.is_done():
+                    await interaction.followup.send(f"❌ Could not open priority form: {e}", ephemeral=True)
+                else:
+                    await interaction.response.send_message(f"❌ Could not open priority form: {e}", ephemeral=True)
             return
 
         # Handle gift code menu button

@@ -87,6 +87,8 @@ module.exports = {
       env: {
         SKIP_INSTALL: "true",
         PYTHONUNBUFFERED: "1",
+        // Prevent ~/.local packages from conflicting with venv packages
+        PYTHONNOUSERSITE: "1",
         // NOTE: Secrets are set via `pm2 set` on the Oracle VM — not here.
         // Web control server settings (non-secret)
         MUSIC_WEB_SERVER_PORT: "8090",

@@ -1674,20 +1674,41 @@ class Music(commands.Cog):
     async def cog_load(self):
         """Initialize Wavelink node when cog loads"""
         try:
-            # Get Lavalink configuration from environment
+            nodes = []
+            
+            # 1. Primary node from environment variables
             host = os.getenv('LAVALINK_HOST', 'localhost')
             port = int(os.getenv('LAVALINK_PORT', '2333'))
             password = os.getenv('LAVALINK_PASSWORD', 'youshallnotpass')
             secure = os.getenv('LAVALINK_SECURE', 'false').lower() == 'true'
             
-            # Create node
-            node = wavelink.Node(
+            primary_node = wavelink.Node(
+                identifier="Primary",
                 uri=f"{'https' if secure else 'http'}://{host}:{port}",
                 password=password
             )
+            nodes.append(primary_node)
+            
+            # 2. Public Fallback nodes
+            fallback_nodes_config = [
+                {"id": "Fallback-1", "uri": "http://lavalink.oops.wtf:2000", "pass": "www.freelavalink.ooo"},
+                {"id": "Fallback-2", "uri": "http://lava.link:80", "pass": "youshallnotpass"}
+            ]
+            
+            for config in fallback_nodes_config:
+                try:
+                    fallback_node = wavelink.Node(
+                        identifier=config["id"],
+                        uri=config["uri"],
+                        password=config["pass"]
+                    )
+                    nodes.append(fallback_node)
+                except Exception as e:
+                    print(f"Failed to create fallback node {config['id']}: {e}")
             
             # Connect to Lavalink
-            await wavelink.Pool.connect(client=self.bot, nodes=[node])
+            print(f"🎵 Connecting to {len(nodes)} Lavalink nodes...")
+            await wavelink.Pool.connect(client=self.bot, nodes=nodes)
             
             # Wait a bit for connection to establish
             await asyncio.sleep(2)
@@ -1696,10 +1717,11 @@ class Music(commands.Cog):
             if wavelink.Pool.nodes:
                 connected_nodes = [n for n in wavelink.Pool.nodes.values() if n.status == wavelink.NodeStatus.CONNECTED]
                 if connected_nodes:
+                    node_names = [n.identifier for n in connected_nodes]
                     if self.logger:
-                        self.logger.info(f"🎵 Successfully connected to Lavalink at {host}:{port}")
+                        self.logger.info(f"🎵 Successfully connected to Lavalink nodes: {', '.join(node_names)}")
                     else:
-                        print(f"🎵 Successfully connected to Lavalink at {host}:{port}")
+                        print(f"🎵 Successfully connected to Lavalink nodes: {', '.join(node_names)}")
                     
                     # Wait for Lavalink to be fully ready before restoring states
                     print("⏳ Waiting for Lavalink to stabilize before restoring music states...")

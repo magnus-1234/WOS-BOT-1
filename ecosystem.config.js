@@ -87,6 +87,16 @@ module.exports = {
       env: {
         SKIP_INSTALL: "true",
         PYTHONUNBUFFERED: "1",
+        // NOTE: Secrets are set via `pm2 set` on the Oracle VM — not here.
+        // Web control server settings (non-secret)
+        MUSIC_WEB_SERVER_PORT: "8090",
+        MUSIC_WEB_SERVER_HOST: "0.0.0.0",
+        MUSIC_DEFAULT_VOLUME: "50",
+        MUSIC_AUTO_RESUME: "false",
+        LAVALINK_HOST: "lavalink.triniumhost.com",
+        LAVALINK_PORT: "4333",
+        LAVALINK_SECURE: "false",
+        MONGO_DB_NAME: "reminderbot",
       },
 
       out_file: "/home/ubuntu/bot/musicbot-out.log",

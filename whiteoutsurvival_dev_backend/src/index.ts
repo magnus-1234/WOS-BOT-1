@@ -84,7 +84,7 @@ type TemplateLikeDocument = {
   createdAt: Date;
 };
 
-type AuthProvider = 'google' | 'discord';
+type AuthProvider = 'google' | 'discord' | 'discord-music';
 
 type LinkedPlayerAccount = PlayerProfile & {
   linkedAt: Date;
@@ -310,6 +310,14 @@ const oauthConfig = {
     userInfoUrl: 'https://discord.com/api/users/@me',
     scope: 'identify email',
   },
+  'discord-music': {
+    clientId: process.env.MUSIC_DISCORD_CLIENT_ID || process.env.DISCORD_CLIENT_ID || '',
+    clientSecret: process.env.MUSIC_DISCORD_CLIENT_SECRET || process.env.DISCORD_CLIENT_SECRET || '',
+    authorizeUrl: 'https://discord.com/oauth2/authorize',
+    tokenUrl: 'https://discord.com/api/oauth2/token',
+    userInfoUrl: 'https://discord.com/api/users/@me',
+    scope: 'identify',
+  },
 } satisfies Record<AuthProvider, {
   clientId: string;
   clientSecret: string;
@@ -320,8 +328,8 @@ const oauthConfig = {
 }>;
 
 const isProviderConfigured = (provider: AuthProvider) =>
-  provider === 'discord'
-    ? Boolean(oauthConfig.discord.clientId && (oauthConfig.discord.clientSecret || process.env.DISCORD_TOKEN_EXCHANGE_URL))
+  provider === 'discord' || provider === 'discord-music'
+    ? Boolean(oauthConfig[provider].clientId && (oauthConfig[provider].clientSecret || process.env.DISCORD_TOKEN_EXCHANGE_URL))
     : Boolean(oauthConfig[provider].clientId && oauthConfig[provider].clientSecret);
 
 const getRedirectUri = (provider: AuthProvider) => `${apiUrl}/api/auth/${provider}/callback`;
@@ -1048,7 +1056,7 @@ const toUserResponse = (user: UserDocument) => ({
   email: user.email,
   displayName: user.displayName,
   avatarUrl: user.avatarUrl,
-  discordUserId: user.providers.find((provider) => provider.provider === 'discord')?.providerUserId,
+  discordUserId: user.providers.find((provider) => provider.provider === 'discord' || provider.provider === 'discord-music')?.providerUserId,
   providers: user.providers.map((provider) => provider.provider),
   playerAccounts: user.playerAccounts.map((player) => ({
     playerId: player.playerId,
@@ -1172,7 +1180,7 @@ const upsertOAuthUser = async (profile: OAuthProfile) => {
 const exchangeOAuthCode = async (provider: AuthProvider, code: string) => {
   const config = oauthConfig[provider];
 
-  if (provider === 'discord' && !config.clientSecret && process.env.DISCORD_TOKEN_EXCHANGE_URL) {
+  if ((provider === 'discord' || provider === 'discord-music') && !config.clientSecret && process.env.DISCORD_TOKEN_EXCHANGE_URL) {
     const proxyResponse = await fetch(process.env.DISCORD_TOKEN_EXCHANGE_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -1701,6 +1709,7 @@ app.get('/api/auth/providers', (_req, res) => {
     providers: {
       google: isProviderConfigured('google'),
       discord: isProviderConfigured('discord'),
+      'discord-music': isProviderConfigured('discord-music'),
     },
   });
 });
@@ -1716,7 +1725,7 @@ app.get('/api/auth/session', async (req, res) => {
 
 app.get('/api/auth/:provider', async (req, res) => {
   const provider = req.params.provider as AuthProvider;
-  if (!['google', 'discord'].includes(provider)) {
+  if (!['google', 'discord', 'discord-music'].includes(provider)) {
     res.status(404).json({ error: 'Auth provider not found' });
     return;
   }
@@ -1756,7 +1765,7 @@ app.get('/api/auth/:provider', async (req, res) => {
 
 app.get('/api/auth/:provider/callback', async (req, res) => {
   const provider = req.params.provider as AuthProvider;
-  if (!['google', 'discord'].includes(provider)) {
+  if (!['google', 'discord', 'discord-music'].includes(provider)) {
     res.redirect(`${appUrl}?auth_error=${encodeURIComponent('Auth provider not found')}`);
     return;
   }

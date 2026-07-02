@@ -30,7 +30,7 @@ WEB_SERVER_PORT = int(os.getenv("MUSIC_WEB_SERVER_PORT", "8090"))
 WEB_SERVER_HOST = os.getenv("MUSIC_WEB_SERVER_HOST", "0.0.0.0")
 
 # Allowed actions
-VALID_ACTIONS = {"pause", "resume", "skip", "previous", "stop", "volume", "loop", "shuffle", "play_playlist"}
+VALID_ACTIONS = {"pause", "resume", "skip", "previous", "stop", "volume", "loop", "shuffle", "play_playlist", "channels", "play"}
 
 
 def _verify_token(request: web.Request) -> bool:
@@ -188,10 +188,46 @@ async def _handle_control(request: web.Request) -> web.Response:
         return _json_response({"error": "Guild not found"}, 404)
 
     player = guild.voice_client
-    if not player or not isinstance(player, wavelink.Player):
+    if action not in ("channels", "play") and (not player or not isinstance(player, wavelink.Player)):
         return _json_response({"error": "Bot is not in a voice channel in this server"}, 404)
 
     try:
+        if action == "channels":
+            return _json_response({
+                "ok": True,
+                "voiceChannels": [{"id": str(c.id), "name": c.name} for c in guild.voice_channels],
+            })
+            
+        elif action == "play":
+            voice_channel_id = body.get("voiceChannelId")
+            query = str(value) if value else ""
+            if not query:
+                return _json_response({"error": "Query is required for play action"}, 400)
+            
+            if not player or not isinstance(player, wavelink.Player):
+                if not voice_channel_id:
+                    return _json_response({"error": "Bot is not in a voice channel and no voiceChannelId provided"}, 400)
+                vc = bot.get_channel(int(voice_channel_id))
+                if not vc:
+                    return _json_response({"error": "Voice channel not found"}, 404)
+                player = await vc.connect(cls=wavelink.Player)
+                
+            tracks = await wavelink.Playable.search(query)
+            if not tracks:
+                return _json_response({"error": "No tracks found"}, 404)
+                
+            track = tracks[0] if isinstance(tracks, list) else tracks
+            if isinstance(track, wavelink.Playlist):
+                for t in track.tracks:
+                    await player.queue.put_wait(t)
+                if not player.playing:
+                    await player.play(player.queue.get())
+                return _json_response({"ok": True, "action": "play", "track": track.name, "isPlaylist": True})
+            else:
+                await player.queue.put_wait(track)
+                if not player.playing:
+                    await player.play(player.queue.get())
+                return _json_response({"ok": True, "action": "play", "track": track.title})
         if action == "pause":
             await player.pause(True)
             return _json_response({"ok": True, "action": "pause"})

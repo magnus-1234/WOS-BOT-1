@@ -1,0 +1,3 @@
+[submodule "whiteoutsurvival_dev_frontend(main website)"]
+	path = whiteoutsurvival_dev_frontend(main website)
+	url = https://github.com/magnus-1234/mainfrontend

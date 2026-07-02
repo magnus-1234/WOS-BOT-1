@@ -72,7 +72,7 @@ module.exports = {
     {
       name: "musicbot",
       script: "music_bot/bot.py",
-      interpreter: "/home/ubuntu/bot/.venv/bin/python3",
+      interpreter: "python3",
       cwd: "/home/ubuntu/bot",
 
       max_restarts: 5,

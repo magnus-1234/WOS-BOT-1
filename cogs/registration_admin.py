@@ -242,3 +242,46 @@ class RegistrationAdmin(commands.Cog):
 async def setup(bot: commands.Bot):
     await bot.add_cog(RegistrationAdmin(bot))
     logger.info("✅ RegistrationAdmin cog loaded")
+
+    @app_commands.command(name="reg-repair", description="[Admin] Repair auto-channels and DB for an already approved server")
+    @app_commands.describe(guild_id="The Server ID to repair")
+    async def reg_repair(self, interaction: discord.Interaction, guild_id: str):
+        if not await _is_global_admin(interaction):
+            await interaction.response.send_message("❌ Only the global admin can use this command.", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=False)
+        try:
+            from db.mongo_adapters import PendingConfigAdapter, mongo_enabled
+            if not mongo_enabled():
+                await interaction.followup.send("❌ Database not available.")
+                return
+
+            # Fetch the doc even if it's already approved
+            db = await PendingConfigAdapter._get_db_async()
+            doc = await db[PendingConfigAdapter.COLL].find_one({'guild_id': str(guild_id)})
+            
+            if not doc:
+                await interaction.followup.send(f"❌ No registration record found for guild `{guild_id}`.")
+                return
+                
+            alliance_name = doc.get("alliance_name", "Unknown Alliance")
+            submitter_id = int(doc.get("discord_user_id", 0))
+
+            from src.bot.registration_utils import setup_approved_guild_channels
+            success, msg = await setup_approved_guild_channels(
+                bot=self.bot,
+                guild_id=int(guild_id),
+                alliance_name=alliance_name,
+                submitter_id=submitter_id,
+                admin_id=interaction.user.id
+            )
+            
+            if success:
+                await interaction.followup.send(f"✅ **Repaired {doc.get('guild_name', guild_id)}**: {msg}")
+            else:
+                await interaction.followup.send(f"⚠️ **Failed to repair {doc.get('guild_name', guild_id)}**: {msg}")
+
+        except Exception as e:
+            logger.error(f"Error repairing guild {guild_id}: {e}")
+            await interaction.followup.send(f"❌ Error: {e}")

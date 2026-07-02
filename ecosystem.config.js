@@ -71,8 +71,8 @@ module.exports = {
     },
     {
       name: "musicbot",
-      script: "music_bot/bot.py",
-      interpreter: "python3",
+      script: "start_musicbot.sh",
+      interpreter: "bash",
       cwd: "/home/ubuntu/bot",
 
       max_restarts: 5,

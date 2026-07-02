@@ -1115,10 +1115,15 @@ const createSession = async (res: Response, userId: ObjectId) => {
 const upsertOAuthUser = async (profile: OAuthProfile) => {
   const now = new Date();
   const { users } = await getCollections();
-  const providerMatch = {
-    'providers.provider': profile.provider,
-    'providers.providerUserId': profile.providerUserId,
-  };
+  const providerMatch = ['discord', 'discord-music'].includes(profile.provider)
+    ? {
+        'providers.provider': { $in: ['discord', 'discord-music'] },
+        'providers.providerUserId': profile.providerUserId,
+      }
+    : {
+        'providers.provider': profile.provider,
+        'providers.providerUserId': profile.providerUserId,
+      };
   let user = await users.findOne(providerMatch);
 
   if (!user && profile.email) {

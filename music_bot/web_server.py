@@ -4,6 +4,7 @@ Provides HTTP API for the website to control and monitor the Discord music bot.
 Runs on a separate port alongside the Discord bot.
 
 Endpoints:
+  GET  /guilds                   - List servers the bot can control
   GET  /status?guildId=XXX       - Get current playback status
   POST /control                  - Send control command to bot
   GET  /health                   - Health check
@@ -31,6 +32,32 @@ WEB_SERVER_HOST = os.getenv("MUSIC_WEB_SERVER_HOST", "0.0.0.0")
 
 # Allowed actions
 VALID_ACTIONS = {"pause", "resume", "skip", "previous", "stop", "volume", "loop", "shuffle", "play_playlist", "channels", "play"}
+
+
+def _guild_icon_url(guild) -> Optional[str]:
+    """Return a Discord CDN icon URL for a guild when one exists."""
+    try:
+        return str(guild.icon.url) if guild.icon else None
+    except Exception:
+        return None
+
+
+def _guild_payload(guild) -> dict:
+    active_player = guild.voice_client
+    active_channel = getattr(active_player, "channel", None)
+    return {
+        "id": str(guild.id),
+        "name": guild.name,
+        "iconUrl": _guild_icon_url(guild),
+        "memberCount": guild.member_count or 0,
+        "voiceChannelCount": len(guild.voice_channels),
+        "textChannelCount": len(guild.text_channels),
+        "activeVoiceChannel": (
+            {"id": str(active_channel.id), "name": active_channel.name}
+            if active_channel
+            else None
+        ),
+    }
 
 
 def _verify_token(request: web.Request) -> bool:
@@ -126,6 +153,16 @@ async def _handle_health(request: web.Request) -> web.Response:
     return _json_response({"status": "ok", "service": "music-bot-api"})
 
 
+async def _handle_guilds(request: web.Request) -> web.Response:
+    """List servers the bot is currently in."""
+    if not _verify_token(request):
+        return _json_response({"error": "Unauthorized"}, 401)
+
+    bot: "MusicBot" = request.app["bot"]
+    guilds = sorted((_guild_payload(guild) for guild in bot.guilds), key=lambda item: item["name"].lower())
+    return _json_response({"ok": True, "guilds": guilds})
+
+
 async def _handle_status(request: web.Request) -> web.Response:
     """Get current playback status for a guild."""
     if not _verify_token(request):
@@ -168,6 +205,9 @@ async def _handle_control(request: web.Request) -> web.Response:
     action = body.get("action", "")
     guild_id_str = str(body.get("guildId", ""))
     value = body.get("value")
+    voice_channel_id = body.get("voiceChannelId")
+    text_channel_id = body.get("textChannelId")
+    user_id = body.get("userId")
 
     if action not in VALID_ACTIONS:
         return _json_response({"error": f"Invalid action. Allowed: {', '.join(sorted(VALID_ACTIONS))}"}, 400)
@@ -196,10 +236,10 @@ async def _handle_control(request: web.Request) -> web.Response:
             return _json_response({
                 "ok": True,
                 "voiceChannels": [{"id": str(c.id), "name": c.name} for c in guild.voice_channels],
+                "textChannels": [{"id": str(c.id), "name": c.name} for c in guild.text_channels],
             })
             
         elif action == "play":
-            voice_channel_id = body.get("voiceChannelId")
             query = str(value) if value else ""
             if not query:
                 return _json_response({"error": "Query is required for play action"}, 400)
@@ -210,7 +250,12 @@ async def _handle_control(request: web.Request) -> web.Response:
                 vc = bot.get_channel(int(voice_channel_id))
                 if not vc:
                     return _json_response({"error": "Voice channel not found"}, 404)
-                player = await vc.connect(cls=wavelink.Player)
+                from music_bot.cogs.music import CustomPlayer
+                player = await vc.connect(cls=CustomPlayer)
+            if text_channel_id and hasattr(player, "text_channel"):
+                text_channel = guild.get_channel(int(text_channel_id))
+                if text_channel:
+                    player.text_channel = text_channel
                 
             tracks = await wavelink.Playable.search(query)
             if not tracks:
@@ -270,15 +315,54 @@ async def _handle_control(request: web.Request) -> web.Response:
             return _json_response({"ok": True, "action": "shuffle"})
 
         elif action == "play_playlist":
-            # value = playlist name (string)
-            # This triggers the bot to load the playlist from MongoDB and play it
-            # We use the music cog's internal methods
             playlist_name = str(value) if value else ""
             if not playlist_name:
                 return _json_response({"error": "Playlist name required as value"}, 400)
-            # Signal is sent; actual playlist loading requires the music cog
-            # For now return ok — the frontend can use the Discord bot's /play command
-            return _json_response({"ok": True, "action": "play_playlist", "note": "Use /play playlist:<name> in Discord"})
+            if not user_id:
+                return _json_response({"error": "userId is required to load a saved playlist"}, 400)
+
+            if not player or not isinstance(player, wavelink.Player):
+                if not voice_channel_id:
+                    return _json_response({"error": "Select a voice channel before playing a playlist"}, 400)
+                vc = bot.get_channel(int(voice_channel_id))
+                if not vc:
+                    return _json_response({"error": "Voice channel not found"}, 404)
+                from music_bot.cogs.music import CustomPlayer
+                player = await vc.connect(cls=CustomPlayer)
+            if text_channel_id and hasattr(player, "text_channel"):
+                text_channel = guild.get_channel(int(text_channel_id))
+                if text_channel:
+                    player.text_channel = text_channel
+
+            from music_bot.storage.playlist_storage import playlist_storage
+            playlist = await playlist_storage.load_playlist(guild_id, int(user_id), playlist_name)
+            if not playlist:
+                return _json_response({"error": "Playlist not found for this Discord user and server"}, 404)
+
+            loaded = 0
+            for saved_track in playlist.get("tracks", []):
+                uri = saved_track.get("uri") or saved_track.get("title")
+                if not uri:
+                    continue
+                tracks = await wavelink.Playable.search(str(uri))
+                if not tracks:
+                    continue
+                track = tracks[0] if isinstance(tracks, list) else tracks
+                if isinstance(track, wavelink.Playlist):
+                    for playlist_track in track.tracks:
+                        await player.queue.put_wait(playlist_track)
+                        loaded += 1
+                else:
+                    await player.queue.put_wait(track)
+                    loaded += 1
+
+            if loaded == 0:
+                return _json_response({"error": "No playable tracks were found in that playlist"}, 404)
+
+            player.current_playlist_name = playlist_name
+            if not player.playing and not player.queue.is_empty:
+                await player.play(player.queue.get())
+            return _json_response({"ok": True, "action": "play_playlist", "playlist": playlist_name, "tracks": loaded})
 
     except Exception as e:
         logger.exception("Control action %s failed: %s", action, e)
@@ -298,6 +382,7 @@ def create_web_app(bot: "MusicBot") -> web.Application:
     app["bot"] = bot
 
     app.router.add_get("/health", _handle_health)
+    app.router.add_get("/guilds", _handle_guilds)
     app.router.add_get("/status", _handle_status)
     app.router.add_post("/control", _handle_control)
 

@@ -92,8 +92,25 @@ async def main() -> None:
     token = os.getenv("MUSIC_DISCORD_TOKEN")
     if not token:
         raise RuntimeError("MUSIC_DISCORD_TOKEN is not set")
-    async with bot:
-        await bot.start(token)
+
+    web_runner = None
+    try:
+        from music_bot.web_server import start_web_server
+        async with bot:
+            # Start the web control server once the bot is ready
+            async def _start_web_after_ready():
+                await bot.wait_until_ready()
+                nonlocal web_runner
+                web_runner = await start_web_server(bot)
+
+            asyncio.create_task(_start_web_after_ready())
+            await bot.start(token)
+    finally:
+        if web_runner:
+            try:
+                await web_runner.cleanup()
+            except Exception:
+                pass
 
 
 def run_dummy_server():

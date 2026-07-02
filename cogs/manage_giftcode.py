@@ -6694,7 +6694,7 @@ class ManageGiftCode(commands.Cog):
                 
                 # Get all members and filter by assigned alliance
                 all_members = await AllianceMembersAdapter.get_all_members_async()
-                members = [m for m in all_members if int(m.get('alliance', 0) or m.get('alliance_id', 0)) == alliance_id]
+                members = [m for m in all_members if str(m.get('alliance') or m.get('alliance_id') or 0) == str(alliance_id)]
                 
                 if not members:
                     await interaction.followup.send(

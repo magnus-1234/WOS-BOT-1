@@ -663,7 +663,7 @@ class Alliance(commands.Cog):
                 if mongo_enabled():
                     try:
                         members = AllianceMembersAdapter.get_all_members()
-                        member_count = sum(1 for m in members if int(m.get('alliance', 0)) == alliance_id)
+                        member_count = sum(1 for m in members if str(m.get('alliance') or 0) == str(alliance_id))
                     except Exception:
                         member_count = 0
                 else:

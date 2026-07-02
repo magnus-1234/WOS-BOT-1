@@ -389,7 +389,7 @@ class BotOperations(commands.Cog):
                 
                 # Get all alliance members
                 all_members = mongo_adapters.AllianceMembersAdapter.get_all_members()
-                members = [m for m in all_members if int(m.get('alliance', 0) or m.get('alliance_id', 0)) == alliance_id]
+                members = [m for m in all_members if str(m.get('alliance') or m.get('alliance_id') or 0) == str(alliance_id)]
                 
                 if not members:
                     await interaction.followup.send(
@@ -877,7 +877,7 @@ class BotOperations(commands.Cog):
                 
                 # Get all alliance members
                 all_members = mongo_adapters.AllianceMembersAdapter.get_all_members()
-                members = [m for m in all_members if int(m.get('alliance', 0) or m.get('alliance_id', 0)) == alliance_id]
+                members = [m for m in all_members if str(m.get('alliance') or m.get('alliance_id') or 0) == str(alliance_id)]
                 
                 if not members:
                     await interaction.followup.send(
@@ -1825,7 +1825,7 @@ class BotOperations(commands.Cog):
                                     
                                     # Get members from the alliance
                                     all_members = MembersAdapter.get_all_members()
-                                    members = [m for m in all_members if int(m.get('alliance', 0) or m.get('alliance_id', 0)) == alliance_id]
+                                    members = [m for m in all_members if str(m.get('alliance') or m.get('alliance_id') or 0) == str(alliance_id)]
                                     
                                     if not members:
                                         await button_interaction.followup.send(
@@ -2853,7 +2853,7 @@ class BotOperations(commands.Cog):
                 try:
                     from db.mongo_adapters import AllianceMembersAdapter
                     all_members = AllianceMembersAdapter.get_all_members()
-                    members = [m for m in all_members if int(m.get('alliance', 0) or m.get('alliance_id', 0)) == alliance_id]
+                    members = [m for m in all_members if str(m.get('alliance') or m.get('alliance_id') or 0) == str(alliance_id)]
                 except Exception as e:
                     print(f"Error getting members: {e}")
                     members = []
@@ -6806,7 +6806,7 @@ class PersistentMemberListView(discord.ui.View):
         try:
             from db.mongo_adapters import AllianceMembersAdapter
             all_members = AllianceMembersAdapter.get_all_members()
-            members = [m for m in all_members if int(m.get('alliance', 0) or m.get('alliance_id', 0)) == self.alliance_id]
+            members = [m for m in all_members if str(m.get('alliance') or m.get('alliance_id') or 0) == str(self.alliance_id)]
             
             # Get alliance name
             try:

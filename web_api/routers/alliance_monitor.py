@@ -194,7 +194,7 @@ async def get_monitored_members(guild_id: int, alliance_id: Optional[int] = None
         # Filter by alliance
         alliance_members = [
             m for m in all_members 
-            if int(m.get('alliance') or m.get('alliance_id') or 0) == int(alliance_id)
+            if str(m.get('alliance') or m.get('alliance_id') or 0) == str(alliance_id)
         ]
         
         # Clean up and format

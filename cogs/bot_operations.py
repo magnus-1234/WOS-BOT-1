@@ -4137,23 +4137,92 @@ class BotOperations(commands.Cog):
                     
         elif custom_id == "set_member_list_password":
             try:
-                # Check if user is global admin or bot owner
-                self.settings_cursor.execute("SELECT is_initial FROM admin WHERE id = ?", (interaction.user.id,))
-                result = self.settings_cursor.fetchone()
-                
-                if (not result or result[0] != 1) and not await is_bot_owner(self.bot, interaction.user.id):
-                    await interaction.response.send_message(
-                        "❌ Only global administrators can set member list passwords.", 
-                        ephemeral=True
-                    )
-                    return
-
                 # Check if MongoDB is enabled
                 if not mongo_enabled() or not ServerAllianceAdapter:
                     await interaction.response.send_message(
                         "❌ MongoDB not enabled. Cannot set password.",
                         ephemeral=True
                     )
+                    return
+
+                class SetPasswordModal(discord.ui.Modal, title="🔐 Set Member List Password"):
+                    password_input = discord.ui.TextInput(
+                        label="Password",
+                        placeholder="Enter password for !showlist command",
+                        style=discord.TextStyle.short,
+                        required=True,
+                        max_length=50
+                    )
+                    
+                    def __init__(self, guild_id: int, guild_name: str):
+                        super().__init__()
+                        self.guild_id = guild_id
+                        self.guild_name = guild_name
+                    
+                    async def on_submit(self, modal_interaction: discord.Interaction):
+                        try:
+                            password = self.password_input.value.strip()
+                            
+                            if not password:
+                                await modal_interaction.response.send_message(
+                                    "❌ Password cannot be empty.",
+                                    ephemeral=True
+                                )
+                                return
+                            
+                            # Save password to MongoDB for selected server
+                            success = ServerAllianceAdapter.set_password(
+                                guild_id=self.guild_id,
+                                password=password,
+                                set_by=modal_interaction.user.id
+                            )
+                            
+                            if success:
+                                embed = discord.Embed(
+                                    title="✅ Password Set Successfully",
+                                    description=(
+                                        f"**Server:** {self.guild_name}\n"
+                                        f"**Server ID:** `{self.guild_id}`\n"
+                                        f"**Password:** `{password}`\n\n"
+                                        "**Usage:**\n"
+                                        "Members can now use `!showlist` and enter this password to view the member list."
+                                    ),
+                                    color=discord.Color.green()
+                                )
+                                embed.set_footer(
+                                    text=f"Set by {modal_interaction.user.display_name}",
+                                    icon_url=modal_interaction.user.display_avatar.url
+                                )
+                                await modal_interaction.response.send_message(embed=embed, ephemeral=True)
+                            else:
+                                await modal_interaction.response.send_message(
+                                    "❌ Failed to set password.",
+                                    ephemeral=True
+                                )
+                        
+                        except Exception as e:
+                            print(f"Set password error: {e}")
+                            await modal_interaction.response.send_message(
+                                "❌ An error occurred while setting the password.",
+                                ephemeral=True
+                            )
+
+                # Check if user is global admin or bot owner
+                self.settings_cursor.execute("SELECT is_initial FROM admin WHERE id = ?", (interaction.user.id,))
+                result = self.settings_cursor.fetchone()
+                
+                is_global = (result and result[0] == 1) or await is_bot_owner(self.bot, interaction.user.id)
+                
+                if not is_global:
+                    if not interaction.guild:
+                        await interaction.response.send_message("❌ This command must be used in a server.", ephemeral=True)
+                        return
+                    if not interaction.user.guild_permissions.administrator:
+                        await interaction.response.send_message("❌ Only administrators can set member list passwords.", ephemeral=True)
+                        return
+                        
+                    modal = SetPasswordModal(interaction.guild.id, interaction.guild.name)
+                    await interaction.response.send_modal(modal)
                     return
 
                 # Get all servers the bot is in
@@ -4343,69 +4412,6 @@ class BotOperations(commands.Cog):
                                 ephemeral=True
                             )
                             return
-                        
-                        # Create password modal for selected server
-                        class SetPasswordModal(discord.ui.Modal, title="🔐 Set Member List Password"):
-                            password_input = discord.ui.TextInput(
-                                label="Password",
-                                placeholder="Enter password for !showlist command",
-                                style=discord.TextStyle.short,
-                                required=True,
-                                max_length=50
-                            )
-                            
-                            def __init__(self, guild_id: int, guild_name: str):
-                                super().__init__()
-                                self.guild_id = guild_id
-                                self.guild_name = guild_name
-                            
-                            async def on_submit(self, modal_interaction: discord.Interaction):
-                                try:
-                                    password = self.password_input.value.strip()
-                                    
-                                    if not password:
-                                        await modal_interaction.response.send_message(
-                                            "❌ Password cannot be empty.",
-                                            ephemeral=True
-                                        )
-                                        return
-                                    
-                                    # Save password to MongoDB for selected server
-                                    success = ServerAllianceAdapter.set_password(
-                                        guild_id=self.guild_id,
-                                        password=password,
-                                        set_by=modal_interaction.user.id
-                                    )
-                                    
-                                    if success:
-                                        embed = discord.Embed(
-                                            title="✅ Password Set Successfully",
-                                            description=(
-                                                f"**Server:** {self.guild_name}\n"
-                                                f"**Server ID:** `{self.guild_id}`\n"
-                                                f"**Password:** `{password}`\n\n"
-                                                "**Usage:**\n"
-                                                "Members can now use `!showlist` and enter this password to view the member list."
-                                            ),
-                                            color=discord.Color.green()
-                                        )
-                                        embed.set_footer(
-                                            text=f"Set by {modal_interaction.user.display_name}",
-                                            icon_url=modal_interaction.user.display_avatar.url
-                                        )
-                                        await modal_interaction.response.send_message(embed=embed, ephemeral=True)
-                                    else:
-                                        await modal_interaction.response.send_message(
-                                            "❌ Failed to set password.",
-                                            ephemeral=True
-                                        )
-                                
-                                except Exception as e:
-                                    print(f"Set password error: {e}")
-                                    await modal_interaction.response.send_message(
-                                        "❌ An error occurred while setting the password.",
-                                        ephemeral=True
-                                    )
                         
                         # Show password modal
                         modal = SetPasswordModal(selected_guild.id, selected_guild.name)

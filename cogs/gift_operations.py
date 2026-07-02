@@ -2183,7 +2183,9 @@ class GiftOperations(commands.Cog):
 
         # Use admin_utils
         admin_info = get_admin(user_id)
-        if not admin_info:
+        is_server_admin = interaction.guild and interaction.user.guild_permissions.administrator
+        
+        if not admin_info and not is_server_admin:
             return []
 
         # Check is_global (handle both tuple and dict)

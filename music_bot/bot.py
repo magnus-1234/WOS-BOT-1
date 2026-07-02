@@ -113,29 +113,5 @@ async def main() -> None:
                 pass
 
 
-def run_dummy_server():
-    import threading
-    from http.server import SimpleHTTPRequestHandler, HTTPServer
-    
-    port = int(os.getenv("PORT", "8080"))
-    class DummyHandler(SimpleHTTPRequestHandler):
-        def do_GET(self):
-            self.send_response(200)
-            self.send_header("Content-type", "text/plain")
-            self.end_headers()
-            self.wfile.write(b"OK")
-        def log_message(self, format, *args):
-            pass # Suppress logging to keep output clean
-
-    try:
-        server = HTTPServer(("0.0.0.0", port), DummyHandler)
-        logger.info(f"Starting dummy web server on port {port} for Render compatibility")
-        server.serve_forever()
-    except Exception as e:
-        logger.error(f"Failed to start dummy web server: {e}")
-
-
 if __name__ == "__main__":
-    import threading
-    threading.Thread(target=run_dummy_server, daemon=True).start()
     asyncio.run(main())

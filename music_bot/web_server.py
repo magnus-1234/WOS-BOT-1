@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger("music_bot.web_server")
 
 MUSIC_API_SECRET = os.getenv("MUSIC_API_SECRET", "")
-WEB_SERVER_PORT = int(os.getenv("PORT", os.getenv("MUSIC_WEB_SERVER_PORT", "8090")))
+WEB_SERVER_PORT = int(os.getenv("MUSIC_WEB_SERVER_PORT", os.getenv("PORT", "8090")))
 WEB_SERVER_HOST = os.getenv("MUSIC_WEB_SERVER_HOST", "0.0.0.0")
 
 # Allowed actions

@@ -1,1 +1,0 @@
-"""Standalone music bot package."""

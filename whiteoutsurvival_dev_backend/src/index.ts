@@ -102,6 +102,7 @@ type UserDocument = {
     linkedAt: Date;
   }[];
   playerAccounts: LinkedPlayerAccount[];
+  musicGuilds?: { id: string; name: string; iconUrl?: string; permissions: string }[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -178,6 +179,7 @@ type OAuthProfile = {
   email?: string;
   displayName: string;
   avatarUrl?: string;
+  musicGuilds?: { id: string; name: string; iconUrl?: string; permissions: string }[];
 };
 
 type GiftCodeSource = 'wostools' | 'wosgiftcodes' | 'bot_dashboard';
@@ -316,7 +318,7 @@ const oauthConfig = {
     authorizeUrl: 'https://discord.com/oauth2/authorize',
     tokenUrl: 'https://discord.com/api/oauth2/token',
     userInfoUrl: 'https://discord.com/api/users/@me',
-    scope: 'identify',
+    scope: 'identify guilds',
   },
 } satisfies Record<AuthProvider, {
   clientId: string;
@@ -1057,6 +1059,7 @@ const toUserResponse = (user: UserDocument) => ({
   displayName: user.displayName,
   avatarUrl: user.avatarUrl,
   discordUserId: user.providers.find((provider) => provider.provider === 'discord' || provider.provider === 'discord-music')?.providerUserId,
+  musicGuilds: user.musicGuilds,
   providers: user.providers.map((provider) => provider.provider),
   playerAccounts: user.playerAccounts.map((player) => ({
     playerId: player.playerId,
@@ -1142,6 +1145,7 @@ const upsertOAuthUser = async (profile: OAuthProfile) => {
         linkedAt: now,
       }],
       playerAccounts: [],
+      musicGuilds: profile.musicGuilds,
       createdAt: now,
       updatedAt: now,
     };
@@ -1152,22 +1156,24 @@ const upsertOAuthUser = async (profile: OAuthProfile) => {
   const hasProvider = user.providers.some(
     (provider) => provider.provider === profile.provider && provider.providerUserId === profile.providerUserId,
   );
+  
+  const baseSet = {
+    email: user.email || profile.email?.toLowerCase(),
+    displayName: profile.displayName || user.displayName,
+    avatarUrl: profile.avatarUrl || user.avatarUrl,
+    updatedAt: now,
+  };
+  
+  if (profile.musicGuilds !== undefined) {
+    (baseSet as any).musicGuilds = profile.musicGuilds;
+  }
+
   const update = hasProvider
     ? {
-        $set: {
-          email: user.email || profile.email?.toLowerCase(),
-          displayName: profile.displayName || user.displayName,
-          avatarUrl: profile.avatarUrl || user.avatarUrl,
-          updatedAt: now,
-        },
+        $set: baseSet,
       }
     : {
-        $set: {
-          email: user.email || profile.email?.toLowerCase(),
-          displayName: profile.displayName || user.displayName,
-          avatarUrl: profile.avatarUrl || user.avatarUrl,
-          updatedAt: now,
-        },
+        $set: baseSet,
         $push: {
           providers: {
             provider: profile.provider,
@@ -1197,6 +1203,21 @@ const exchangeOAuthCode = async (provider: AuthProvider, code: string) => {
       throw new Error('Discord OAuth exchange failed');
     }
 
+    let musicGuilds: { id: string; name: string; iconUrl?: string; permissions: string }[] | undefined;
+    if (provider === 'discord-music' && Array.isArray(proxyData?.guilds)) {
+      musicGuilds = proxyData.guilds
+        .filter((g: any) => {
+          const perms = BigInt(g.permissions || '0');
+          return (perms & 8n) === 8n || (perms & 32n) === 32n;
+        })
+        .map((g: any) => ({
+          id: String(g.id),
+          name: cleanText(g.name, 120),
+          iconUrl: g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png` : undefined,
+          permissions: String(g.permissions),
+        }));
+    }
+
     const avatarUrl = providerUser.avatar
       ? `https://cdn.discordapp.com/avatars/${providerUser.id}/${providerUser.avatar}.png?size=128`
       : undefined;
@@ -1206,6 +1227,7 @@ const exchangeOAuthCode = async (provider: AuthProvider, code: string) => {
       email: cleanText(providerUser.email, 240).toLowerCase() || undefined,
       displayName: cleanText(providerUser.global_name || providerUser.username, 120) || 'Discord User',
       avatarUrl,
+      musicGuilds,
     } satisfies OAuthProfile;
   }
 
@@ -1235,6 +1257,27 @@ const exchangeOAuthCode = async (provider: AuthProvider, code: string) => {
     throw new Error('OAuth profile lookup failed');
   }
 
+  let musicGuilds: { id: string; name: string; iconUrl?: string; permissions: string }[] | undefined;
+  if (provider === 'discord-music' && tokenData?.access_token) {
+    const guildsResponse = await fetch('https://discord.com/api/users/@me/guilds', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}`, Accept: 'application/json' },
+    });
+    const guilds = await guildsResponse.json().catch(() => null);
+    if (Array.isArray(guilds)) {
+      musicGuilds = guilds
+        .filter((g: any) => {
+          const perms = BigInt(g.permissions || '0');
+          return (perms & 8n) === 8n || (perms & 32n) === 32n;
+        })
+        .map((g: any) => ({
+          id: String(g.id),
+          name: cleanText(g.name, 120),
+          iconUrl: g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png` : undefined,
+          permissions: String(g.permissions),
+        }));
+    }
+  }
+
   if (provider === 'google') {
     return {
       provider,
@@ -1254,6 +1297,7 @@ const exchangeOAuthCode = async (provider: AuthProvider, code: string) => {
     email: cleanText(providerUser.email, 240).toLowerCase() || undefined,
     displayName: cleanText(providerUser.global_name || providerUser.username, 120) || 'Discord User',
     avatarUrl,
+    musicGuilds,
   } satisfies OAuthProfile;
 };
 

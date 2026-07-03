@@ -68,43 +68,5 @@ module.exports = {
       error_file: "/home/ubuntu/bot/keepalive-error.log",
       log_date_format: "YYYY-MM-DD HH:mm:ss",
       merge_logs: false,
-    },
-    {
-      name: "musicbot",
-      script: "start_musicbot.sh",
-      interpreter: "bash",
-      cwd: "/home/ubuntu/bot",
-
-      max_restarts: 5,
-      restart_delay: 30000,
-      min_uptime: "60s",
-      kill_timeout: 15000,
-      max_memory_restart: "700M",
-
-      watch: false,
-      autorestart: true,
-
-      env: {
-        SKIP_INSTALL: "true",
-        PYTHONUNBUFFERED: "1",
-        // Prevent ~/.local packages from conflicting with venv packages
-        PYTHONNOUSERSITE: "1",
-        // NOTE: Secrets are set via `pm2 set` on the Oracle VM — not here.
-        // Web control server settings (non-secret)
-        MUSIC_WEB_SERVER_PORT: "8090",
-        MUSIC_WEB_SERVER_HOST: "0.0.0.0",
-        MUSIC_DEFAULT_VOLUME: "50",
-        MUSIC_AUTO_RESUME: "false",
-        LAVALINK_HOST: "lavalink.triniumhost.com",
-        LAVALINK_PORT: "4333",
-        LAVALINK_SECURE: "false",
-        MONGO_DB_NAME: "reminderbot",
-      },
-
-      out_file: "/home/ubuntu/bot/musicbot-out.log",
-      error_file: "/home/ubuntu/bot/musicbot-error.log",
-      log_date_format: "YYYY-MM-DD HH:mm:ss",
-      merge_logs: false,
-    },
   ],
 };

@@ -191,8 +191,7 @@ async def process_registration_approval(bot: discord.Client, guild_id: int, guil
                 logger.warning(f"Could not DM submitter {submitter_id}: {dm_err}")
                 
             return True, (
-                f"✅ **Approved!** Registration for **{guild_name}** is now active.
-"
+                f"✅ **Approved!** Registration for **{guild_name}** is now active.\n"
                 f"Alliance `{alliance_name}` has been configured."
             )
         else:

@@ -567,6 +567,40 @@ async def review_registration(body: ReviewRequest, request: Request):
     admin_user_id = int(body.admin_user_id)
 
     if body.action == "approve":
+        ok = await PendingConfigAdapter.approve_async(guild_id, admin_user_id)
+        status_msg = "approved"
+        if ok:
+            try:
+                from src.bot.registration_utils import setup_approved_guild_channels
+                await setup_approved_guild_channels(bot, guild_id, alliance_name, submitter_id, admin_user_id)
+            except Exception as e:
+                logger.error(f"Error creating auto-channels for {guild_id} via API: {e}")
+    else:
+        ok = await PendingConfigAdapter.deny_async(guild_id, admin_user_id)
+        status_msg = "denied"
+
+    if not ok:
+        raise HTTPException(status_code=500, detail=f"Failed to {body.action} registration")
+
+    # Try to notify the submitter via DM
+    try:
+        if bot and submitter_id:
+            user = await bot.fetch_user(submitter_id)
+            if user:
+                if body.action == "approve":
+                    from src.bot.registration_utils import _approval_dm_message
+                    msg = _approval_dm_message(guild_name, alliance_name)
+                else:
+                    msg = (
+                        f"❌ **Your registration request was denied.**\n\n"
+                        f"**Server:** {guild_name}\n"
+                        f"Please contact the bot administrator for more information.\n"
+                        f"You can submit a new registration request when ready."
+                    )
+                await user.send(msg)
+    except Exception as dm_err:
+        logger.warning(f"Could not DM submitter about review decision: {dm_err}")
+
     return {
         "success": True,
         "action": body.action,

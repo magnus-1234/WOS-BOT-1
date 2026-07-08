@@ -3281,11 +3281,11 @@ class BotOperations(commands.Cog):
                         self.alliance_name = alliance_name_param
                     
                     async def on_submit(self, modal_interaction: discord.Interaction):
-                        # Parse FIDs - support both comma and newline separated
+                        # Parse FIDs robustly
                         import re
-                        fids_str = self.fids_input.value.strip().replace(',', '\n')
-                        fid_list = [fid.strip() for fid in fids_str.split('\n')]
-                        valid_fids = [fid for fid in fid_list if re.match(r'^\d{8,9}$', fid)]
+                        raw_valid_fids = re.findall(r'\b\d{8,9}\b', self.fids_input.value)
+                        seen = set()
+                        valid_fids = [x for x in raw_valid_fids if not (x in seen or seen.add(x))]
                         
                         if not valid_fids:
                             await modal_interaction.response.send_message(
@@ -3314,9 +3314,26 @@ class BotOperations(commands.Cog):
                         
                         for idx, fid in enumerate(valid_fids, 1):
                             try:
-                                # Fetch player data
-                                result = await login_handler.fetch_player_data(fid)
-                                if result['status'] == 'success' and result['data']:
+                                # Fetch player data with rate limit retry
+                                result = None
+                                max_retries = 10
+                                for attempt in range(max_retries):
+                                    result = await login_handler.fetch_player_data(fid)
+                                    if result and result.get('status') == 'rate_limited':
+                                        wait_time = result.get('wait_time', 60)
+                                        progress_embed = discord.Embed(
+                                            title="➕ Adding Members",
+                                            description=f"Processing **{len(valid_fids)}** member(s)...\n\n```ansi\n\u001b[2;33m⏳ Rate limit reached. Waiting {wait_time}s...\u001b[0m\n\u001b[2;32m✓ Success: {len(success_list)}\n\u001b[2;31m✗ Failed:  {len(failed_list)}\n\u001b[2;37m⟳ Pending: {len(valid_fids) - idx + 1}\u001b[0m\n```",
+                                            color=0xFEE75C
+                                        )
+                                        try: await modal_interaction.edit_original_response(embed=progress_embed)
+                                        except: pass
+                                        import asyncio
+                                        await asyncio.sleep(wait_time + 1)
+                                    else:
+                                        break
+                                
+                                if result and result.get('status') == 'success' and result.get('data'):
                                     player_data = result['data']
                                     
                                     # Add to alliance

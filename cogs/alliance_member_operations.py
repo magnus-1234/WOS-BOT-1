@@ -497,11 +497,14 @@ class AllianceMemberOperations(commands.Cog):
 
     async def _process_add_user(self, interaction: discord.Interaction, alliance_id: str, alliance_name: str, ids: str):
         """Process the actual user addition operation"""
-        # Handle both comma-separated and newline-separated FIDs
-        if '\n' in ids:
-            ids_list = [fid.strip() for fid in ids.split('\n') if fid.strip()]
-        else:
-            ids_list = [fid.strip() for fid in ids.split(",") if fid.strip()]
+        # Extract 8 or 9 digit FIDs from the string
+        import re
+        fid_pattern = r'\b\d{8,9}\b'
+        raw_ids_list = re.findall(fid_pattern, ids)
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        ids_list = [x for x in raw_ids_list if not (x in seen or seen.add(x))]
 
         # Pre-check which FIDs already exist in the database
         already_in_db = []

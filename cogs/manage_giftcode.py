@@ -1846,7 +1846,7 @@ class ManageGiftCode(commands.Cog):
                 cog_instance.logger.error(f"Error syncing members from SQLite to MongoDB: {e}", exc_info=True)
                 return 0
     
-    async def fetch_player_data(self, fid):
+    async def fetch_player_data(self, fid, return_full=False):
         """Fetch player data from WOS API"""
         try:
             # Import login handler
@@ -1856,6 +1856,9 @@ class ManageGiftCode(commands.Cog):
             # Get player info using fetch_player_data
             player_data = await login_handler.fetch_player_data(fid)
             
+            if return_full:
+                return player_data
+
             if player_data and player_data.get('data'):
                 data = player_data['data']
                 return {
@@ -4377,17 +4380,46 @@ class ManageGiftCode(commands.Cog):
                         await message.reply(embed=embed)
                         continue
                     
-                    # Fetch player data from API
+                    # Fetch player data from API with retry for rate limits
                     self.logger.debug(f"Fetching player data for FID {fid}")
-                    player_data = await self.fetch_player_data(fid)
+                    player_data_full = None
+                    max_retries = 10
                     
-                    if not player_data:
+                    for attempt in range(max_retries):
+                        player_data_full = await self.fetch_player_data(fid, return_full=True)
+                        
+                        if player_data_full and player_data_full.get('status') == 'rate_limited':
+                            wait_time = player_data_full.get('wait_time', 60)
+                            if attempt == 0:
+                                await message.reply(f"⏳ {message.author.mention} API is currently rate limited. Queued registration for `{fid}`. This will complete automatically in the background.", delete_after=30)
+                            self.logger.warning(f"Rate limited for FID {fid}, waiting {wait_time}s (Attempt {attempt+1}/{max_retries})")
+                            import asyncio
+                            await asyncio.sleep(wait_time + 1)
+                        else:
+                            break
+                    
+                    if not player_data_full or player_data_full.get('status') == 'error':
+                        self.logger.warning(f"API Error checking FID {fid}")
+                        await message.reply(f"❌ {message.author.mention} API Error while checking FID `{fid}`. Please try again later.", delete_after=15)
+                        continue
+                    elif player_data_full.get('status') == 'rate_limited':
+                        self.logger.warning(f"Rate limit retry exhausted for FID {fid}")
+                        await message.reply(f"❌ {message.author.mention} API remained rate limited for too long. Please try registering `{fid}` again later.", delete_after=15)
+                        continue
+                    elif player_data_full.get('status') == 'not_found' or not player_data_full.get('data'):
                         self.logger.warning(f"Invalid FID {fid} - API returned no data")
                         await message.reply(
                             f"❌ {message.author.mention} Invalid FID `{fid}`. Please check and try again.",
                             delete_after=15
                         )
                         continue
+                        
+                    data = player_data_full['data']
+                    player_data = {
+                        'nickname': data.get('nickname', 'Unknown'),
+                        'furnace_lv': int(data.get('stove_lv', 0)),
+                        'avatar_image': data.get('avatar_image', '')
+                    }
                     
                     # Add to auto-redeem list
                     member_data = {
@@ -5751,6 +5783,7 @@ class ManageGiftCode(commands.Cog):
                         input_text = self.fids_input.value.strip()
                         
                         # Parse FIDs (support multiple formats)
+                        import re
                         fid_entries = []
                         for line in input_text.replace(',', '\n').split('\n'):
                             line = line.strip()
@@ -5761,7 +5794,8 @@ class ManageGiftCode(commands.Cog):
                             fid = parts[0]
                             nickname = parts[1] if len(parts) > 1 else None
                             
-                            if fid.isdigit():
+                            # Ensure it's exactly 8 or 9 digits
+                            if re.match(r'^\d{8,9}$', fid):
                                 fid_entries.append((fid, nickname))
                         
                         if not fid_entries:
@@ -5804,8 +5838,37 @@ class ManageGiftCode(commands.Cog):
                                 fail_count += 1
                                 continue
                             
-                            # Fetch player data from WOS API
-                            player_data = await self.cog.fetch_player_data(fid)
+                            # Fetch player data from WOS API with rate limit retry
+                            player_data_full = None
+                            max_retries = 10
+                            for attempt in range(max_retries):
+                                player_data_full = await self.cog.fetch_player_data(fid, return_full=True)
+                                if player_data_full and player_data_full.get('status') == 'rate_limited':
+                                    wait_time = player_data_full.get('wait_time', 60)
+                                    import asyncio
+                                    await asyncio.sleep(wait_time + 1)
+                                else:
+                                    break
+                            
+                            if not player_data_full or player_data_full.get('status') == 'error':
+                                results.append(f"❌ API Error for FID {fid}. Try again later.")
+                                fail_count += 1
+                                continue
+                            elif player_data_full.get('status') == 'rate_limited':
+                                results.append(f"⏳ API is rate limited for FID {fid}. Try again later.")
+                                fail_count += 1
+                                continue
+                            elif player_data_full.get('status') == 'not_found' or not player_data_full.get('data'):
+                                results.append(f"❌ Invalid FID: {fid}")
+                                fail_count += 1
+                                continue
+                                
+                            data = player_data_full['data']
+                            player_data = {
+                                'nickname': data.get('nickname', 'Unknown'),
+                                'furnace_lv': int(data.get('stove_lv', 0)),
+                                'avatar_image': data.get('avatar_image', '')
+                            }
                             
                             if player_data:
                                 # Use custom nickname if provided, otherwise use API nickname

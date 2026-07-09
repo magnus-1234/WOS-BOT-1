@@ -90,8 +90,28 @@ class DeepLTranslator:
             logger.info(f"DeepL result: '{result.text[:50]}' (detected source: {result.detected_source_lang})")
             return result.text
         except Exception as e:
-            logger.error(f"Translation error: {e}")
-            return text
+            logger.warning(f"DeepL Translation error (quota?): {e}. Falling back to GoogleTranslator.")
+            try:
+                from deep_translator import GoogleTranslator
+                
+                # Google translator uses ISO 639-1 base codes
+                g_target = target_lang.lower()
+                g_source = source_lang.lower() if source_lang else 'auto'
+                
+                # deep_translator uses 'zh-CN' for Chinese
+                if g_target == 'zh':
+                    g_target = 'zh-CN'
+                if g_source == 'zh':
+                    g_source = 'zh-CN'
+                
+                gt = GoogleTranslator(source=g_source, target=g_target)
+                result_text = await asyncio.to_thread(gt.translate, text)
+                
+                logger.info(f"Google fallback result: '{result_text[:50]}'")
+                return result_text
+            except Exception as e2:
+                logger.error(f"Google Fallback translation error: {e2}")
+                return text
     
     async def detect_language(self, text: str) -> str:
         """Detect language by translating to English"""
@@ -105,8 +125,14 @@ class DeepLTranslator:
             detected = result.detected_source_lang.lower()
             return self._normalize_lang_code(detected)
         except Exception as e:
-            logger.error(f"Language detection error: {e}")
-            return 'en'
+            logger.warning(f"DeepL Language detection error: {e}. Falling back to langdetect.")
+            try:
+                from langdetect import detect
+                lang = await asyncio.to_thread(detect, text)
+                return self._normalize_lang_code(lang)
+            except Exception as e2:
+                logger.error(f"Fallback detection error: {e2}")
+                return 'en'
     
     def _normalize_lang_code(self, lang_code: str) -> str:
         """Normalize language code to base form (e.g., 'en-us' -> 'en', 'pt-br' -> 'pt')"""

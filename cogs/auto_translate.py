@@ -312,10 +312,13 @@ class AutoTranslate(commands.Cog):
                 
                 if webhook:
                     try:
+                        # Use a robust avatar URL (force png, max size 256) to ensure the webhook fetches it properly
+                        avatar_url = message.author.display_avatar.replace(static_format='png', size=256).url
+                        
                         sent_message = await webhook.send(
                             content=translated_text + attachment_text,
                             username=message.author.display_name,
-                            avatar_url=message.author.display_avatar.url,
+                            avatar_url=avatar_url,
                             wait=True
                         )
                     except Exception as e:

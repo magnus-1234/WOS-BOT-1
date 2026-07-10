@@ -239,10 +239,7 @@ class RegistrationAdmin(commands.Cog):
             await interaction.followup.send(f"❌ Error: {e}", ephemeral=True)
 
 
-async def setup(bot: commands.Bot):
-    await bot.add_cog(RegistrationAdmin(bot))
-    logger.info("✅ RegistrationAdmin cog loaded")
-
+    # ── /reg-repair ───────────────────────────────────────────────────────────
     @app_commands.command(name="reg-repair", description="[Admin] Repair auto-channels and DB for an already approved server")
     @app_commands.describe(guild_id="The Server ID to repair")
     async def reg_repair(self, interaction: discord.Interaction, guild_id: str):
@@ -283,5 +280,12 @@ async def setup(bot: commands.Bot):
                 await interaction.followup.send(f"⚠️ **Failed to repair {doc.get('guild_name', guild_id)}**: {msg}")
 
         except Exception as e:
-            logger.error(f"Error repairing guild {guild_id}: {e}")
+            import logging
+            logging.getLogger(__name__).error(f"Error repairing guild {guild_id}: {e}")
             await interaction.followup.send(f"❌ Error: {e}")
+
+
+async def setup(bot: commands.Bot):
+    await bot.add_cog(RegistrationAdmin(bot))
+    import logging
+    logging.getLogger(__name__).info("✅ RegistrationAdmin cog loaded")

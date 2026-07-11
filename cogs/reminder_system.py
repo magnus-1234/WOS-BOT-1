@@ -529,7 +529,7 @@ class ReminderStorage:
         allowed = {
             'image_url', 'thumbnail_url', 'body', 'footer_text', 'footer_icon_url', 
             'mention', 'reminder_time', 'author_url', 'message', 'channel_id',
-            'is_recurring', 'recurrence_type', 'recurrence_interval', 'original_time_pattern'
+            'is_recurring', 'recurrence_type', 'recurrence_interval', 'original_time_pattern', 'is_sent'
         }
         to_update = {k: v for k, v in fields.items() if k in allowed}
         if not to_update:
@@ -603,8 +603,8 @@ class ReminderStorage:
             logger.error(f"❌ Failed to get user reminders: {e}")
             return []
     
-    def delete_reminder(self, reminder_id: int, user_id: str) -> bool:
-        """Delete a reminder (only if it belongs to the user)"""
+    def delete_reminder(self, reminder_id: int, user_id: Optional[str] = None) -> bool:
+        """Delete a reminder"""
 
         if mongo_enabled() and RemindersAdapter:
             try:
@@ -615,17 +615,23 @@ class ReminderStorage:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute('''
-                    UPDATE reminders SET is_active = 0 
-                    WHERE id = ? AND user_id = ? AND is_active = 1
-                ''', (reminder_id, user_id))
+                if user_id:
+                    cursor.execute('''
+                        UPDATE reminders SET is_active = 0 
+                        WHERE id = ? AND user_id = ? AND is_active = 1
+                    ''', (reminder_id, user_id))
+                else:
+                    cursor.execute('''
+                        UPDATE reminders SET is_active = 0 
+                        WHERE id = ? AND is_active = 1
+                    ''', (reminder_id,))
                 
                 if cursor.rowcount > 0:
                     conn.commit()
-                    logger.info(f"✅ Deleted reminder {reminder_id} for user {user_id}")
+                    logger.info(f"✅ Deleted reminder {reminder_id}")
                     return True
                 else:
-                    logger.warning(f"❌ No active reminder found with ID {reminder_id} for user {user_id}")
+                    logger.warning(f"❌ No active reminder found with ID {reminder_id}")
                     return False
         except Exception as e:
             logger.error(f"❌ Failed to delete reminder: {e}")

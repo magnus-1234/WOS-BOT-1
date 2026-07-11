@@ -872,7 +872,7 @@ class RemindersAdapter:
             return []
 
     @staticmethod
-    def delete_reminder(reminder_id: Union[int, str], user_id: str) -> bool:
+    def delete_reminder(reminder_id: Union[int, str], user_id: Optional[str] = None) -> bool:
         """Delete (deactivate) a reminder"""
         try:
             db = _get_db_reminders()
@@ -882,11 +882,16 @@ class RemindersAdapter:
             except:
                 pass
 
+            query = {'_id': reminder_id}
+            if user_id:
+                query['user_id'] = str(user_id)
+            query['$or'] = [{'is_active': 1}, {'is_active': True}, {'is_active': '1'}, {'is_active': 'true'}, {'is_active': 'True'}, {'is_active': {'$exists': False}}]
+
             res = db[RemindersAdapter.COLL].update_one(
-                {'_id': reminder_id, 'user_id': str(user_id), 'is_active': 1},
+                query,
                 {'$set': {'is_active': 0}}
             )
-            return res.modified_count > 0
+            return res.modified_count > 0 or res.matched_count > 0
         except Exception as e:
             logger.error(f'Failed to delete reminder {reminder_id} in Mongo: {e}')
             return False

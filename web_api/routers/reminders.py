@@ -679,7 +679,7 @@ async def delete_reminder(request: Request, guild_id: str, reminder_id: str):
     _bot = getattr(request.app.state, 'bot', None)
     storage = getattr(_bot, 'reminder_system', None).storage if _bot and hasattr(_bot, 'reminder_system') else ReminderStorage()
     
-    success = storage.delete_reminder(reminder_id, str(user_id))
+    success = storage.delete_reminder(reminder_id, None)
     
     if success:
         return {"status": "success"}
@@ -762,7 +762,8 @@ async def update_reminder(request: Request, guild_id: str, reminder_id: str, pay
         "is_recurring": recurring_info.get("is_recurring", False),
         "recurrence_type": recurring_info.get("type"),
         "recurrence_interval": recurring_info.get("interval"),
-        "original_time_pattern": recurring_info.get("pattern")
+        "original_time_pattern": recurring_info.get("pattern"),
+        "is_sent": 0
     }
     
     success = storage.update_reminder_fields(rid, update_data)

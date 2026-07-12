@@ -666,7 +666,8 @@ async def get_player_info_api(request: Request):
                 "nickname": data.get("nickname"),
                 "furnace_lv": data.get("stove_lv"),
                 "furnace_lv_formatted": manage_cog.format_furnace_level(data.get("stove_lv", 0)),
-                "avatar_image": data.get("avatar_image")
+                "avatar_image": data.get("avatar_image"),
+                "stateId": data.get("kid")
             }
         }
     except HTTPException:

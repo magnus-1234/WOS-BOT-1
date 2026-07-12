@@ -124,14 +124,22 @@ def _safe_registration_doc(doc):
     return safe
 
 
-async def _quick_setup_feature_status(guild_id: int):
+async def _quick_setup_feature_status(guild_id: int, guild=None):
     welcome = await WelcomeChannelAdapter.get_async(guild_id) if WelcomeChannelAdapter else None
     birthday_channel_id = await BirthdayChannelAdapter.get_async(guild_id) if BirthdayChannelAdapter else None
+    
+    reminder_configured = False
+    if guild:
+        reminder_channel = discord.utils.get(guild.text_channels, name="⏰〢reminder")
+        if reminder_channel:
+            reminder_configured = True
+            
     return {
         "welcome_configured": bool(welcome and welcome.get("enabled") and welcome.get("channel_id")),
         "welcome_channel_id": str(welcome.get("channel_id")) if welcome and welcome.get("channel_id") else "",
         "birthday_configured": bool(birthday_channel_id),
         "birthday_channel_id": str(birthday_channel_id) if birthday_channel_id else "",
+        "reminder_configured": reminder_configured
     }
 
 
@@ -290,13 +298,16 @@ async def check_registration_status(guild_id: str):
 
 
 @router.get("/quick-setup/status")
-async def check_quick_setup_status(guild_id: str, discord_user_id: str = "0"):
+async def check_quick_setup_status(request: Request, guild_id: str, discord_user_id: str = "0"):
     if not mongo_enabled() or not PendingConfigAdapter:
         raise HTTPException(status_code=500, detail="Database not available")
 
     guild_int = int(guild_id)
+    bot = getattr(request.app.state, "bot", None)
+    guild = bot.get_guild(guild_int) if bot else None
+    
     reg_status, reg_doc = await _get_registration_status(guild_int)
-    features = await _quick_setup_feature_status(guild_int)
+    features = await _quick_setup_feature_status(guild_int, guild)
 
     user_registration = {
         "has_registration": False,
@@ -325,7 +336,7 @@ async def check_quick_setup_status(guild_id: str, discord_user_id: str = "0"):
         "registration": _safe_registration_doc(reg_doc),
         "features": features,
         "user_registration": user_registration,
-        "all_configured": bool(features["welcome_configured"] and features["birthday_configured"] and reg_status == "approved"),
+        "all_configured": bool(features["welcome_configured"] and features["birthday_configured"] and features.get("reminder_configured", False) and reg_status == "approved"),
     }
 
 
@@ -342,6 +353,7 @@ async def run_quick_setup(body: QuickSetupRequest, request: Request):
 
     welcome_channel, welcome_created = await _ensure_text_channel(guild, "welcome")
     birthday_channel, birthday_created = await _ensure_text_channel(guild, "birthday")
+    reminder_channel, reminder_created = await _ensure_text_channel(guild, "⏰〢reminder")
     await WelcomeChannelAdapter.set_async(guild_int, int(welcome_channel.id), True)
     await BirthdayChannelAdapter.set_async(guild_int, int(birthday_channel.id))
     birthday_manager_message = await _send_birthday_manager_message(guild_int, birthday_channel, bot)

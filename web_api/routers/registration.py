@@ -354,6 +354,57 @@ async def run_quick_setup(body: QuickSetupRequest, request: Request):
     welcome_channel, welcome_created = await _ensure_text_channel(guild, "welcome")
     birthday_channel, birthday_created = await _ensure_text_channel(guild, "birthday")
     reminder_channel, reminder_created = await _ensure_text_channel(guild, "⏰〢reminder")
+    if reminder_created:
+        try:
+            from datetime import datetime, timedelta
+            import sqlite3
+            
+            now_utc = datetime.utcnow()
+            reminder_time = now_utc.replace(hour=23, minute=55, second=0, microsecond=0)
+            if reminder_time <= now_utc:
+                reminder_time += timedelta(days=1)
+                
+            admin_id = int(body.discord_user_id or 0)
+            reminder_data = {
+                'user_id': str(admin_id) if admin_id else "0",
+                'channel_id': str(reminder_channel.id),
+                'guild_id': str(guild_int),
+                'message': 'ARENA ⚔️',
+                'body': None,
+                'reminder_time': reminder_time.isoformat(),
+                'created_at': now_utc.isoformat(),
+                'is_active': True,
+                'is_sent': False,
+                'is_recurring': True,
+                'recurrence_type': 'daily',
+                'recurrence_interval': 1,
+                'original_time_pattern': 'daily at 23:55',
+                'mention': 'everyone',
+                'image_url': None,
+                'thumbnail_url': 'https://cdn.discordapp.com/attachments/1435569370389807144/1438668192372490331/95eab350caae2ac1.png?ex=6a52ce2a&is=6a517caa&hm=6bdddcf19ffc553e90123edb835e5688a6458b512f6d9ac28afe9e96a31f438b',
+                'footer_text': None,
+                'footer_icon_url': None,
+                'author_url': None
+            }
+            
+            from db.mongo_adapters import RemindersAdapter, mongo_enabled
+            if mongo_enabled() and hasattr(RemindersAdapter, 'add_reminder_async'):
+                await RemindersAdapter.add_reminder_async(reminder_data)
+                
+            with sqlite3.connect('reminders.db', timeout=10) as r_db:
+                r_cursor = r_db.cursor()
+                r_cursor.execute('''
+                    INSERT INTO reminders (user_id, channel_id, guild_id, message, body, reminder_time, created_at,
+                                         is_recurring, recurrence_type, recurrence_interval, original_time_pattern, mention, thumbnail_url)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    str(admin_id) if admin_id else "0", str(reminder_channel.id), str(guild_int), 'ARENA ⚔️', None, reminder_time.isoformat(),
+                    now_utc.isoformat(), 1, 'daily', 1, 'daily at 23:55', 'everyone',
+                    'https://cdn.discordapp.com/attachments/1435569370389807144/1438668192372490331/95eab350caae2ac1.png?ex=6a52ce2a&is=6a517caa&hm=6bdddcf19ffc553e90123edb835e5688a6458b512f6d9ac28afe9e96a31f438b'
+                ))
+                r_db.commit()
+        except Exception as e:
+            logger.error(f"Failed to set up arena reminder during quick setup: {e}")
     await WelcomeChannelAdapter.set_async(guild_int, int(welcome_channel.id), True)
     await BirthdayChannelAdapter.set_async(guild_int, int(birthday_channel.id))
     birthday_manager_message = await _send_birthday_manager_message(guild_int, birthday_channel, bot)

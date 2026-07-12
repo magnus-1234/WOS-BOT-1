@@ -2,7 +2,7 @@ import discord
 import logging
 import sqlite3
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -160,6 +160,64 @@ async def setup_approved_guild_channels(bot: discord.Client, guild_id: int, alli
                 pass
         except Exception as e:
             logger.error(f"Failed to setup welcome channel: {e}")
+            
+        # 4. Reminder Channel config
+        try:
+            reminder_channel = discord.utils.get(guild.text_channels, name="⏰〢reminder")
+            if not reminder_channel:
+                reminder_channel = await guild.create_text_channel("⏰〢reminder")
+            
+            now_utc = datetime.utcnow()
+            reminder_time = now_utc.replace(hour=23, minute=55, second=0, microsecond=0)
+            if reminder_time <= now_utc:
+                reminder_time += timedelta(days=1)
+                
+            reminder_data = {
+                'user_id': str(admin_id),
+                'channel_id': str(reminder_channel.id),
+                'guild_id': str(guild_id),
+                'message': 'ARENA ⚔️',
+                'body': None,
+                'reminder_time': reminder_time.isoformat(),
+                'created_at': now_utc.isoformat(),
+                'is_active': True,
+                'is_sent': False,
+                'is_recurring': True,
+                'recurrence_type': 'daily',
+                'recurrence_interval': 1,
+                'original_time_pattern': 'daily at 23:55',
+                'mention': 'everyone',
+                'image_url': None,
+                'thumbnail_url': None,
+                'footer_text': None,
+                'footer_icon_url': None,
+                'author_url': None
+            }
+            
+            try:
+                from db.mongo_adapters import RemindersAdapter, mongo_enabled
+                if mongo_enabled() and hasattr(RemindersAdapter, 'add_reminder_async'):
+                    await RemindersAdapter.add_reminder_async(reminder_data)
+            except Exception as e:
+                logger.error(f"Failed to insert reminder in mongo: {e}")
+                
+            try:
+                with sqlite3.connect('reminders.db', timeout=10) as r_db:
+                    r_cursor = r_db.cursor()
+                    r_cursor.execute('''
+                        INSERT INTO reminders (user_id, channel_id, guild_id, message, body, reminder_time, created_at,
+                                             is_recurring, recurrence_type, recurrence_interval, original_time_pattern, mention)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        str(admin_id), str(reminder_channel.id), str(guild_id), 'ARENA ⚔️', None, reminder_time.isoformat(),
+                        now_utc.isoformat(), 1, 'daily', 1, 'daily at 23:55', 'everyone'
+                    ))
+                    r_db.commit()
+            except Exception as e:
+                logger.error(f"Failed to insert reminder in sqlite: {e}")
+                
+        except Exception as e:
+            logger.error(f"Failed to setup reminder channel: {e}")
             
         return True, "Channels and settings successfully configured."
     except Exception as e:

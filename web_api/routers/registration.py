@@ -387,7 +387,7 @@ async def run_quick_setup(body: QuickSetupRequest, request: Request):
                 'author_url': None
             }
             
-            from db.mongo_adapters import RemindersAdapter, mongo_enabled
+            from db.mongo_adapters import RemindersAdapter
             if mongo_enabled() and hasattr(RemindersAdapter, 'add_reminder_async'):
                 await RemindersAdapter.add_reminder_async(reminder_data)
                 

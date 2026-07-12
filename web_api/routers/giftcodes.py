@@ -647,18 +647,26 @@ async def get_player_info_api(request: Request):
         if manage_cog is None:
              raise HTTPException(status_code=503, detail="Gift Code management module not available")
 
-        player_data = await manage_cog.fetch_player_data(fid)
+        player_data = await manage_cog.fetch_player_data(fid, return_full=True)
         if not player_data:
             raise HTTPException(status_code=404, detail="Player not found or API error")
             
+        if player_data.get("status") == "rate_limited":
+            wait_time = player_data.get("wait_time", 5)
+            raise HTTPException(status_code=429, detail=f"WOS API rate limited. Please wait {wait_time:.1f}s.")
+            
+        if player_data.get("status") == "not_found" or not player_data.get("data"):
+            raise HTTPException(status_code=404, detail="Player not found or API error")
+            
+        data = player_data.get("data", {})
         return {
             "status": "success",
             "data": {
                 "id": fid,
-                "nickname": player_data.get("nickname"),
-                "furnace_lv": player_data.get("furnace_lv"),
-                "furnace_lv_formatted": manage_cog.format_furnace_level(player_data.get("furnace_lv", 0)),
-                "avatar_image": player_data.get("avatar_image")
+                "nickname": data.get("nickname"),
+                "furnace_lv": data.get("stove_lv"),
+                "furnace_lv_formatted": manage_cog.format_furnace_level(data.get("stove_lv", 0)),
+                "avatar_image": data.get("avatar_image")
             }
         }
     except HTTPException:

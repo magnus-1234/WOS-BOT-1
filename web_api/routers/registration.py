@@ -381,7 +381,7 @@ async def run_quick_setup(body: QuickSetupRequest, request: Request):
                 'original_time_pattern': 'daily at 23:55',
                 'mention': 'everyone',
                 'image_url': None,
-                'thumbnail_url': 'https://cdn.discordapp.com/attachments/1435569370389807144/1438668192372490331/95eab350caae2ac1.png?ex=6a52ce2a&is=6a517caa&hm=6bdddcf19ffc553e90123edb835e5688a6458b512f6d9ac28afe9e96a31f438b',
+                'thumbnail_url': 'https://files.catbox.moe/uok71x.png',
                 'footer_text': None,
                 'footer_icon_url': None,
                 'author_url': None
@@ -400,7 +400,7 @@ async def run_quick_setup(body: QuickSetupRequest, request: Request):
                 ''', (
                     str(admin_id) if admin_id else "0", str(reminder_channel.id), str(guild_int), 'ARENA ⚔️', None, reminder_time.isoformat(),
                     now_utc.isoformat(), 1, 'daily', 1, 'daily at 23:55', 'everyone',
-                    'https://cdn.discordapp.com/attachments/1435569370389807144/1438668192372490331/95eab350caae2ac1.png?ex=6a52ce2a&is=6a517caa&hm=6bdddcf19ffc553e90123edb835e5688a6458b512f6d9ac28afe9e96a31f438b'
+                    'https://files.catbox.moe/uok71x.png'
                 ))
                 r_db.commit()
         except Exception as e:

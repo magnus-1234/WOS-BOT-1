@@ -1611,20 +1611,34 @@ class Music(commands.Cog):
     async def cog_load(self):
         """Initialize Wavelink node when cog loads"""
         try:
-            # Get Lavalink configuration from environment
+            nodes = []
+            
+            # Get primary Lavalink configuration from environment
             host = os.getenv('LAVALINK_HOST', 'localhost')
             port = int(os.getenv('LAVALINK_PORT', '2333'))
             password = os.getenv('LAVALINK_PASSWORD', 'youshallnotpass')
             secure = os.getenv('LAVALINK_SECURE', 'false').lower() == 'true'
 
-            # Create node
-            node = wavelink.Node(
+            # Create primary node
+            nodes.append(wavelink.Node(
                 uri=f"{'https' if secure else 'http'}://{host}:{port}",
                 password=password
-            )
+            ))
+            
+            # Check for backup nodes (2 and 3)
+            for i in range(2, 4):
+                host_backup = os.getenv(f'LAVALINK_HOST_{i}')
+                if host_backup:
+                    port_backup = int(os.getenv(f'LAVALINK_PORT_{i}', '2333'))
+                    password_backup = os.getenv(f'LAVALINK_PASSWORD_{i}', 'youshallnotpass')
+                    secure_backup = os.getenv(f'LAVALINK_SECURE_{i}', 'false').lower() == 'true'
+                    nodes.append(wavelink.Node(
+                        uri=f"{'https' if secure_backup else 'http'}://{host_backup}:{port_backup}",
+                        password=password_backup
+                    ))
 
-            # Connect to Lavalink
-            await wavelink.Pool.connect(client=self.bot, nodes=[node])
+            # Connect to Lavalink nodes
+            await wavelink.Pool.connect(client=self.bot, nodes=nodes)
 
             # Wait a bit for connection to establish
             await asyncio.sleep(2)

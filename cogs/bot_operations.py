@@ -3955,7 +3955,7 @@ class BotOperations(commands.Cog):
                                 from db.mongo_adapters import AlliancesAdapter
                                 for doc in AlliancesAdapter.get_all():
                                     aid = doc.get('alliance_id') or doc.get('id')
-                                    if aid:
+                                    if aid and str(doc.get('discord_server_id', '')) == str(selected_guild_id):
                                         alliances_map[int(aid)] = doc.get('name', 'Unknown')
                             except Exception as e:
                                 print(f"MongoDB alliance fetch failed: {e}")
@@ -3964,7 +3964,7 @@ class BotOperations(commands.Cog):
                         try:
                             with sqlite3.connect('db/alliance.sqlite') as alliance_db:
                                 alliance_cursor = alliance_db.cursor()
-                                alliance_cursor.execute("SELECT alliance_id, name FROM alliance_list")
+                                alliance_cursor.execute("SELECT alliance_id, name FROM alliance_list WHERE discord_server_id = ?", (selected_guild_id,))
                                 for aid, name in alliance_cursor.fetchall():
                                     alliances_map[int(aid)] = name
                         except Exception as e:

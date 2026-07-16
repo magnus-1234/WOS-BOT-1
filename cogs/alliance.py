@@ -2477,6 +2477,14 @@ class Alliance(commands.Cog):
                         try:
                             AlliancesAdapter.upsert(alliance_id, alliance_name, interaction.guild.id)
                             AllianceSettingsAdapter.upsert(alliance_id, channel_id, interval, giftcodecontrol=1)
+                            
+                            # Auto-assign the newly registered alliance to the server
+                            from db.mongo_adapters import ServerAllianceAdapter
+                            ServerAllianceAdapter.set_alliance(
+                                guild_id=interaction.guild.id, 
+                                alliance_id=alliance_id, 
+                                assigned_by=interaction.user.id
+                            )
                         except Exception:
                             pass
 

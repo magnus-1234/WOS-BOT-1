@@ -3399,7 +3399,7 @@ class Alliance(commands.Cog):
         # Removed custom emojis as per request
         return ""
     
-    async def _get_monitoring_members(self, alliance_id: int) -> list:
+    async def _get_monitoring_members(self, alliance_id: int, guild_id: int = None) -> list:
         """Get all members of an alliance from database.
         
         Uses a targeted MongoDB query (not full-collection scan) and merges with
@@ -3442,6 +3442,16 @@ class Alliance(commands.Cog):
                         res.append((fid, row[1] or '', int(row[2] or 0), str(row[3] or '')))
         except Exception as e:
             self.log_message(f"[Monitor] Error querying SQLite members for alliance {alliance_id}: {e}")
+
+        if guild_id:
+            try:
+                from db.mongo_adapters import ServerLimitsAdapter, mongo_enabled
+                if mongo_enabled() and ServerLimitsAdapter:
+                    limit = await ServerLimitsAdapter.get_max_redeem_members_async(guild_id)
+                    if limit is not None and limit >= 0:
+                        res = res[:limit]
+            except Exception as e:
+                self.log_message(f"[Monitor] Error getting limit for guild {guild_id}: {e}")
 
         return res
     
@@ -3493,7 +3503,7 @@ class Alliance(commands.Cog):
                 self.log_message(f"Error getting alliance name: {e}")
             
             # Get current members from database
-            current_members = await self._get_monitoring_members(alliance_id)
+            current_members = await self._get_monitoring_members(alliance_id, guild_id=guild_id)
             
             if not current_members:
                 self.log_message(f"No members found for alliance {alliance_id}")
@@ -4431,7 +4441,7 @@ class AllianceMonitorView(discord.ui.View):
                 # Save monitoring configuration immediately
                 try:
                     # Get member count
-                    members = await self.cog._get_monitoring_members(alliance_id)
+                    members = await self.cog._get_monitoring_members(alliance_id, guild_id=interaction.guild_id)
                     member_count = len(members) if members else 0
                     
                     # Save to database
@@ -4600,7 +4610,7 @@ class AllianceMonitorView(discord.ui.View):
                         alliance_name = result[0]
                 
                 # Get live member count (merges MongoDB + SQLite so it's always accurate)
-                live_members = await self.cog._get_monitoring_members(alliance_id)
+                live_members = await self.cog._get_monitoring_members(alliance_id, guild_id=interaction.guild_id)
                 member_count = len(live_members)
             except Exception:
                 pass
@@ -4743,7 +4753,7 @@ class AllianceMonitorView(discord.ui.View):
                 # Create appropriate embed based on new status
                 if new_status == 1:
                     # Get member count
-                    members = await self.cog._get_monitoring_members(alliance_id)
+                    members = await self.cog._get_monitoring_members(alliance_id, guild_id=interaction.guild_id)
                     member_count = len(members) if members else 0
                     
                     success_embed = discord.Embed(

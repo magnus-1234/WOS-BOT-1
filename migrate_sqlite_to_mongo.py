@@ -43,19 +43,23 @@ async def migrate_data():
         migrated_codes = 0
         for row in gift_codes:
             code, date_str, status, added_by, added_at, processed = row
-            success = GiftCodesAdapter.add_or_update_code(
-                code=code,
-                date=date_str,
-                validation_status=status,
-                added_by=added_by,
-                added_at=added_at
-            )
-            # update auto_redeem_processed manually since add_or_update_code doesn't do it directly
-            if success and processed == 1:
-                GiftCodesAdapter.mark_auto_redeem_processed(code)
-            
-            if success:
+            # We use raw mongodb update to handle all fields
+            db = _get_db_main()
+            try:
+                db[GiftCodesAdapter.COLL].update_one(
+                    {'_id': code},
+                    {'$set': {
+                        'date': date_str,
+                        'validation_status': status,
+                        'added_by': added_by,
+                        'added_at': added_at,
+                        'auto_redeem_processed': processed
+                    }},
+                    upsert=True
+                )
                 migrated_codes += 1
+            except Exception as e:
+                logger.error(f"Failed to migrate code {code}: {e}")
         logger.info(f"Successfully migrated {migrated_codes} gift codes.")
     except Exception as e:
         logger.error(f"Error migrating gift codes: {e}")

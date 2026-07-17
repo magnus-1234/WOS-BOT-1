@@ -4,6 +4,9 @@ import logging
 from datetime import datetime
 import sys
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Ensure the root dir is in path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -29,7 +32,6 @@ async def migrate_data():
     
     # 1. Ensure new adapter indexes
     await AutoRedeemCompletedGuildsAdapter.ensure_indexes_async()
-    await GiftCodesAdapter.ensure_indexes_async()
     logger.info("Indexes ensured.")
 
     # 2. Migrate Gift Codes

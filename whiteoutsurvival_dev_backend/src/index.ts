@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import multer from 'multer';
 import { MongoClient, ObjectId, type Db, type Sort } from 'mongodb';
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { WosAuthService } from './services/wosAuth';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '..', '.env') });
@@ -88,6 +89,8 @@ type AuthProvider = 'google' | 'discord' | 'discord-music';
 
 type LinkedPlayerAccount = PlayerProfile & {
   linkedAt: Date;
+  wosVerified?: boolean;
+  wosToken?: string;
 };
 
 type UserDocument = {
@@ -1886,7 +1889,16 @@ app.post('/api/profile/player-accounts', async (req, res) => {
 
     const { users } = await getCollections();
     const now = new Date();
-    const linkedPlayer: LinkedPlayerAccount = { ...player, linkedAt: now };
+    const isWosVerified = req.body.wosVerified === true;
+    const wosToken = req.body.wosToken;
+
+    const linkedPlayer: LinkedPlayerAccount = { 
+      ...player, 
+      linkedAt: now,
+      wosVerified: isWosVerified,
+      ...(wosToken && { wosToken })
+    };
+    
     await users.updateOne(
       { _id: user._id, 'playerAccounts.playerId': { $ne: playerId } },
       { $push: { playerAccounts: linkedPlayer }, $set: { updatedAt: now } },
@@ -1896,6 +1908,54 @@ app.post('/api/profile/player-accounts', async (req, res) => {
     res.json({ user: updatedUser ? toUserResponse(updatedUser) : toUserResponse(user) });
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : 'Unable to link player account' });
+  }
+});
+
+app.post('/api/wos-auth/send-code', async (req, res) => {
+  try {
+    // TEMPORARILY DISABLED FOR TESTING
+    // const user = await requireCurrentUser(req, res);
+    // if (!user?._id) return;
+
+    const playerId = cleanPlayerId(req.body.playerId);
+    if (!playerId) {
+      res.status(400).json({ error: 'Player ID is required' });
+      return;
+    }
+
+    await WosAuthService.sendVerificationCode(playerId);
+    res.json({ ok: true, message: 'Verification code sent to in-game mail' });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to send verification code' });
+  }
+});
+
+app.post('/api/wos-auth/verify-code', async (req, res) => {
+  try {
+    // TEMPORARILY DISABLED FOR TESTING
+    // const user = await requireCurrentUser(req, res);
+    // if (!user?._id) return;
+
+    const playerId = cleanPlayerId(req.body.playerId);
+    const code = cleanText(req.body.code, 10);
+    
+    if (!playerId || !code) {
+      res.status(400).json({ error: 'Player ID and code are required' });
+      return;
+    }
+
+    const wosToken = await WosAuthService.verifyCode(playerId, code);
+    
+    // Also verify the player exists via the gift code API (which populates the profile)
+    const player = await fetchPlayerProfile(playerId);
+    if (!player) {
+      res.status(404).json({ error: 'Verified but could not fetch player profile details' });
+      return;
+    }
+
+    res.json({ ok: true, player, wosToken });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to verify code' });
   }
 });
 

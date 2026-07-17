@@ -4635,6 +4635,84 @@ class PersistentViewsAdapter:
         except Exception: return False
 
 
+class AutoRedeemCompletedGuildsAdapter:
+    COLL = 'auto_redeem_completed_guilds'
+
+    @staticmethod
+    async def ensure_indexes_async() -> bool:
+        try:
+            db = await _get_db_main_async()
+            await db[AutoRedeemCompletedGuildsAdapter.COLL].create_index(
+                [("guild_id", 1), ("giftcode", 1)],
+                unique=True,
+                background=True,
+            )
+            await db[AutoRedeemCompletedGuildsAdapter.COLL].create_index([("giftcode", 1)], background=True)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to ensure auto redeem completed guilds indexes: {e}")
+            return False
+
+    @staticmethod
+    def mark_completed(guild_id: int, giftcode: str, status: str = "completed") -> bool:
+        try:
+            db = _get_db_main()
+            now = datetime.utcnow().isoformat()
+            db[AutoRedeemCompletedGuildsAdapter.COLL].update_one(
+                {'guild_id': int(guild_id), 'giftcode': giftcode.strip().upper()},
+                {
+                    '$set': {
+                        'status': status,
+                        'completed_at': now
+                    }
+                },
+                upsert=True
+            )
+            return True
+        except Exception as e:
+            logger.error(f'Failed to mark guild {guild_id} completed for {giftcode}: {e}')
+            return False
+            
+    @staticmethod
+    async def mark_completed_async(guild_id: int, giftcode: str, status: str = "completed") -> bool:
+        try:
+            db = await _get_db_main_async()
+            now = datetime.utcnow().isoformat()
+            await db[AutoRedeemCompletedGuildsAdapter.COLL].update_one(
+                {'guild_id': int(guild_id), 'giftcode': giftcode.strip().upper()},
+                {
+                    '$set': {
+                        'status': status,
+                        'completed_at': now
+                    }
+                },
+                upsert=True
+            )
+            return True
+        except Exception as e:
+            logger.error(f'Failed to mark guild {guild_id} completed for {giftcode} (async): {e}')
+            return False
+
+    @staticmethod
+    def is_completed(guild_id: int, giftcode: str) -> bool:
+        try:
+            db = _get_db_main()
+            return db[AutoRedeemCompletedGuildsAdapter.COLL].count_documents({
+                'guild_id': int(guild_id), 
+                'giftcode': giftcode.strip().upper()
+            }) > 0
+        except Exception:
+            return False
+
+    @staticmethod
+    def get_completed_guilds_for_code(giftcode: str) -> set:
+        try:
+            db = _get_db_main()
+            docs = db[AutoRedeemCompletedGuildsAdapter.COLL].find({'giftcode': giftcode.strip().upper()})
+            return {doc['guild_id'] for doc in docs}
+        except Exception:
+            return set()
+
 
 class AutoRedeemedCodesAdapter:
     COLL = 'auto_redeemed_codes'

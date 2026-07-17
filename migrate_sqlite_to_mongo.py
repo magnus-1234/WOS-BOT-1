@@ -74,15 +74,18 @@ async def migrate_data():
         for row in members:
             guild_id, fid, nickname, furnace_lv, avatar_image, added_by, added_at = row
             member_data = {
-                'nickname': nickname,
-                'furnace_lv': furnace_lv,
-                'avatar_image': avatar_image,
-                'added_by': added_by,
-                'added_at': added_at
+                'nickname': nickname or 'Unknown',
+                'furnace_lv': int(furnace_lv) if furnace_lv is not None else 0,
+                'avatar_image': avatar_image or '',
+                'added_by': int(added_by) if added_by is not None else 0,
+                'added_at': added_at or ''
             }
-            success = await AutoRedeemMembersAdapter.add_member_async(int(guild_id), str(fid), member_data)
-            if success:
-                migrated_members += 1
+            try:
+                success = await AutoRedeemMembersAdapter.add_member_async(int(guild_id), str(fid), member_data)
+                if success:
+                    migrated_members += 1
+            except Exception as e:
+                logger.error(f"Failed to add member {fid} for guild {guild_id}: {e}")
         logger.info(f"Successfully migrated {migrated_members} auto-redeem members.")
     except Exception as e:
         logger.error(f"Error migrating auto-redeem members: {e}")

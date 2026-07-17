@@ -114,39 +114,6 @@ async def get_automation_settings(guild_id: str):
         id_channel_doc = await IDChannelsAdapter.get_channel_async(gid_int)
         registration_channel_id = str(id_channel_doc.get('channel_id')) if id_channel_doc else None
         
-        # SQLite Fallbacks if MongoDB is empty
-        if not auto_redeem_channel_id or not registration_channel_id:
-            try:
-                gift_db_path = os.path.join(base_dir, 'db', 'giftcode.sqlite')
-                id_db_path = os.path.join(base_dir, 'db', 'id_channel.sqlite')
-                
-                # Fallback for Auto-Redeem Channel
-                if not auto_redeem_channel_id and os.path.exists(gift_db_path):
-                    with sqlite3.connect(gift_db_path) as conn:
-                        cursor = conn.cursor()
-                        cursor.execute("SELECT channel_id FROM auto_redeem_channels WHERE guild_id = ?", (gid_int,))
-                        row = cursor.fetchone()
-                        if row:
-                            auto_redeem_channel_id = str(row[0])
-                        
-                        if not ar_settings:
-                            cursor.execute("SELECT enabled FROM auto_redeem_settings WHERE guild_id = ?", (gid_int,))
-                            en_row = cursor.fetchone()
-                            if en_row:
-                                auto_redeem_enabled = bool(en_row[0])
-
-                # Fallback for Registration Channel
-                if not registration_channel_id and os.path.exists(id_db_path):
-                    with sqlite3.connect(id_db_path) as conn:
-                        cursor = conn.cursor()
-                        cursor.execute("SELECT channel_id FROM id_channels WHERE guild_id = ?", (gid_int,))
-                        row = cursor.fetchone()
-                        if row:
-                            registration_channel_id = str(row[0])
-                            
-            except Exception as e:
-                logger.warning(f"SQLite fallback failed: {e}")
-
         # Mutual Fallback: If one is missing but the other exists, assume they are the same (legacy bot behavior)
         if registration_channel_id and not auto_redeem_channel_id:
             auto_redeem_channel_id = registration_channel_id

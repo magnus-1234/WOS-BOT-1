@@ -55,8 +55,22 @@ class AutoRedeemMemberAdd(BaseModel):
     avatar_image: Optional[str] = ""
 
 @router.get("/members/{guild_id}")
-async def get_auto_redeem_members(guild_id: str):
+async def get_auto_redeem_members(guild_id: str, request: Request):
     logger.info(f"Fetching auto-redeem members for guild {guild_id}")
+    
+    bot = getattr(request.app.state, "bot", None)
+    if bot:
+        manage_cog = bot.get_cog("ManageGiftCode")
+        if manage_cog:
+            try:
+                members = await manage_cog.AutoRedeemDB.get_members_async(manage_cog, int(guild_id))
+                for m in members:
+                    if 'fid' in m:
+                        m['id'] = m.pop('fid')
+                return {"members": members}
+            except Exception as e:
+                logger.error(f"Error fetching members via cog: {e}")
+
     if not mongo_enabled() or AutoRedeemMembersAdapter is None:
         logger.warning("MongoDB or Adapter not available, returning empty members list")
         return {"members": []}
@@ -196,10 +210,7 @@ async def update_automation_settings(guild_id: str, settings: GiftCodeAutomation
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/members/{guild_id}/add")
-async def add_auto_redeem_member(guild_id: str, member: AutoRedeemMemberAdd):
-    if not mongo_enabled() or AutoRedeemMembersAdapter is None:
-        raise HTTPException(status_code=503, detail="MongoDB or Adapter not enabled")
-    
+async def add_auto_redeem_member(guild_id: str, member: AutoRedeemMemberAdd, request: Request):
     try:
         member_data = {
             "nickname": member.nickname,
@@ -209,30 +220,57 @@ async def add_auto_redeem_member(guild_id: str, member: AutoRedeemMemberAdd):
             "added_at": datetime.now(timezone.utc).isoformat()
         }
         
+        bot = getattr(request.app.state, "bot", None)
+        if bot:
+            manage_cog = bot.get_cog("ManageGiftCode")
+            if manage_cog:
+                success = await manage_cog.AutoRedeemDB.add_member_async(manage_cog, int(guild_id), member.id, member_data)
+                if success == 'LIMIT_REACHED':
+                    raise HTTPException(status_code=400, detail="Server auto-redeem member limit reached")
+                elif not success:
+                    raise HTTPException(status_code=500, detail="Failed to add member via bot")
+                return {"status": "success"}
+
+        if not mongo_enabled() or AutoRedeemMembersAdapter is None:
+            raise HTTPException(status_code=503, detail="MongoDB or Adapter not enabled")
+            
         success = await AutoRedeemMembersAdapter.add_member_async(int(guild_id), member.id, member_data)
         if not success:
             raise HTTPException(status_code=500, detail="Failed to add member")
             
         return {"status": "success"}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error adding member to guild {guild_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/members/{guild_id}/remove")
-async def remove_auto_redeem_member(guild_id: str, payload: dict = Body(...)):
-    if not mongo_enabled() or AutoRedeemMembersAdapter is None:
-        raise HTTPException(status_code=503, detail="MongoDB or Adapter not enabled")
-    
+async def remove_auto_redeem_member(guild_id: str, request: Request, payload: dict = Body(...)):
     try:
         fid = payload.get("id") or payload.get("fid")
         if not fid:
             raise HTTPException(status_code=400, detail="ID is required")
+            
+        bot = getattr(request.app.state, "bot", None)
+        if bot:
+            manage_cog = bot.get_cog("ManageGiftCode")
+            if manage_cog:
+                success = await manage_cog.AutoRedeemDB.remove_member_async(manage_cog, int(guild_id), fid)
+                if not success:
+                    raise HTTPException(status_code=500, detail="Failed to remove member via bot")
+                return {"status": "success"}
+
+        if not mongo_enabled() or AutoRedeemMembersAdapter is None:
+            raise HTTPException(status_code=503, detail="MongoDB or Adapter not enabled")
             
         success = await AutoRedeemMembersAdapter.remove_member_async(int(guild_id), fid)
         if not success:
             raise HTTPException(status_code=500, detail="Failed to remove member")
             
         return {"status": "success"}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error removing member from guild {guild_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

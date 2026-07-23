@@ -53,6 +53,7 @@ class AutoRedeemMemberAdd(BaseModel):
     nickname: Optional[str] = "Unknown"
     furnace_lv: Optional[int] = 0
     avatar_image: Optional[str] = ""
+    state_id: Optional[str] = "0"
 
 @router.get("/members/{guild_id}")
 async def get_auto_redeem_members(guild_id: str):

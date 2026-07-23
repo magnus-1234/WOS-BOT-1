@@ -1336,7 +1336,7 @@ class ManageGiftCode(commands.Cog):
                 if not members:
                     try:
                         cog_instance.cursor.execute("""
-                            SELECT fid, nickname, furnace_lv, avatar_image, added_by, added_at
+                            SELECT fid, nickname, furnace_lv, avatar_image, added_by, added_at, state_id
                             FROM auto_redeem_members
                             WHERE guild_id = ?
                             ORDER BY furnace_lv DESC
@@ -1349,7 +1349,8 @@ class ManageGiftCode(commands.Cog):
                                 'furnace_lv': row[2] or 0,
                                 'avatar_image': row[3] or '',
                                 'added_by': row[4],
-                                'added_at': row[5]
+                                'added_at': row[5],
+                                'state_id': row[6] if len(row) > 6 and row[6] else '0'
                             }
                             for row in rows
                         ]
@@ -1427,7 +1428,7 @@ class ManageGiftCode(commands.Cog):
                     try:
                         def fetch_sqlite():
                             cog_instance.cursor.execute("""
-                                SELECT fid, nickname, furnace_lv, avatar_image, added_by, added_at
+                                SELECT fid, nickname, furnace_lv, avatar_image, added_by, added_at, state_id
                                 FROM auto_redeem_members
                                 WHERE guild_id = ?
                                 ORDER BY furnace_lv DESC
@@ -1442,7 +1443,8 @@ class ManageGiftCode(commands.Cog):
                                 'furnace_lv': row[2] or 0,
                                 'avatar_image': row[3] or '',
                                 'added_by': row[4],
-                                'added_at': row[5]
+                                'added_at': row[5],
+                                'state_id': row[6] if len(row) > 6 and row[6] else '0'
                             }
                             for row in rows
                         ]
@@ -1556,11 +1558,12 @@ class ManageGiftCode(commands.Cog):
                 try:
                     cog_instance.cursor.execute("""
                         INSERT OR REPLACE INTO auto_redeem_members 
-                        (guild_id, fid, nickname, furnace_lv, avatar_image, added_by, added_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        (guild_id, fid, nickname, furnace_lv, avatar_image, added_by, added_at, state_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """, (guild_id, fid, member_data.get('nickname', 'Unknown'),
                           int(member_data.get('furnace_lv', 0)), member_data.get('avatar_image', ''),
-                          int(member_data.get('added_by', 0)), member_data['added_at']))
+                          int(member_data.get('added_by', 0)), member_data['added_at'],
+                          str(member_data.get('state_id', '0'))))
                     cog_instance.giftcode_db.commit()
                     sqlite_success = cog_instance.cursor.rowcount > 0
                     if sqlite_success:
@@ -1622,11 +1625,12 @@ class ManageGiftCode(commands.Cog):
                     def write_sqlite():
                         cog_instance.cursor.execute("""
                             INSERT OR REPLACE INTO auto_redeem_members 
-                            (guild_id, fid, nickname, furnace_lv, avatar_image, added_by, added_at)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                            (guild_id, fid, nickname, furnace_lv, avatar_image, added_by, added_at, state_id)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                         """, (guild_id, fid, member_data.get('nickname', 'Unknown'),
                               int(member_data.get('furnace_lv', 0)), member_data.get('avatar_image', ''),
-                              int(member_data.get('added_by', 0)), member_data['added_at']))
+                              int(member_data.get('added_by', 0)), member_data['added_at'],
+                              str(member_data.get('state_id', '0'))))
                         cog_instance.giftcode_db.commit()
                         return cog_instance.cursor.rowcount > 0
                     
@@ -2054,6 +2058,10 @@ class ManageGiftCode(commands.Cog):
                         # Code not found on WOS servers (often due to case-mismatch from old DB entries)
                         self.logger.warning(f"❌ CDK_NOT_FOUND for {nickname} — code does not exist. Marking globally invalid.")
                         asyncio.create_task(self.mark_code_invalid(giftcode))
+                        break
+                    elif status in ["PLAYER_NOT_FOUND", "ERR_PLAYER", "INVALID_PLAYER"]:
+                        self.logger.warning(f"⚠️ Player {nickname} (`{fid}`) failed with {status}. Player may have transferred states — removing from auto-redeem list.")
+                        asyncio.create_task(self.AutoRedeemDB.remove_member_async(self, guild_id, fid))
                         break
                     elif status in ["CAPTCHA_SOLVER_NOT_AVAILABLE", "MAX_CAPTCHA_ATTEMPTS_REACHED", "CAPTCHA_INVALID"]:
                         # Captcha system failure - retry once, then give up for this member
@@ -3164,12 +3172,15 @@ class ManageGiftCode(commands.Cog):
             elif msg == "TIME ERROR" and err_code == 40007:
                 return "TIME_ERROR", image_bytes, captcha_code, method
             elif msg == "CDK NOT FOUND":
-                self.logger.warning(f"\u274c CDK NOT FOUND for FID {player_id}")
+                self.logger.warning(f"❌ CDK NOT FOUND for FID {player_id}")
                 return "CDK_NOT_FOUND", image_bytes, captcha_code, method
             elif msg == "USAGE LIMIT" and err_code == 40009:
                 return "USAGE_LIMIT", image_bytes, captcha_code, method
+            elif "ERR_PLAYER" in msg or "ROLE" in msg or "NOT EXIST" in msg or "PLAYER" in msg or err_code in (40004, 40005, 40001):
+                self.logger.warning(f"❌ Player state error for FID {player_id}: '{msg}' (code: {err_code})")
+                return "PLAYER_NOT_FOUND", image_bytes, captcha_code, method
             else:
-                self.logger.warning(f"\u26a0\ufe0f Unhandled API status: \'{msg}\' (code: {err_code}) for FID {player_id}")
+                self.logger.warning(f"⚠️ Unhandled API status: '{msg}' (code: {err_code}) for FID {player_id}")
                 return f"UNKNOWN_STATUS_{msg}", image_bytes, captcha_code, method
 
         return "MAX_ATTEMPTS_REACHED", None, None, None
@@ -5769,10 +5780,17 @@ class ManageGiftCode(commands.Cog):
             class AddMemberModal(discord.ui.Modal, title="Add Member to Auto-Redeem"):
                 fids_input = discord.ui.TextInput(
                     label="Player ID(s)",
-                    placeholder="123456789 or 123456789, 987654321 or 123456789 PlayerName",
+                    placeholder="123456789 or 123456789 PlayerName",
                     required=True,
                     style=discord.TextStyle.paragraph,
                     max_length=1000
+                )
+                state_input = discord.ui.TextInput(
+                    label="State ID",
+                    placeholder="e.g. 1045 or 1234 (Required for new IDs)",
+                    required=False,
+                    style=discord.TextStyle.short,
+                    max_length=10
                 )
                 
                 def __init__(self, cog):
@@ -5782,6 +5800,15 @@ class ManageGiftCode(commands.Cog):
                 async def on_submit(self, modal_interaction: discord.Interaction):
                     try:
                         input_text = self.fids_input.value.strip()
+                        state_val = self.state_input.value.strip() if self.state_input.value else "0"
+                        if state_val == "0" or not state_val:
+                            try:
+                                self.cog.cursor.execute("SELECT default_state FROM auto_redeem_settings WHERE guild_id = ?", (modal_interaction.guild.id,))
+                                row = self.cog.cursor.fetchone()
+                                if row and row[0] and str(row[0]).strip() != "0":
+                                    state_val = str(row[0]).strip()
+                            except Exception:
+                                pass
                         
                         # Parse FIDs (support multiple formats)
                         import re
@@ -5809,7 +5836,7 @@ class ManageGiftCode(commands.Cog):
                         # Processing animation
                         processing_embed = discord.Embed(
                             title="➕ Adding Members to Auto-Redeem",
-                            description=f"Processing **{len(fid_entries)}** member(s)...\n\n```\nFetching player data from WOS API...\n```",
+                            description=f"Processing **{len(fid_entries)}** member(s)...",
                             color=0x5865F2
                         )
                         await modal_interaction.response.send_message(embed=processing_embed, ephemeral=True)
@@ -5839,37 +5866,29 @@ class ManageGiftCode(commands.Cog):
                                 fail_count += 1
                                 continue
                             
-                            # Fetch player data from WOS API with rate limit retry
+                            # Try fetching player data from API (graceful fallback if 404)
                             player_data_full = None
-                            max_retries = 10
-                            for attempt in range(max_retries):
+                            try:
                                 player_data_full = await self.cog.fetch_player_data(fid, return_full=True)
-                                if player_data_full and player_data_full.get('status') == 'rate_limited':
-                                    wait_time = player_data_full.get('wait_time', 60)
-                                    import asyncio
-                                    await asyncio.sleep(wait_time + 1)
-                                else:
-                                    break
+                            except Exception as e:
+                                self.cog.logger.debug(f"fetch_player_data exception for {fid}: {e}")
                             
-                            if not player_data_full or player_data_full.get('status') == 'error':
-                                results.append(f"❌ API Error for FID {fid}. Try again later.")
-                                fail_count += 1
-                                continue
-                            elif player_data_full.get('status') == 'rate_limited':
-                                results.append(f"⏳ API is rate limited for FID {fid}. Try again later.")
-                                fail_count += 1
-                                continue
-                            elif player_data_full.get('status') == 'not_found' or not player_data_full.get('data'):
-                                results.append(f"❌ Invalid FID: {fid}")
-                                fail_count += 1
-                                continue
-                                
-                            data = player_data_full['data']
-                            player_data = {
-                                'nickname': data.get('nickname', 'Unknown'),
-                                'furnace_lv': int(data.get('stove_lv', 0)),
-                                'avatar_image': data.get('avatar_image', '')
-                            }
+                            if player_data_full and player_data_full.get('status') == 'success' and player_data_full.get('data'):
+                                data = player_data_full['data']
+                                player_data = {
+                                    'nickname': custom_nickname if custom_nickname else data.get('nickname', f'Player_{fid}'),
+                                    'furnace_lv': int(data.get('stove_lv', 0)),
+                                    'avatar_image': data.get('avatar_image', ''),
+                                    'state_id': state_val if state_val != '0' else str(data.get('kid', '0'))
+                                }
+                            else:
+                                # Fallback registration when API is 404 / disabled
+                                player_data = {
+                                    'nickname': custom_nickname if custom_nickname else f'Player_{fid}',
+                                    'furnace_lv': 0,
+                                    'avatar_image': '',
+                                    'state_id': state_val
+                                }
                             
                             if player_data:
                                 # Use custom nickname if provided, otherwise use API nickname

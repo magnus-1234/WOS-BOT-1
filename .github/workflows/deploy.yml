@@ -95,6 +95,18 @@ jobs:
             echo "✅ Dependencies check complete"
           fi
 
+          # Run DB migrations (idempotent — safe to run on every deploy)
+          echo ""
+          echo "🗄️  Running DB migrations..."
+          if [ -f "venv/bin/python" ]; then
+            ./venv/bin/python migrate_state_columns.py || echo "⚠️ Migration warning (may already be applied)"
+          elif [ -f "bot_venv/bin/python" ]; then
+            ./bot_venv/bin/python migrate_state_columns.py || echo "⚠️ Migration warning (may already be applied)"
+          else
+            python3 migrate_state_columns.py || python migrate_state_columns.py || echo "⚠️ Migration warning"
+          fi
+          echo "✅ DB migration complete"
+
           # Restart bot
           echo ""
           echo "🔄 Restarting bot..."

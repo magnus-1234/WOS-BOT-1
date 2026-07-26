@@ -268,8 +268,19 @@ def ensure_db_tables():
             avatar_image TEXT,
             added_by INTEGER,
             added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            state_id TEXT DEFAULT '0',
+            state_transfer_suspected INTEGER DEFAULT 0,
             PRIMARY KEY (guild_id, fid)
         )''')
+        # Migrate existing auto_redeem_members rows on older deployments
+        for _col, _td in (
+            ("state_id", "TEXT DEFAULT '0'"),
+            ("state_transfer_suspected", "INTEGER DEFAULT 0"),
+        ):
+            try:
+                c.execute(f"ALTER TABLE auto_redeem_members ADD COLUMN {_col} {_td}")
+            except Exception:
+                pass
         c.execute('''CREATE TABLE IF NOT EXISTS auto_redeem_channels (
             guild_id INTEGER PRIMARY KEY,
             channel_id INTEGER NOT NULL,
@@ -281,8 +292,14 @@ def ensure_db_tables():
             enabled INTEGER DEFAULT 0,
             priority INTEGER DEFAULT 999,
             updated_by INTEGER,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            default_state TEXT DEFAULT '0'
         )''')
+        # Migrate existing auto_redeem_settings rows
+        try:
+            c.execute("ALTER TABLE auto_redeem_settings ADD COLUMN default_state TEXT DEFAULT '0'")
+        except Exception:
+            pass
         conn.commit()
         conn.close()
     except Exception:

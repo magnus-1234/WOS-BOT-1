@@ -1206,22 +1206,24 @@ class ManageGiftCode(commands.Cog):
                     avatar_image TEXT,
                     added_by INTEGER,
                     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    state_id TEXT DEFAULT '0',
+                    state_transfer_suspected INTEGER DEFAULT 0,
                     PRIMARY KEY (guild_id, fid)
                 )
             """)
-            
+
             # Migrate existing table - add missing columns if they don't exist
-            try:
-                self.cursor.execute("ALTER TABLE auto_redeem_members ADD COLUMN furnace_lv INTEGER DEFAULT 0")
-                self.logger.info("Added furnace_lv column to auto_redeem_members")
-            except sqlite3.OperationalError:
-                pass  # Column already exists
-            
-            try:
-                self.cursor.execute("ALTER TABLE auto_redeem_members ADD COLUMN avatar_image TEXT")
-                self.logger.info("Added avatar_image column to auto_redeem_members")
-            except sqlite3.OperationalError:
-                pass  # Column already exists
+            for _col, _typedef in (
+                ("furnace_lv", "INTEGER DEFAULT 0"),
+                ("avatar_image", "TEXT"),
+                ("state_id", "TEXT DEFAULT '0'"),
+                ("state_transfer_suspected", "INTEGER DEFAULT 0"),
+            ):
+                try:
+                    self.cursor.execute(f"ALTER TABLE auto_redeem_members ADD COLUMN {_col} {_typedef}")
+                    self.logger.info(f"Added {_col} column to auto_redeem_members")
+                except sqlite3.OperationalError:
+                    pass  # Column already exists
             
             # Auto redeem channels table - for monitoring channels for FID codes
             self.cursor.execute("""
@@ -1336,7 +1338,8 @@ class ManageGiftCode(commands.Cog):
                 if not members:
                     try:
                         cog_instance.cursor.execute("""
-                            SELECT fid, nickname, furnace_lv, avatar_image, added_by, added_at, state_id
+                            SELECT fid, nickname, furnace_lv, avatar_image, added_by, added_at, state_id,
+                                   COALESCE(state_transfer_suspected, 0)
                             FROM auto_redeem_members
                             WHERE guild_id = ?
                             ORDER BY furnace_lv DESC
@@ -1350,7 +1353,8 @@ class ManageGiftCode(commands.Cog):
                                 'avatar_image': row[3] or '',
                                 'added_by': row[4],
                                 'added_at': row[5],
-                                'state_id': row[6] if len(row) > 6 and row[6] else '0'
+                                'state_id': row[6] if len(row) > 6 and row[6] else '0',
+                                'state_transfer_suspected': bool(row[7]) if len(row) > 7 else False
                             }
                             for row in rows
                         ]
@@ -1428,7 +1432,8 @@ class ManageGiftCode(commands.Cog):
                     try:
                         def fetch_sqlite():
                             cog_instance.cursor.execute("""
-                                SELECT fid, nickname, furnace_lv, avatar_image, added_by, added_at, state_id
+                                SELECT fid, nickname, furnace_lv, avatar_image, added_by, added_at, state_id,
+                                       COALESCE(state_transfer_suspected, 0)
                                 FROM auto_redeem_members
                                 WHERE guild_id = ?
                                 ORDER BY furnace_lv DESC
@@ -1444,7 +1449,8 @@ class ManageGiftCode(commands.Cog):
                                 'avatar_image': row[3] or '',
                                 'added_by': row[4],
                                 'added_at': row[5],
-                                'state_id': row[6] if len(row) > 6 and row[6] else '0'
+                                'state_id': row[6] if len(row) > 6 and row[6] else '0',
+                                'state_transfer_suspected': bool(row[7]) if len(row) > 7 else False
                             }
                             for row in rows
                         ]
@@ -1735,7 +1741,85 @@ class ManageGiftCode(commands.Cog):
             except Exception as e:
                 cog_instance.logger.error(f"Error in remove_member_async: {e}")
                 return False
-        
+
+        @staticmethod
+        async def flag_state_transfer_suspected_async(cog_instance, guild_id, fid):
+            """Mark a member as state-transfer-suspected so they are skipped in future auto-redeems.
+            Does NOT remove the member — admin must manually re-register them with the new state.
+            """
+            try:
+                fid = str(fid).strip()
+                guild_id_int = int(guild_id)
+
+                # Step 1: Update MongoDB (async)
+                if mongo_enabled() and AutoRedeemMembersAdapter:
+                    try:
+                        if hasattr(AutoRedeemMembersAdapter, 'update_member'):
+                            await asyncio.to_thread(
+                                AutoRedeemMembersAdapter.update_member,
+                                guild_id_int, fid, {'state_transfer_suspected': 1}
+                            )
+                            cog_instance.logger.debug(f"✅ Flagged {fid} as state_transfer_suspected in MongoDB")
+                    except Exception as e:
+                        cog_instance.logger.warning(f"MongoDB flag_state_transfer failed for {fid}: {e}")
+
+                # Step 2: Update SQLite (thread-isolated fresh connection)
+                db_path = 'db/giftcode.sqlite'
+                def update_sqlite_isolated():
+                    import sqlite3 as _sq
+                    with _sq.connect(db_path, timeout=10) as conn:
+                        conn.execute(
+                            "UPDATE auto_redeem_members SET state_transfer_suspected = 1 WHERE guild_id = ? AND fid = ?",
+                            (guild_id_int, fid)
+                        )
+                        conn.commit()
+                        return conn.total_changes > 0
+
+                updated = await asyncio.to_thread(update_sqlite_isolated)
+                cog_instance.logger.info(
+                    f"🚩 Flagged {fid} in guild {guild_id_int} as state_transfer_suspected "
+                    f"(SQLite updated={updated}). Player will be skipped until admin re-registers them."
+                )
+                return updated
+            except Exception as e:
+                cog_instance.logger.error(f"Error in flag_state_transfer_suspected_async: {e}")
+                return False
+
+        @staticmethod
+        async def clear_state_transfer_flag_async(cog_instance, guild_id, fid):
+            """Clear the state_transfer_suspected flag once admin has re-registered the player with their new state."""
+            try:
+                fid = str(fid).strip()
+                guild_id_int = int(guild_id)
+
+                if mongo_enabled() and AutoRedeemMembersAdapter:
+                    try:
+                        if hasattr(AutoRedeemMembersAdapter, 'update_member'):
+                            await asyncio.to_thread(
+                                AutoRedeemMembersAdapter.update_member,
+                                guild_id_int, fid, {'state_transfer_suspected': 0}
+                            )
+                    except Exception as e:
+                        cog_instance.logger.warning(f"MongoDB clear_state_transfer failed for {fid}: {e}")
+
+                db_path = 'db/giftcode.sqlite'
+                def clear_sqlite():
+                    import sqlite3 as _sq
+                    with _sq.connect(db_path, timeout=10) as conn:
+                        conn.execute(
+                            "UPDATE auto_redeem_members SET state_transfer_suspected = 0 WHERE guild_id = ? AND fid = ?",
+                            (guild_id_int, fid)
+                        )
+                        conn.commit()
+                        return conn.total_changes > 0
+
+                updated = await asyncio.to_thread(clear_sqlite)
+                cog_instance.logger.info(f"✅ Cleared state_transfer_suspected flag for {fid} in guild {guild_id_int}")
+                return updated
+            except Exception as e:
+                cog_instance.logger.error(f"Error in clear_state_transfer_flag_async: {e}")
+                return False
+
         @staticmethod
         async def member_exists_async(cog_instance, guild_id, fid):
             """Check if member exists in auto-redeem list asynchronously"""
@@ -2060,8 +2144,14 @@ class ManageGiftCode(commands.Cog):
                         asyncio.create_task(self.mark_code_invalid(giftcode))
                         break
                     elif status in ["PLAYER_NOT_FOUND", "ERR_PLAYER", "INVALID_PLAYER"]:
-                        self.logger.warning(f"⚠️ Player {nickname} (`{fid}`) failed with {status}. Player may have transferred states — removing from auto-redeem list.")
-                        asyncio.create_task(self.AutoRedeemDB.remove_member_async(self, guild_id, fid))
+                        self.logger.warning(
+                            f"🚩 Player {nickname} (`{fid}`) returned {status}. "
+                            f"Likely state transfer — flagging as state_transfer_suspected. "
+                            f"Admin must re-register this player with their new state ID to resume auto-redeem."
+                        )
+                        asyncio.create_task(
+                            self.AutoRedeemDB.flag_state_transfer_suspected_async(self, guild_id, fid)
+                        )
                         break
                     elif status in ["CAPTCHA_SOLVER_NOT_AVAILABLE", "MAX_CAPTCHA_ATTEMPTS_REACHED", "CAPTCHA_INVALID"]:
                         # Captcha system failure - retry once, then give up for this member
@@ -2355,7 +2445,26 @@ class ManageGiftCode(commands.Cog):
             # Use batch checking to avoid blocking the event loop with many sequential MongoDB calls
             members_to_process = []
             skipped_count = 0
-            
+            suspended_count = 0
+
+            # ── Pre-filter: skip members flagged as state_transfer_suspected ──────────────
+            active_members = []
+            for member in members_data:
+                if member.get('state_transfer_suspected'):
+                    self.logger.warning(
+                        f"🚩 Skipping {member.get('nickname', '?')} (FID: {member['fid']}) — "
+                        f"state transfer suspected. Admin must re-register with new state to resume."
+                    )
+                    suspended_count += 1
+                else:
+                    active_members.append(member)
+            if suspended_count:
+                self.logger.info(
+                    f"⚠️ {suspended_count} member(s) skipped in guild {guild_id} — state transfer flag set."
+                )
+            members_data = active_members
+            # ─────────────────────────────────────────────────────────────────────────────
+
             # CRITICAL: If is_recheck is True (Manual Trigger), we bypass the member-level redemption cache
             # to force a retry for everyone in this guild.
             if is_recheck:

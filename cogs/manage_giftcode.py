@@ -8409,6 +8409,25 @@ class UserRegistrationModal(discord.ui.Modal, title="Register for Auto-Redeem"):
                 if avatar_image:
                     embed.set_thumbnail(url=avatar_image)
                 await interaction.followup.send(embed=embed, ephemeral=True)
+                
+                # Send public log notification
+                try:
+                    self.cog.cursor.execute("SELECT channel_id FROM id_channels WHERE guild_id = ?", (interaction.guild.id,))
+                    row = self.cog.cursor.fetchone()
+                    if row and row[0]:
+                        log_channel = self.cog.bot.get_channel(row[0])
+                        if log_channel:
+                            log_embed = discord.Embed(
+                                title="📝 New Registration",
+                                description=f"**{nickname}** has registered for Auto-Redeem.",
+                                color=0x3498db
+                            )
+                            log_embed.add_field(name="Player ID", value=f"`{fid}`", inline=True)
+                            log_embed.add_field(name="State No", value=f"`{state_val}`", inline=True)
+                            log_embed.add_field(name="Registered By", value=f"<@{interaction.user.id}>", inline=True)
+                            await log_channel.send(embed=log_embed)
+                except Exception as e:
+                    self.cog.logger.error(f"Error sending log notification: {e}")
             else:
                 await interaction.followup.send("❌ Database error while registering.", ephemeral=True)
                 

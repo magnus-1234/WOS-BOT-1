@@ -34,13 +34,39 @@ async def setup_approved_guild_channels(bot: discord.Client, guild_id: int, alli
         if not guild:
             return False, f"Bot is not in guild {guild_id}"
 
-        # player-ids channel
-        player_ids_channel = discord.utils.get(guild.text_channels, name="🆔┃player-ids")
-        if not player_ids_channel:
-            player_ids_channel = await guild.create_text_channel("🆔┃player-ids")
-            await player_ids_channel.send(
-                "This channel has been configured for auto redeem, alliance members can write their player id here to get registered for fastest redeem."
+        # auto-redeem logs channel (formerly player-ids)
+        logs_channel = discord.utils.get(guild.text_channels, name="📝┃auto-redeem-logs")
+        if not logs_channel:
+            logs_channel = await guild.create_text_channel("📝┃auto-redeem-logs")
+            await logs_channel.send(
+                "This channel will log auto-redeem activities and user registrations."
             )
+            
+        # register auto-redeem channel
+        register_channel = discord.utils.get(guild.text_channels, name="🚀┃register-auto-redeem")
+        if not register_channel:
+            register_channel = await guild.create_text_channel("🚀┃register-auto-redeem")
+            try:
+                # Post the persistent panel
+                from cogs.manage_giftcode import AutoRedeemPanelView
+                embed = discord.Embed(
+                    title="🎁 Auto-Redeem Registration",
+                    description=(
+                        "Click the button below to enroll in automatic gift code redemption!\n\n"
+                        "**What you need:**\n"
+                        "• Your **Player ID** (FID)\n"
+                        "• Your **State Number**\n\n"
+                        "Once registered, any new gift codes posted by the bot will be automatically "
+                        "redeemed directly to your in-game mailbox."
+                    ),
+                    color=0x5865F2
+                )
+                embed.set_thumbnail(url=bot.user.display_avatar.url if bot.user.display_avatar else None)
+                manage_gc_cog = bot.get_cog("ManageGiftCode")
+                if manage_gc_cog:
+                    await register_channel.send(embed=embed, view=AutoRedeemPanelView(manage_gc_cog))
+            except Exception as e:
+                logger.error(f"Error posting auto-redeem panel: {e}")
             
         # giftcode channel
         giftcode_channel = discord.utils.get(guild.text_channels, name="🎁┃𝐠𝐢𝐟𝐭𝐜𝐨𝐝𝐞")
@@ -102,17 +128,17 @@ async def setup_approved_guild_channels(bot: discord.Client, guild_id: int, alli
                 cursor.execute('''CREATE TABLE IF NOT EXISTS id_channels
                              (guild_id INTEGER, alliance_id INTEGER, channel_id INTEGER, created_at TEXT, created_by INTEGER, UNIQUE(guild_id, channel_id))''')
                 cursor.execute("INSERT OR REPLACE INTO id_channels (guild_id, alliance_id, channel_id, created_at, created_by) VALUES (?, ?, ?, ?, ?)",
-                             (guild_id, alliance_id, player_ids_channel.id, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), admin_id))
+                             (guild_id, alliance_id, logs_channel.id, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), admin_id))
                 db.commit()
                 
             try:
                 from db.mongo_adapters import IDChannelsAdapter
                 if mongo_enabled() and hasattr(IDChannelsAdapter, 'set_channel_async'):
-                    await IDChannelsAdapter.set_channel_async(guild_id, player_ids_channel.id, alliance_id)
+                    await IDChannelsAdapter.set_channel_async(guild_id, logs_channel.id, alliance_id)
             except Exception:
                 pass
         except Exception as e:
-            logger.error(f"Failed to setup player_ids channel: {e}")
+            logger.error(f"Failed to setup logs channel: {e}")
 
         # 2. Giftcode Channel config
         try:

@@ -1091,8 +1091,31 @@ async def setup_hook():
 
         await asyncio.sleep(60)  # Wait 1 minute before starting
         
+        disconnect_time = 0
         while True:
             try:
+                # ── Bot Health Watchdog ──
+                # If the websocket drops and doesn't recover, force a PM2 restart
+                is_closed = bot.is_closed()
+                is_inf_latency = hasattr(bot, 'latency') and str(bot.latency) == 'inf'
+                
+                if is_closed or is_inf_latency:
+                    disconnect_time += 300
+                    logger.warning(
+                        f"⚠️ Bot Health Check Failed: disconnected for {disconnect_time}s. "
+                        f"(is_closed={is_closed}, latency={getattr(bot, 'latency', None)})"
+                    )
+                    
+                    if disconnect_time >= 900:  # 15 minutes
+                        logger.error("❌ Bot stuck in disconnected state for 15+ mins. Forcing PM2 restart via os._exit(1)!")
+                        import os
+                        os._exit(1)
+                else:
+                    if disconnect_time > 0:
+                        logger.info("✅ Bot Health Check Passed: connection restored.")
+                    disconnect_time = 0  # Reset on healthy status
+                # ─────────────────────────
+
                 # Lightweight operation to show activity
                 logger.debug("Keep-alive: Bot is running")
                 

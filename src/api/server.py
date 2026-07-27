@@ -106,7 +106,7 @@ async def get_status():
         "started_at": uptime_started_at.isoformat(),
         "api_started_at": STARTED_AT.isoformat(),
         "bot_ready_at": bot_ready_at.isoformat() if isinstance(bot_ready_at, datetime) else None,
-        "latency_ms": round(bot.latency * 1000) if bot else None,
+        "latency_ms": round(bot.latency * 1000) if (bot and bot.latency != float('inf')) else None,
         "bot_feed_loaded": True,
         "activity_store_enabled": mongo_enabled(),
     }

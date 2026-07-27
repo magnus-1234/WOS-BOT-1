@@ -96,7 +96,7 @@ async def get_bot_feed(request: Request, limit: int = 40):
             "auto_redeem_servers": auto_redeem_enabled,
             "active_gift_codes": len(gift_codes),
             "monitored_members": monitored_member_count,
-            "latency_ms": round(bot.latency * 1000) if bot else None,
+            "latency_ms": round(bot.latency * 1000) if (bot and bot.latency != float('inf')) else None,
             **runtime_summary,
         },
         "servers": _serialize_guilds(guilds),

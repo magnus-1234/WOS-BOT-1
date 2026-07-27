@@ -479,6 +479,9 @@ class ManageGiftCode(commands.Cog):
             f"skip_player_login={self.skip_player_login_for_redeem}."
         )
 
+        # Register persistent views
+        self.bot.add_view(AutoRedeemPanelView(self))
+
     async def cog_unload(self):
         """Called when the cog is unloaded. Performs cleanup."""
         # Stop background workers
@@ -8273,5 +8276,158 @@ class ManageGiftCode(commands.Cog):
                     pass
             return
 
+    @discord.app_commands.command(name="setup_autoredeem_panel", description="Set up a persistent button panel for users to register for Auto-Redeem.")
+    @discord.app_commands.default_permissions(administrator=True)
+    async def setup_autoredeem_panel(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title="🎁 Auto-Redeem Registration",
+            description=(
+                "Click the button below to enroll in automatic gift code redemption!\n\n"
+                "**What you need:**\n"
+                "• Your **Player ID** (FID)\n"
+                "• Your **State Number**\n\n"
+                "Once registered, any new gift codes posted by the bot will be automatically "
+                "redeemed directly to your in-game mailbox."
+            ),
+            color=0x5865F2
+        )
+        embed.set_thumbnail(url=self.bot.user.display_avatar.url if self.bot.user.display_avatar else None)
+        await interaction.response.send_message(embed=embed, view=AutoRedeemPanelView(self))
+
+
+class UserRegistrationModal(discord.ui.Modal, title="Register for Auto-Redeem"):
+    fids_input = discord.ui.TextInput(
+        label="Player ID (FID)",
+        placeholder="Enter your numeric Player ID...",
+        required=True,
+        style=discord.TextStyle.short,
+        min_length=1,
+        max_length=15
+    )
+    state_input = discord.ui.TextInput(
+        label="State Number",
+        placeholder="Optional if state is known",
+        required=False,
+        style=discord.TextStyle.short,
+        max_length=10
+    )
+    
+    def __init__(self, cog):
+        super().__init__()
+        self.cog = cog
+    
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            fid = self.fids_input.value.strip()
+            if not fid.isdigit():
+                await interaction.response.send_message("❌ Invalid Player ID. Please enter numbers only.", ephemeral=True)
+                return
+            
+            state_val = self.state_input.value.strip() if self.state_input.value else "0"
+            if state_val == "0" or not state_val:
+                try:
+                    self.cog.cursor.execute("SELECT default_state FROM auto_redeem_settings WHERE guild_id = ?", (interaction.guild.id,))
+                    row = self.cog.cursor.fetchone()
+                    if row and row[0] and str(row[0]).strip() != "0":
+                        state_val = str(row[0]).strip()
+                except Exception:
+                    pass
+            
+            await interaction.response.defer(ephemeral=True)
+            
+            # Cross-server Check
+            if mongo_enabled() and AutoRedeemMembersAdapter:
+                try:
+                    existing_gid = await AutoRedeemMembersAdapter.find_member_anywhere_async(fid)
+                    if existing_gid and existing_gid != interaction.guild.id:
+                        try:
+                            guild = self.cog.bot.get_guild(existing_gid)
+                            guild_name = guild.name if guild else f"Server {existing_gid}"
+                        except:
+                            guild_name = "another server"
+                        
+                        await interaction.followup.send(
+                            f"❌ Player ID `{fid}` is already enrolled in **{guild_name}**. "
+                            "You can only be active in one server at a time.",
+                            ephemeral=True
+                        )
+                        return
+                except Exception as e:
+                    self.cog.logger.error(f"Cross-server check error: {e}")
+            
+            # Fetch player data from WOS API
+            player_data = await self.cog.login_handler.fetch_player_data_with_state(fid, state_val)
+            if not player_data:
+                await interaction.followup.send(f"❌ Player ID `{fid}` not found. Check your ID and State Number.", ephemeral=True)
+                return
+                
+            nickname = player_data.get('nickname', 'Unknown')
+            furnace_lv = player_data.get('stove_lv', 0)
+            avatar_image = player_data.get('avatar_image', '')
+            
+            added_at = datetime.now(timezone.utc).isoformat()
+            success = False
+            
+            if mongo_enabled() and AutoRedeemMembersAdapter:
+                success = await AutoRedeemMembersAdapter.add_member_async(
+                    guild_id=interaction.guild.id,
+                    fid=fid,
+                    added_by=interaction.user.id,
+                    nickname=nickname,
+                    furnace_lv=furnace_lv,
+                    avatar_image=avatar_image,
+                    added_at=added_at,
+                    state_id=state_val,
+                    state_transfer_suspected=False
+                )
+            else:
+                try:
+                    self.cog.cursor.execute("""
+                        INSERT OR REPLACE INTO auto_redeem_members 
+                        (guild_id, fid, added_by, nickname, furnace_lv, avatar_image, added_at, state_id, state_transfer_suspected)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        interaction.guild.id, fid, interaction.user.id,
+                        nickname, furnace_lv, avatar_image, added_at, state_val, 0
+                    ))
+                    self.cog.conn.commit()
+                    success = True
+                except Exception as e:
+                    self.cog.logger.error(f"SQLite insertion error: {e}")
+            
+            if success:
+                # Add to processing queue
+                await self.cog.db.add_member_to_queue_async(interaction.guild.id, fid)
+                
+                embed = discord.Embed(
+                    title="✨ Auto-Redeem Registered",
+                    description=f"✅ **{nickname}** is now enrolled for automated gift codes.",
+                    color=0x2ecc71
+                )
+                embed.add_field(name="Player ID", value=f"`{fid}`", inline=True)
+                embed.add_field(name="State No", value=f"`{state_val}`", inline=True)
+                if avatar_image:
+                    embed.set_thumbnail(url=avatar_image)
+                await interaction.followup.send(embed=embed, ephemeral=True)
+            else:
+                await interaction.followup.send("❌ Database error while registering.", ephemeral=True)
+                
+        except Exception as e:
+            self.cog.logger.error(f"UserRegistrationModal error: {e}")
+            try:
+                await interaction.followup.send("❌ An unexpected error occurred.", ephemeral=True)
+            except:
+                pass
+
+class AutoRedeemPanelView(discord.ui.View):
+    def __init__(self, cog):
+        super().__init__(timeout=None)
+        self.cog = cog
+
+    @discord.ui.button(label="Register for Auto-Redeem", emoji="🚀", style=discord.ButtonStyle.primary, custom_id="persistent_auto_redeem_register")
+    async def register_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(UserRegistrationModal(self.cog))
+
 async def setup(bot):
     await bot.add_cog(ManageGiftCode(bot))
+

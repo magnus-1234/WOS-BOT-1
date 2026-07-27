@@ -305,6 +305,12 @@ class RedeemModal(discord.ui.Modal, title="Redeem Gift Code"):
         max_length=15,
         required=True
     )
+    state_id = discord.ui.TextInput(
+        label="State Number",
+        placeholder="Optional if state is known",
+        max_length=10,
+        required=False
+    )
 
     def __init__(self, code_str):
         super().__init__()

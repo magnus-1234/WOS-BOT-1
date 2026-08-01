@@ -51,8 +51,11 @@ class ApproveView(discord.ui.View):
             await interaction.response.send_message("❌ Only the global admin can do this.", ephemeral=True)
             return
         await interaction.response.defer()
+        from db.mongo_adapters import PendingConfigAdapter
+        doc = await PendingConfigAdapter.get_by_guild_async(int(self.guild_id))
+        state_id = doc.get("state") if doc else None
         await _do_approve(interaction, self.guild_id, self.guild_name,
-                          self.alliance_name, self.submitter_id, self.submitter_name)
+                          self.alliance_name, self.submitter_id, self.submitter_name, state_id)
         # Disable buttons
         for item in self.children:
             item.disabled = True
@@ -73,7 +76,7 @@ class ApproveView(discord.ui.View):
 
 
 async def _do_approve(interaction, guild_id: str, guild_name: str,
-                      alliance_name: str, submitter_id: str, submitter_name: str):
+                      alliance_name: str, submitter_id: str, submitter_name: str, state_id: str = None):
     from src.bot.registration_utils import process_registration_approval
     success, msg = await process_registration_approval(
         bot=interaction.client,
@@ -81,7 +84,8 @@ async def _do_approve(interaction, guild_id: str, guild_name: str,
         guild_name=guild_name,
         alliance_name=alliance_name,
         submitter_id=int(submitter_id),
-        admin_id=interaction.user.id
+        admin_id=interaction.user.id,
+        state_id=state_id
     )
     await interaction.followup.send(msg, ephemeral=not success)
 
@@ -192,7 +196,8 @@ class RegistrationAdmin(commands.Cog):
                 doc.get("guild_name", raw_guild_id),
                 doc.get("alliance_name", ""),
                 doc.get("discord_user_id", "0"),
-                doc.get("discord_username", "Unknown")
+                doc.get("discord_username", "Unknown"),
+                doc.get("state")
             )
         except Exception as e:
             logger.error(f"Error in reg-approve: {e}")

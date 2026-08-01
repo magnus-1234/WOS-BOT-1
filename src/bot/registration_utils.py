@@ -23,7 +23,7 @@ def _approval_dm_message(guild_name: str, alliance_name: str) -> str:
 
 
 async def setup_approved_guild_channels(bot: discord.Client, guild_id: int, alliance_name: str, 
-                                        submitter_id: int, admin_id: int) -> tuple[bool, str]:
+                                        submitter_id: int, admin_id: int, state_id: str = None) -> tuple[bool, str]:
     """
     Sets up auto-channels and SQLite settings for an already approved guild.
     This is idempotent and safe to run multiple times.
@@ -151,7 +151,10 @@ async def setup_approved_guild_channels(bot: discord.Client, guild_id: int, alli
                         AutoRedeemChannelsAdapter.set_channel(guild_id, giftcode_channel.id, 0)
                         
                     if hasattr(AutoRedeemSettingsAdapter, 'update_settings_async'):
-                        await AutoRedeemSettingsAdapter.update_settings_async(guild_id, {'enabled': True})
+                        settings = {'enabled': True}
+                    if state_id:
+                        settings['default_state'] = state_id
+                    await AutoRedeemSettingsAdapter.update_settings_async(guild_id, settings)
             except Exception:
                 pass
             
@@ -161,14 +164,19 @@ async def setup_approved_guild_channels(bot: discord.Client, guild_id: int, alli
                 g_cursor.execute("INSERT OR REPLACE INTO auto_redeem_channels (guild_id, channel_id, role_id) VALUES (?, ?, ?)", (guild_id, giftcode_channel.id, 0))
                 
                 g_cursor.execute("CREATE TABLE IF NOT EXISTS auto_redeem_settings (guild_id INTEGER PRIMARY KEY, enabled INTEGER DEFAULT 0, priority INTEGER DEFAULT 999, updated_by INTEGER, updated_at TEXT)")
+                try:
+                    g_cursor.execute("ALTER TABLE auto_redeem_settings ADD COLUMN default_state TEXT")
+                except Exception:
+                    pass
                 g_cursor.execute("""
-                    INSERT INTO auto_redeem_settings (guild_id, enabled, updated_by, updated_at)
-                    VALUES (?, 1, ?, ?)
+                    INSERT INTO auto_redeem_settings (guild_id, enabled, updated_by, updated_at, default_state)
+                    VALUES (?, 1, ?, ?, ?)
                     ON CONFLICT(guild_id) DO UPDATE SET
                         enabled = 1,
                         updated_by = excluded.updated_by,
-                        updated_at = excluded.updated_at
-                """, (guild_id, admin_id, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+                        updated_at = excluded.updated_at,
+                        default_state = COALESCE(excluded.default_state, default_state)
+                """, (guild_id, admin_id, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), state_id or '0'))
                 gcdb.commit()
         except Exception as e:
             logger.error(f"Failed to setup giftcode channel: {e}")
@@ -253,7 +261,7 @@ async def setup_approved_guild_channels(bot: discord.Client, guild_id: int, alli
 
 
 async def process_registration_approval(bot: discord.Client, guild_id: int, guild_name: str,
-                                        alliance_name: str, submitter_id: int, admin_id: int) -> tuple[bool, str]:
+                                        alliance_name: str, submitter_id: int, admin_id: int, state_id: str = None) -> tuple[bool, str]:
     """
     Approve a pending registration and create all necessary auto-channels.
     Returns a tuple of (success, message).
@@ -266,7 +274,7 @@ async def process_registration_approval(bot: discord.Client, guild_id: int, guil
         ok = await PendingConfigAdapter.approve_async(guild_id, admin_id)
         if ok:
             # Setup channels now that approval succeeded
-            await setup_approved_guild_channels(bot, guild_id, alliance_name, submitter_id, admin_id)
+            await setup_approved_guild_channels(bot, guild_id, alliance_name, submitter_id, admin_id, state_id)
 
             # Notify submitter
             try:
@@ -291,7 +299,7 @@ async def process_registration_approval(bot: discord.Client, guild_id: int, guil
 
 
 async def process_registration_denial(bot: discord.Client, guild_id: int, guild_name: str,
-                                      submitter_id: int, admin_id: int) -> tuple[bool, str]:
+                                      submitter_id: int, admin_id: int, state_id: str = None) -> tuple[bool, str]:
     """
     Deny a pending registration and notify the submitter.
     Returns a tuple of (success, message).

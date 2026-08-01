@@ -332,7 +332,8 @@ class RedeemModal(discord.ui.Modal, title="Redeem Gift Code"):
 
         try:
             # Call the redemption function
-            status = await cog.claim_giftcode_rewards_wos(fid, self.code_str)
+            state_val = self.state_id.value.strip() if self.state_id.value else "0"
+            status = await cog.claim_giftcode_rewards_wos(fid, self.code_str, state_val)
             
             # Map status to friendly message and color
             status_map = {

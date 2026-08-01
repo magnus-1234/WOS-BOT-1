@@ -1210,102 +1210,151 @@ class GiftOperations(commands.Cog):
         """Delegate to captcha helper module."""
         return await captcha_attempt(self, player_id, giftcode, session)
 
-    async def claim_giftcode_rewards_wos(self, player_id, giftcode):
-
+    async def claim_giftcode_rewards_wos(self, player_id, giftcode, state_id=None):
+        import time
+        import json
+        import hashlib
+        import asyncio
+        from datetime import datetime
+        
         giftcode = self.clean_gift_code(giftcode)
         process_start_time = time.time()
         status = "ERROR"
         image_bytes = None
         captcha_code = None
-        method = "N/A"
-
+        method = "API_DIRECT"
+        
+        fid = str(player_id).strip()
+        giftcode_str = str(giftcode).strip()
+        state_val = str(state_id).strip() if state_id and str(state_id) not in ('0', 'None', '') else None
+        
         try:
             # Cache Check
             test_fid = self.get_test_fid()
-            if player_id != test_fid:
-                self.cursor.execute("SELECT status FROM user_giftcodes WHERE fid = ? AND giftcode = ?", (player_id, giftcode))
+            if fid != test_fid:
+                self.cursor.execute("SELECT status FROM user_giftcodes WHERE fid = ? AND giftcode = ?", (fid, giftcode_str))
                 existing_record = self.cursor.fetchone()
                 if existing_record:
                     if existing_record[0] in ["SUCCESS", "RECEIVED", "SAME TYPE EXCHANGE", "TIME_ERROR", "CDK_NOT_FOUND", "USAGE_LIMIT"]:
-                        self.logger.info(f"CACHE HIT - User {player_id} code '{giftcode}' status: {existing_record[0]}")
+                        self.logger.info(f"CACHE HIT - User {fid} code '{giftcode_str}' status: {existing_record[0]}")
                         return existing_record[0]
 
-            # Check if OCR Enabled and Solver Ready
-            self.settings_cursor.execute("SELECT enabled FROM ocr_settings ORDER BY id DESC LIMIT 1")
-            ocr_settings_row = self.settings_cursor.fetchone()
-            ocr_enabled = ocr_settings_row[0] if ocr_settings_row else 0
-
-            if not (ocr_enabled == 1 and self.captcha_solver):
-                status = "OCR_DISABLED" if ocr_enabled == 0 else "SOLVER_ERROR"
-                log_msg = f"{datetime.now()} Skipping captcha: OCR disabled (Enabled={ocr_enabled}) or Solver not ready ({self.captcha_solver is None}) for FID {player_id}.\n"
-                self.logger.info(log_msg.strip())
-                return status
-
-            # Initialize captcha solver stats
-            self.logger.info(f"GiftOps: OCR enabled and solver initialized for FID {player_id}.")
-            self.captcha_solver.reset_run_stats()
+            self.logger.info(f"GiftOps: Starting direct API gift code redemption for FID {fid}")
             
-            # Get player session
-            session, response_stove_info, player_info_json = await self.get_stove_info_wos(player_id=player_id)
-            log_entry_player = f"\n{datetime.now()} API REQUEST - Player Info (Async)\nPlayer ID: {player_id}\n"
+            WOS_SECRET = "tB87#kPtkxqOS2"
+            WOS_API_BASE = "https://wos-giftcode-api.centurygame.com"
+            WOS_PLAYER_URL = f"{WOS_API_BASE}/api/player"
+            WOS_GIFT_CODE_URL = f"{WOS_API_BASE}/api/gift_code"
             
-            log_entry_player += f"Response Code: {response_stove_info.status}\nResponse JSON:\n{mongo_dumps(player_info_json, indent=2)}\n"
-            log_entry_player += "-" * 50 + "\n"
-            self.giftlog.info(log_entry_player.strip())
-
-            login_successful = player_info_json.get("msg") == "success"
-
-            if not login_successful:
-                status = "LOGIN_FAILED"
-                log_message = f"{datetime.now()} Login failed for FID {player_id}: {player_info_json.get('msg', 'Unknown')}\n"
-                self.giftlog.info(log_message.strip())
-                return status
-
-            # Try gift code redemption
-            self.logger.info(f"GiftOps: Starting gift code redemption for FID {player_id}")
+            HEADERS = {
+                "Accept": "application/json, text/plain, */*",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Origin": "https://wos-giftcode.centurygame.com",
+                "Referer": "https://wos-giftcode.centurygame.com/",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+            }
             
-            status, image_bytes, captcha_code, method = await self.attempt_gift_code_with_api(
-                player_id, giftcode, session
-            )
+            def make_sign(data):
+                sorted_keys = sorted(data.keys())
+                encoded = "&".join(f"{k}={json.dumps(data[k]) if isinstance(data[k], dict) else data[k]}" for k in sorted_keys)
+                sign = hashlib.md5(f"{encoded}{WOS_SECRET}".encode()).hexdigest()
+                return {"sign": sign, **data}
 
-            # Handle database updates for successful redemptions
-            if player_id != self.get_test_fid() and status in ["SUCCESS", "RECEIVED", "SAME TYPE EXCHANGE"]:
-                try:
-                    user_giftcode_data = [(player_id, giftcode, status)]
-                    self.batch_insert_user_giftcodes(user_giftcode_data)
+            import aiohttp
+            session = getattr(self, 'session', None) or aiohttp.ClientSession()
+            
+            # Step 1: Player login (fire and forget for cookies)
+            ts_ms = str(int(time.time() * 1000))
+            player_payload = make_sign({"fid": fid, "time": ts_ms})
+            try:
+                async with session.post(WOS_PLAYER_URL, headers=HEADERS, data=player_payload, timeout=10, ssl=False) as r:
+                    await r.read()
+            except Exception:
+                pass
+                
+            await asyncio.sleep(1.0)
+            
+            # Step 2: Redeem Gift Code
+            ts_s = str(int(time.time()))
+            fields = {"cdk": giftcode_str, "fid": fid, "time": ts_s}
+            if state_val:
+                fields["kid"] = state_val
+                
+            redeem_payload = make_sign(fields)
+            
+            async with session.post(WOS_GIFT_CODE_URL, headers=HEADERS, data=redeem_payload, timeout=15, ssl=False) as resp:
+                if resp.status == 403:
+                    status = "FORBIDDEN"
+                elif resp.status == 429:
+                    status = "RATE_LIMITED"
+                elif resp.status != 200:
+                    status = f"HTTP_{resp.status}"
+                else:
+                    resp_json = await resp.json()
+                    code_val = resp_json.get("code", 1)
+                    msg = str(resp_json.get("msg", "")).strip().rstrip(".")
+                    err_code = resp_json.get("err_code", 0)
                     
+                    if code_val == 0 or msg.upper() == "SUCCESS":
+                        status = "SUCCESS"
+                    elif err_code == 40008 or "RECEIVED" in msg.upper():
+                        status = "RECEIVED"
+                    elif "SAME TYPE" in msg.upper() or err_code == 40011:
+                        status = "SAME TYPE EXCHANGE"
+                    elif "NOT FOUND" in msg.upper() and ("CDK" in msg.upper() or err_code == 40014):
+                        status = "CDK NOT FOUND"
+                    elif "EXPIRED" in msg.upper() and "TIME" not in msg.upper():
+                        status = "CDK EXPIRED"
+                    elif "PLAYER NOT FOUND" in msg.upper() or err_code == 40004:
+                        status = "PLAYER NOT FOUND"
+                    elif "TIME EXPIRED" in msg.upper() or msg.lower() == "time expired":
+                        status = "TIME OUT"
+                    elif "USER INFO" in msg.upper() or err_code == 40020:
+                        status = "USER INFO ERROR"
+                    else:
+                        status = msg.upper().replace(" ", "_") or "UNKNOWN"
+                        
+            self.logger.info(f"GiftOps: Direct API redemption for {fid} returned {status}")
+            
+            # Handle database updates for successful redemptions
+            if fid != test_fid and status in ["SUCCESS", "RECEIVED", "SAME TYPE EXCHANGE"]:
+                try:
+                    user_giftcode_data = [(fid, giftcode_str, status)]
+                    self.batch_insert_user_giftcodes(user_giftcode_data)
+
                     # Check if code needs validation
                     self.cursor.execute("""
-                        SELECT validation_status FROM gift_codes 
+                        SELECT validation_status FROM gift_codes
                         WHERE giftcode = ? AND validation_status = 'pending'
-                    """, (giftcode,))
-                    
+                    """, (giftcode_str,))
+
                     if self.cursor.fetchone():
-                        giftcodes_to_validate = [giftcode]
+                        giftcodes_to_validate = [giftcode_str]
                         self.batch_update_gift_codes_validation(giftcodes_to_validate)
                         
                         # If this code was just validated for the first time, send to API
-                        self.logger.info(f"Code '{giftcode}' validated for the first time - sending to API")
+                        self.logger.info(f"Code '{giftcode_str}' validated for the first time - sending to API")
                         try:
-                            asyncio.create_task(self.api.add_giftcode(giftcode))
+                            asyncio.create_task(self.api.add_giftcode(giftcode_str))
                         except Exception as api_err:
-                            self.logger.exception(f"Error sending validated code '{giftcode}' to API: {api_err}")
-                    
-                    self.giftlog.info(f"DATABASE - Saved/Updated status for User {player_id}, Code '{giftcode}', Status {status}\n")
+                            self.logger.exception(f"Error sending validated code '{giftcode_str}' to API: {api_err}")
+
+                    self.giftlog.info(f"DATABASE - Saved/Updated status for User {fid}, Code '{giftcode_str}', Status {status}\\n")
                 except Exception as db_err:
-                    self.giftlog.exception(f"DATABASE ERROR saving/replacing status for {player_id}/{giftcode}: {db_err}\n")
-                    self.giftlog.exception(f"STACK TRACE: {traceback.format_exc()}\n")
-                
+                    self.giftlog.exception(f"DATABASE ERROR saving/replacing status for {fid}/{giftcode_str}: {db_err}\\n")
+
         except Exception as e:
+            import traceback
             error_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             error_details = traceback.format_exc()
             log_message = (
-                f"\n--- UNEXPECTED ERROR in claim_giftcode_rewards_wos ({error_timestamp}) ---\n"
-                f"Player ID: {player_id}, Gift Code: {giftcode}\nError: {str(e)}\n"
-                f"Traceback:\n{error_details}\n"
-                f"---------------------------------------------------------------------\n"
+                f"\\n--- UNEXPECTED ERROR in claim_giftcode_rewards_wos ({error_timestamp}) ---\\n"
+                f"Player ID: {fid}, Gift Code: {giftcode_str}\\nError: {str(e)}\\n"
+                f"Traceback:\\n{error_details}\\n"
+                f"---------------------------------------------------------------------\\n"
             )
-            self.logger.exception(f"GiftOps: UNEXPECTED Error claiming code {giftcode} for FID {player_id}. Details logged.")
+            self.logger.exception(f"GiftOps: UNEXPECTED Error claiming code {giftcode_str} for FID {fid}. Details logged.")
             try:
                 self.giftlog.error(log_message.strip())
             except Exception as log_e: self.logger.exception(f"GiftOps: CRITICAL - Failed to write unexpected error log: {log_e}")
@@ -1314,54 +1363,13 @@ class GiftOperations(commands.Cog):
         finally:
             process_end_time = time.time()
             duration = process_end_time - process_start_time
-            self.processing_stats["total_fids_processed"] += 1
-            self.processing_stats["total_processing_time"] += duration
-            self.logger.info(f"GiftOps: claim_giftcode_rewards_wos completed for FID {player_id}. Status: {status}, Duration: {duration:.3f}s")
-
-        # Image save handling
-        if image_bytes and self.captcha_solver and self.captcha_solver.save_images_mode > 0:
-            save_mode = self.captcha_solver.save_images_mode
-            should_save = False
-            filename_base = None
-            log_prefix = ""
-
-            is_success = status in ["SUCCESS", "RECEIVED", "SAME TYPE EXCHANGE"]
-            is_fail_server = status == "CAPTCHA_INVALID"
-
-            if is_success and save_mode in [2, 3]:
-                should_save = True
-                log_prefix = f"Captcha OK (Solver: {method})"
-                solved_code_str = captcha_code if captcha_code else "UNKNOWN_SOLVE"
-                filename_base = f"{solved_code_str}.png"
-            elif is_fail_server and save_mode in [1, 3]:
-                should_save = True
-                log_prefix = f"Captcha Fail Server (Solver: {method} -> {status})"
-                solved_code_str = captcha_code if captcha_code else "UNKNOWN_SENT"
-                timestamp = int(time.time())
-                filename_base = f"FAIL_SERVER_{solved_code_str}_{timestamp}.png"
-
-            if should_save and filename_base:
-                try:
-                    save_path = os.path.join(self.captcha_solver.captcha_dir, filename_base)
-                    counter = 1
-                    base, ext = os.path.splitext(filename_base)
-                    while os.path.exists(save_path) and counter <= 100:
-                        save_path = os.path.join(self.captcha_solver.captcha_dir, f"{base}_{counter}{ext}")
-                        counter += 1
-
-                    if counter > 100:
-                        self.logger.warning(f"Could not find unique filename for {filename_base} after 100 tries. Discarding image.")
-                    else:
-                        with open(save_path, "wb") as f:
-                            f.write(image_bytes)
-                        self.logger.info(f"GiftOps: {log_prefix} - Saved captcha image as {os.path.basename(save_path)}")
-
-                except Exception as save_err:
-                    self.logger.exception(f"GiftOps: Error saving captcha image ({filename_base}): {save_err}")
-
-        self.logger.info(f"GiftOps: Final status for FID {player_id} / Code '{giftcode}': {status}")
+            if hasattr(self, 'processing_stats'):
+                self.processing_stats["total_fids_processed"] += 1
+                self.processing_stats["total_processing_time"] += duration
+            self.logger.info(f"GiftOps: claim_giftcode_rewards_wos completed for FID {fid}. Status: {status}, Duration: {duration:.3f}s")
+            
         return status
-    
+
     def track_redemption_usage(self, guild_id: int, giftcode: str, fid: str, status: str):
         """
         Track gift code redemption for usage statistics.

@@ -1103,8 +1103,19 @@ class ManageGiftCode(commands.Cog):
             ui_msg = await ctx.send(embed=progress_embed)
 
             # Attempt redemption
+            
+            # Lookup state from DB for test
+            state_id = "0"
+            try:
+                self.cursor.execute("SELECT state_id FROM auto_redeem_members WHERE fid = ?", (target_fid,))
+                row = self.cursor.fetchone()
+                if row and row[0]:
+                    state_id = row[0]
+            except:
+                pass
+
             status, success, already_redeemed, failed = await self._redeem_for_member(
-                ctx.guild.id, target_fid, nickname, furnace_lv, code
+                ctx.guild.id, target_fid, nickname, furnace_lv, code, state_id=state_id
             )
             
             # Update to final UI state
@@ -1984,276 +1995,135 @@ class ManageGiftCode(commands.Cog):
         """Format furnace level display using shared utility"""
         return shared_format_furnace_level(furnace_lv)
     
-    async def _redeem_for_member(self, guild_id, fid, nickname, furnace_lv, giftcode, track_result=True):
+    async def _redeem_for_member(self, guild_id, fid, nickname, furnace_lv, giftcode, track_result=True, state_id=None):
         """
-        Process gift code redemption for a single member using session pool.
+        Process gift code redemption for a single member using the new direct API method.
         Returns: (status, success, already_redeemed, failed)
-
-        This method will retry intelligently until success, already_redeemed, or permanent failure.
         """
-        # Ensure code is stripped of whitespace
-        giftcode = str(giftcode).strip()
-        RETRY_DELAY_BASE = 1.5
-        MAX_RETRY_DELAY = 30.0  # Cap retry delay at 30 seconds
-        MAX_LOGIN_RETRIES = 10  # Keep trying until login succeeds or permanent failure
-        MAX_REDEMPTION_RETRIES = 20  # Increased: give more chances through transient CAPTCHA errors
+        import time
+        import json
+        import hashlib
         
-        # Standardize gift code (strip whitespace, preserve case)
         giftcode = str(giftcode).strip()
+        fid = str(fid).strip()
+        state_id = str(state_id).strip() if state_id and str(state_id) not in ('0', 'None', '') else None
         
+        WOS_SECRET = "tB87#kPtkxqOS2"
+        WOS_API_BASE = "https://wos-giftcode-api.centurygame.com"
+        WOS_PLAYER_URL = f"{WOS_API_BASE}/api/player"
+        WOS_GIFT_CODE_URL = f"{WOS_API_BASE}/api/gift_code"
+        
+        HEADERS = {
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Origin": "https://wos-giftcode.centurygame.com",
+            "Referer": "https://wos-giftcode.centurygame.com/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        }
+        
+        def make_sign(data):
+            sorted_keys = sorted(data.keys())
+            encoded = "&".join(f"{k}={json.dumps(data[k]) if isinstance(data[k], dict) else data[k]}" for k in sorted_keys)
+            sign = hashlib.md5(f"{encoded}{WOS_SECRET}".encode()).hexdigest()
+            return {"sign": sign, **data}
+
         try:
-            # Phase 1: Login with limited retries
-            session = None
-            response = None
-            login_successful = False
-            session_id = None
-            login_attempt = 0
-
-            if self.skip_player_login_for_redeem:
-                session = self.session if self.session else aiohttp.ClientSession()
-                login_successful = True
+            import aiohttp
+            import asyncio
+            session = self.session if getattr(self, 'session', None) else aiohttp.ClientSession()
             
-            while not login_successful and login_attempt < MAX_LOGIN_RETRIES:
-                # Abort if a global stop signal was triggered (e.g. CDK_NOT_FOUND)
-                if self.stop_signals.get(guild_id):
-                    self.logger.info(f"🛑 Aborting login for {nickname} — global stop signal received")
-                    return ("ABORTED", 0, 0, 1)
+            # Step 1: Player login (fire and forget for cookies)
+            ts_ms = str(int(time.time() * 1000))
+            player_payload = make_sign({"fid": fid, "time": ts_ms})
+            try:
+                async with session.post(WOS_PLAYER_URL, headers=HEADERS, data=player_payload, timeout=10, ssl=False) as r:
+                    await r.read()
+            except Exception:
+                pass
                 
-                login_attempt += 1
-                try:
-                    # No pool gate — TCP connector handles concurrency; rate-limit tracked reactively
-                    session_id = None
-                    
-                    # Get player session
-                    session, response, player_info = await self.get_stove_info_wos(player_id=fid)
-                    
-                    # Check if login successful
-                    try:
-                        msg = str(player_info.get("msg", "NO_MSG")).lower()
-                        
-                        if msg == "success":  # Player info API returns lowercase success
-                            login_successful = True
-                            self.logger.info(f"✅ Login successful for {nickname} (FID: {fid}, attempt {login_attempt})")
-                            break
-                        elif msg in ("no_msg", "") or not msg:
-                            # Empty response = Cloudflare is rate-limiting us
-                            # Use an aggressive, growing backoff to let the IP cool down
-                            rate_limit_delay = min(15.0 + (20.0 * login_attempt), 180.0)
-                            self.logger.warning(f"🚫 Login rate-limited (no_msg) for {nickname} (FID: {fid}), attempt {login_attempt}/{MAX_LOGIN_RETRIES}. Backing off {rate_limit_delay:.0f}s...")
-                            if session_id is not None:
-                                await self.session_pool.mark_rate_limited(session_id)
-                            await asyncio.sleep(rate_limit_delay)
-                        else:
-                            retry_delay = min(RETRY_DELAY_BASE * login_attempt, MAX_RETRY_DELAY)
-                            self.logger.warning(f"Login attempt {login_attempt}/{MAX_LOGIN_RETRIES} failed for {nickname} (FID: {fid}), API returned: {msg}, retrying in {retry_delay:.1f}s")
-                            await asyncio.sleep(retry_delay)
-                    except Exception as json_err:
-                        # Check if HTML error page (rate limited)
-                        resp_text = await response.text()
-                        if resp_text.strip().startswith('<!DOCTYPE') or resp_text.strip().startswith('<html'):
-                            self.logger.warning(f"Login HTML-rate-limited for {nickname} (FID: {fid}), session {session_id}, attempt {login_attempt}")
-                            if session_id is not None:
-                                await self.session_pool.mark_rate_limited(session_id)
-                            # Wait longer when rate limited
-                            rate_limit_delay = min(30.0 * login_attempt, 120.0)
-                            await asyncio.sleep(rate_limit_delay)
-                        else:
-                            raise json_err
-                except Exception as e:
-                    retry_delay = min(RETRY_DELAY_BASE * login_attempt, MAX_RETRY_DELAY)
-                    self.logger.warning(f"Login attempt {login_attempt}/{MAX_LOGIN_RETRIES} error for {nickname} (FID: {fid}): {e}, retrying in {retry_delay:.1f}s")
-                    await asyncio.sleep(retry_delay)
+            await asyncio.sleep(1.0)
             
-            # Check if login failed after all retries
-            if not login_successful:
-                self.logger.error(f"❌ Login failed for {nickname} after {MAX_LOGIN_RETRIES} attempts")
-                return ("LOGIN_FAILED", 0, 0, 1)
+            # Step 2: Redeem Gift Code
+            ts_s = str(int(time.time()))
+            fields = {"cdk": giftcode, "fid": fid, "time": ts_s}
             
-            # Brief pause after login so the API's session is fully registered before captcha
-            # This avoids immediate NOT_LOGIN on the captcha endpoint
-            await asyncio.sleep(1.5)
-
-            # Phase 2: Gift code redemption with limited retries
+            # Use state_id from DB if passed, else fallback
+            if state_id:
+                fields["kid"] = state_id
+                
+            redeem_payload = make_sign(fields)
+            
+            async with session.post(WOS_GIFT_CODE_URL, headers=HEADERS, data=redeem_payload, timeout=15, ssl=False) as resp:
+                if resp.status == 403:
+                    return ("FORBIDDEN", 0, 0, 1)
+                elif resp.status == 429:
+                    return ("RATE_LIMITED", 0, 0, 1)
+                
+                if resp.status != 200:
+                    return (f"HTTP_{resp.status}", 0, 0, 1)
+                    
+                resp_json = await resp.json()
+                
+            code_val = resp_json.get("code", 1)
+            msg = str(resp_json.get("msg", "")).strip().rstrip(".")
+            err_code = resp_json.get("err_code", 0)
+            
             redemption_successful = False
-            final_status = None
-            redemption_attempt = 0
+            final_status = "ERROR"
             
-            while not redemption_successful and redemption_attempt < MAX_REDEMPTION_RETRIES:
-                # Abort if a global stop signal was triggered (e.g. CDK_NOT_FOUND)
-                if self.stop_signals.get(guild_id):
-                    self.logger.info(f"🛑 Aborting redemption for {nickname} — global stop signal received")
-                    return ("ABORTED", 0, 0, 1)
-
-                redemption_attempt += 1
-                try:
-                    # No pool gate — fire immediately; rate-limit handled reactively below
-                    session_id = None
-                    
-                    # Attempt gift code redemption with CAPTCHA
-                    status, img, code, method = await self.attempt_gift_code_with_api(fid, giftcode, session)
-                    final_status = status
-                    
-                    # ── Transient failures: retry with backoff ─────────────────────
-                    # CAPTCHA_FETCH_ERROR: inner fetch retries already exhausted;
-                    # back off and let the outer redemption loop try again.
-                    if status == "CAPTCHA_FETCH_ERROR":
-                        retry_delay = min(RETRY_DELAY_BASE * redemption_attempt * 1.5, MAX_RETRY_DELAY)
-                        self.logger.warning(
-                            f"⚠️ CAPTCHA fetch exhausted for {nickname} (attempt {redemption_attempt}/{MAX_REDEMPTION_RETRIES}), "
-                            f"waiting {retry_delay:.1f}s before retry"
-                        )
-                        await asyncio.sleep(retry_delay)
-                        continue
-
-                    # Rate limiting — back off then retry
-                    if status in ("RATE_LIMITED", "CAPTCHA_TOO_FREQUENT", "TIMEOUT", "REQUEST_ERROR"):
-                        retry_delay = min(RETRY_DELAY_BASE * 2 * redemption_attempt, MAX_RETRY_DELAY)
-                        self.logger.warning(
-                            f"⏳ Rate-limit/timeout for {nickname}: {status} (attempt {redemption_attempt}), "
-                            f"waiting {retry_delay:.1f}s"
-                        )
-                        if session_id is not None:
-                            await self.session_pool.mark_rate_limited(session_id)
-                        await asyncio.sleep(retry_delay)
-                        continue
-
-                    if status == "FORBIDDEN":
-                        self.logger.error(f"❌ WOS rejected redeem request for {nickname}: 403 Forbidden")
-                        break
-                    
-                    # Check if redemption was successful
-                    if status in ["SUCCESS", "SAME TYPE EXCHANGE"]:
-                        redemption_successful = True
-                        self.logger.info(f"✅ Redeemed for {nickname}: {status} (attempt {redemption_attempt})")
-                        break
-                    elif status == "ALREADY_RECEIVED":
-                        # Already redeemed - this is a success condition (user already has reward)
-                        self.logger.info(f"ℹ️ Already redeemed for {nickname}")
-                        break
-                    elif status in ["INVALID_CODE", "EXPIRED", "USAGE_LIMIT", "TIME_ERROR"]:
-                        # Permanent code-level failures - code itself is bad, not worth retrying
-                        if status == "TIME_ERROR":
-                            self.logger.warning(f"❌ Permanent failure for {nickname}: {status} - Code is EXPIRED")
-                        else:
-                            self.logger.warning(f"❌ Permanent failure for {nickname}: {status} - code is invalid/expired")
-                        
-                        # Mark as invalid globally so other guilds don't waste time on it
-                        if status in ("INVALID_CODE", "EXPIRED", "TIME_ERROR"):
-                            asyncio.create_task(self.mark_code_invalid(giftcode))
-                        break
-                    elif status == "CDK_NOT_FOUND":
-                        # Code not found on WOS servers (often due to case-mismatch from old DB entries)
-                        self.logger.warning(f"❌ CDK_NOT_FOUND for {nickname} — code does not exist. Marking globally invalid.")
-                        asyncio.create_task(self.mark_code_invalid(giftcode))
-                        break
-                    elif status in ["PLAYER_NOT_FOUND", "ERR_PLAYER", "INVALID_PLAYER"]:
-                        self.logger.warning(
-                            f"🚩 Player {nickname} (`{fid}`) returned {status}. "
-                            f"Likely state transfer — flagging as state_transfer_suspected. "
-                            f"Admin must re-register this player with their new state ID to resume auto-redeem."
-                        )
-                        asyncio.create_task(
-                            self.AutoRedeemDB.flag_state_transfer_suspected_async(self, guild_id, fid)
-                        )
-                        break
-                    elif status in ["CAPTCHA_SOLVER_NOT_AVAILABLE", "MAX_CAPTCHA_ATTEMPTS_REACHED", "CAPTCHA_INVALID"]:
-                        # Captcha system failure - retry once, then give up for this member
-                        self.logger.warning(f"⚠️ Captcha system failure for {nickname}: {status} (attempt {redemption_attempt}/{MAX_REDEMPTION_RETRIES})")
-                        if redemption_attempt >= MAX_REDEMPTION_RETRIES:
-                            self.logger.error(f"❌ Giving up on {nickname} after captcha failures: {status}")
-                            break
-                        retry_delay = min(RETRY_DELAY_BASE * redemption_attempt, MAX_RETRY_DELAY)
-                        await asyncio.sleep(retry_delay)
-                    elif "RECHARGE_MONEY_VIP" in status or "VIP" in status:
-                        # VIP/Purchase requirement - this code requires the player to have VIP or made purchases
-                        self.logger.warning(f"💎 VIP/Purchase required for {nickname}: This gift code requires VIP status or in-game purchases")
-                        break
-                    elif status.startswith("UNKNOWN_STATUS_"):
-                        # Unknown status - likely a permanent error from the API
-                        # Extract the actual status message
-                        actual_msg = status.replace("UNKNOWN_STATUS_", "")
-                        self.logger.warning(f"⚠️ Unknown API status for {nickname}: {actual_msg}")
-                        
-                        # Treat as permanent failure after 3 attempts to avoid infinite loops
-                        if redemption_attempt >= 3:
-                            self.logger.error(f"❌ Giving up on {nickname} after {redemption_attempt} attempts with unknown status: {actual_msg}")
-                            break
-                        
-                        # Retry with longer backoff for unknown statuses
-                        retry_delay = min(RETRY_DELAY_BASE * 2 * redemption_attempt, MAX_RETRY_DELAY)
-                        self.logger.warning(f"Redemption attempt {redemption_attempt} failed for {nickname}: {status}, retrying in {retry_delay:.1f}s")
-                        await asyncio.sleep(retry_delay)
-                    else:
-                        # Temporary failure - retry with backoff
-                        retry_delay = min(RETRY_DELAY_BASE * redemption_attempt, MAX_RETRY_DELAY)
-                        self.logger.warning(f"Redemption attempt {redemption_attempt}/{MAX_REDEMPTION_RETRIES} failed for {nickname}: {status}, retrying in {retry_delay:.1f}s")
-                        await asyncio.sleep(retry_delay)
-                except Exception as e:
-                    retry_delay = min(RETRY_DELAY_BASE * redemption_attempt, MAX_RETRY_DELAY)
-                    self.logger.warning(f"Redemption attempt {redemption_attempt}/{MAX_REDEMPTION_RETRIES} error for {nickname}: {e}, retrying in {retry_delay:.1f}s")
-                    await asyncio.sleep(retry_delay)
-            
-            # Check if redemption failed after all retries
-            if not redemption_successful and final_status not in ["ALREADY_RECEIVED"]:
-                self.logger.error(f"❌ Redemption failed for {nickname} after {redemption_attempt} attempts, final status: {final_status}")
-            
-            # Track redemption to MongoDB for history and to prevent duplicates on restart.
-            # High-volume auto-redeem passes disable this and flush records in bulk.
+            if code_val == 0 or msg.upper() == "SUCCESS":
+                final_status = "SUCCESS"
+                redemption_successful = True
+                self.logger.info(f"✅ Redeemed for {nickname} (FID: {fid})")
+            elif err_code == 40008 or "RECEIVED" in msg.upper():
+                final_status = "ALREADY_RECEIVED"
+                self.logger.info(f"ℹ️ Already redeemed for {nickname} (FID: {fid})")
+            elif "SAME TYPE" in msg.upper() or err_code == 40011:
+                final_status = "SAME TYPE EXCHANGE"
+                redemption_successful = True
+                self.logger.info(f"✅ Same type already redeemed for {nickname}")
+            elif "NOT FOUND" in msg.upper() and ("CDK" in msg.upper() or err_code == 40014):
+                final_status = "CDK_NOT_FOUND"
+                self.logger.warning(f"❌ CDK_NOT_FOUND for {nickname}")
+                asyncio.create_task(self.mark_code_invalid(giftcode))
+            elif "EXPIRED" in msg.upper() and "TIME" not in msg.upper():
+                final_status = "EXPIRED"
+                asyncio.create_task(self.mark_code_invalid(giftcode))
+            elif "PLAYER NOT FOUND" in msg.upper() or err_code == 40004:
+                final_status = "PLAYER_NOT_FOUND"
+            elif "TIME EXPIRED" in msg.upper() or msg.lower() == "time expired":
+                final_status = "TIME_ERROR"
+            elif "USER INFO" in msg.upper() or err_code == 40020:
+                final_status = "USER_INFO_ERROR"
+            else:
+                final_status = msg.upper().replace(" ", "_") or "UNKNOWN"
+                
             if track_result and final_status:
                 try:
-                    # Track in general redemption history
-                    if mongo_enabled() and GiftCodeRedemptionAdapter:
-                        # Determine tracking status
-                        if redemption_successful:
-                            tracking_status = "success"
-                        elif final_status == "ALREADY_RECEIVED":
-                            tracking_status = "already_redeemed"
-                        else:
-                            tracking_status = "failed"
-                        
+                    if 'GiftCodeRedemptionAdapter' in globals() and 'mongo_enabled' in globals() and mongo_enabled():
+                        tracking_status = "success" if redemption_successful else "already_redeemed" if final_status == "ALREADY_RECEIVED" else "failed"
                         await GiftCodeRedemptionAdapter.track_redemption_async(
-                            guild_id=guild_id,
-                            code=giftcode,
-                            fid=str(fid),
-                            status=tracking_status
+                            guild_id=guild_id, code=giftcode, fid=str(fid), status=tracking_status
                         )
-                        self.logger.debug(f"Tracked redemption: guild={guild_id}, code={giftcode}, fid={fid}, status={tracking_status}")
-                    
-                    # CRITICAL: Track in AutoRedeemedCodesAdapter to prevent duplicate redemptions on restart
-                    # This tracks which specific members have already redeemed a code
-                    if mongo_enabled() and AutoRedeemedCodesAdapter:
+                        
+                    if 'AutoRedeemedCodesAdapter' in globals() and 'mongo_enabled' in globals() and mongo_enabled():
                         if redemption_successful or final_status == "ALREADY_RECEIVED":
-                            # Mark this specific member as having redeemed this code
                             await AutoRedeemedCodesAdapter.mark_code_redeemed_for_member_async(
-                                guild_id=guild_id,
-                                code=giftcode,
-                                fid=str(fid),
+                                guild_id=guild_id, code=giftcode, fid=str(fid),
                                 status="success" if redemption_successful else "already_redeemed"
                             )
-                            self.logger.debug(f"✅ Marked {nickname} (FID: {fid}) as redeemed for code {giftcode} in guild {guild_id}")
                 except Exception as e:
                     self.logger.error(f"Error tracking redemption: {e}")
-            
-            # Return results
-            # Treat TIME_ERROR, EXPIRED, and USAGE_LIMIT as failed
-            # - TIME_ERROR: Code has expired (redemption window passed)
-            # - EXPIRED: Code is no longer valid
-            # - USAGE_LIMIT: Code has been fully used up
-            expired_statuses = {
-                "TIME_ERROR", "EXPIRED", "USAGE_LIMIT", "CDK_NOT_FOUND",
-                "UNKNOWN_STATUS_TIME ERROR", "UNKNOWN_STATUS_CDK NOT FOUND",
-                "UNKNOWN_STATUS_EXPIRED", "UNKNOWN_STATUS_USAGE LIMIT"
-            }
-            
+                    
             success = 1 if redemption_successful else 0
             already_redeemed = 1 if final_status == "ALREADY_RECEIVED" else 0
             failed = 1 if not redemption_successful and final_status != "ALREADY_RECEIVED" else 0
             
             return (final_status, success, already_redeemed, failed)
-            
+
         except Exception as e:
             self.logger.exception(f"Critical error redeeming for {nickname}: {e}")
-            # Even on critical error, return failure
             return ("EXCEPTION", 0, 0, 1)
 
     def _tracking_status_from_result(self, success, already_redeemed):
@@ -2713,7 +2583,7 @@ class ManageGiftCode(commands.Cog):
                     # Process the member with robust error handling
                     try:
                         status, success, already_redeemed, failed = await self._redeem_for_member(
-                            guild_id, fid, nickname, furnace_lv, giftcode, track_result=False
+                            guild_id, fid, nickname, furnace_lv, giftcode, track_result=False, state_id=state_id
                         )
                         
                         # If status is permanently invalid for everyone, abort early
@@ -8326,10 +8196,17 @@ class UserRegistrationModal(discord.ui.Modal, title="Register for Auto-Redeem"):
             state_val = self.state_input.value.strip() if self.state_input.value else "0"
             if state_val == "0" or not state_val:
                 try:
-                    self.cog.cursor.execute("SELECT default_state FROM auto_redeem_settings WHERE guild_id = ?", (interaction.guild.id,))
-                    row = self.cog.cursor.fetchone()
-                    if row and row[0] and str(row[0]).strip() != "0":
-                        state_val = str(row[0]).strip()
+                    if mongo_enabled():
+                        from db.mongo_adapters import AutoRedeemSettingsAdapter
+                        settings = await AutoRedeemSettingsAdapter.get_settings_async(interaction.guild.id)
+                        if settings and settings.get("default_state") and str(settings.get("default_state")).strip() != "0":
+                            state_val = str(settings.get("default_state")).strip()
+                    
+                    if state_val == "0" or not state_val:
+                        self.cog.cursor.execute("SELECT default_state FROM auto_redeem_settings WHERE guild_id = ?", (interaction.guild.id,))
+                        row = self.cog.cursor.fetchone()
+                        if row and row[0] and str(row[0]).strip() != "0":
+                            state_val = str(row[0]).strip()
                 except Exception:
                     pass
             
@@ -8356,7 +8233,7 @@ class UserRegistrationModal(discord.ui.Modal, title="Register for Auto-Redeem"):
                     self.cog.logger.error(f"Cross-server check error: {e}")
             
             # Fetch player data from WOS API
-            player_data = await self.cog.login_handler.fetch_player_data_with_state(fid, state_val)
+            player_data = await self.cog.login_handler.fetch_player_data(fid)
             if not player_data:
                 await interaction.followup.send(f"❌ Player ID `{fid}` not found. Check your ID and State Number.", ephemeral=True)
                 return

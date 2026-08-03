@@ -2027,6 +2027,26 @@ class ManageGiftCode(commands.Cog):
                         state_id = str(_row[0]).strip()
                 except Exception:
                     pass
+            
+            # API FALLBACK: If state_id STILL not found, fetch it directly from the game API
+            if not state_id:
+                try:
+                    if hasattr(self, 'fetch_player_data'):
+                        api_player = await self.fetch_player_data(fid, return_full=True)
+                        if api_player and api_player.get('status') == 'success' and api_player.get('data'):
+                            _api_kid = str(api_player['data'].get('kid', '0')).strip()
+                            if _api_kid and _api_kid not in ('0', 'None', ''):
+                                state_id = _api_kid
+                                self.logger.info(f"_redeem_for_member: Dynamically resolved state_id={state_id} from API for fid={fid}")
+                                
+                                # Opportunistically save it back to the local database to save future API calls
+                                try:
+                                    self.cursor.execute("UPDATE auto_redeem_members SET state_id = ? WHERE fid = ?", (state_id, fid))
+                                    self.giftcode_db.commit()
+                                except Exception:
+                                    pass
+                except Exception as api_fb_err:
+                    self.logger.debug(f"_redeem_for_member: API fallback failed for {fid}: {api_fb_err}")
         
         if state_id:
             self.logger.info(f"_redeem_for_member: Using state_id={state_id} for fid={fid}")

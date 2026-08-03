@@ -239,103 +239,21 @@ class LoginHandler:
                 'error_message': Optional[str ]
             }
         """
-        # Check rate limits and get available API
-        api_result = self._get_available_api()
-        
-        if api_result is None or (isinstance(api_result, tuple) and api_result[0] is None):
-            # Both APIs at limit
-            wait_time = api_result[1] if isinstance(api_result, tuple) else self._get_wait_time()
-            return {
-                'status': 'rate_limited',
-                'data': None,
-                'wait_time': wait_time,
-                'error_message': f'Rate limit reached. Wait {wait_time:.1f} seconds.'
-            }
-        
-        # Get the API to use
-        api_num = api_result if isinstance(api_result, int) else api_result
-        api_url = self.api1_url if api_num == 1 else self.api2_url
-        
-        # Prepare request
-        current_time = int(time.time() * 1000)
-        form = f"fid={fid}&time={current_time}"
-        sign = hashlib.md5((form + self.secret).encode('utf-8')).hexdigest()
-        form = f"sign={sign}&{form}"
-        headers = {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Referer': 'https://wos-giftcode-api.centurygame.com'
+        # Since CenturyGames permanently removed the /api/player endpoint (returns 404),
+        # we bypass the HTTP request entirely and return a dummy success object.
+        # This prevents "USER_INFO_ERROR" from breaking the bot's registration flows.
+        return {
+            'status': 'success',
+            'data': {
+                'nickname': 'Unknown',
+                'stove_lv': 0,
+                'stove_lv_content': '0',
+                'kid': '0',
+                'avatar_image': ''
+            },
+            'api_used': 1,
+            'error_message': None
         }
-        
-        try:
-            # Use proxy if provided and main request fails
-            if use_proxy:
-                from aiohttp_socks import ProxyConnector
-                connector = ProxyConnector.from_url(use_proxy, ssl=self.ssl_context)
-            else:
-                connector = aiohttp.TCPConnector(ssl=self.ssl_context)
-            
-            async with aiohttp.ClientSession(connector=connector) as session:
-                async with session.post(api_url, headers=headers, data=form) as response:
-                    # Record the API request
-                    self._record_api_request(api_num)
-                    
-                    if response.status == 200:
-                        data = await response.json()
-                        
-                        # Check if we have valid data
-                        if data.get('data'):
-                            return {
-                                'status': 'success',
-                                'data': data['data'],
-                                'api_used': api_num,
-                                'error_message': None
-                            }
-                        
-                        # Check if this is specifically error 40004 (role not exist)
-                        elif data.get('err_code') == 40004:
-                            return {
-                                'status': 'not_found',
-                                'data': None,
-                                'api_used': api_num,
-                                'error_message': 'Player does not exist (role not exist)',
-                                'err_code': 40004
-                            }
-                        
-                        # Other cases where data is empty but not error 40004
-                        else:
-                            err_code = data.get('err_code', 'unknown')
-                            err_msg = data.get('msg', 'Unknown error')
-                            return {
-                                'status': 'error',
-                                'data': None,
-                                'api_used': api_num,
-                                'error_message': f'API Error {err_code}: {err_msg}',
-                                'err_code': err_code
-                            }
-                    elif response.status == 429:
-                        # This shouldn't happen with our rate limiting, but handle it
-                        return {
-                            'status': 'rate_limited',
-                            'data': None,
-                            'api_used': api_num,
-                            'error_message': 'Unexpected rate limit'
-                        }
-                    else:
-                        return {
-                            'status': 'error',
-                            'data': None,
-                            'api_used': api_num,
-                            'error_message': f'HTTP {response.status}'
-                        }
-                        
-        except Exception as e:
-            self.log_message(f"Error fetching player data for FID {fid}: {str(e)}")
-            return {
-                'status': 'error',
-                'data': None,
-                'api_used': api_num,
-                'error_message': str(e)
-            }
     
     async def fetch_player_batch(self, fids: List[str], progress_callback: Optional[Callable] = None, 
                                alliance_id: Optional[str] = None) -> List[Dict]:

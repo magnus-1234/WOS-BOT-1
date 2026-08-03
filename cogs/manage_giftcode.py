@@ -2008,6 +2008,31 @@ class ManageGiftCode(commands.Cog):
         fid = str(fid).strip()
         state_id = str(state_id).strip() if state_id and str(state_id) not in ('0', 'None', '') else None
         
+        if not state_id:
+            try:
+                if 'mongo_enabled' in globals() and mongo_enabled() and 'AutoRedeemMembersAdapter' in globals():
+                    member_doc = await AutoRedeemMembersAdapter.get_member_async(guild_id, fid)
+                    if member_doc:
+                        _sid = str(member_doc.get('state_id', '0') or '0').strip()
+                        if _sid and _sid not in ('0', 'None', ''):
+                            state_id = _sid
+            except Exception:
+                pass
+            
+            if not state_id:
+                try:
+                    self.cursor.execute("SELECT state_id FROM auto_redeem_members WHERE fid = ? AND guild_id = ?", (fid, guild_id))
+                    _row = self.cursor.fetchone()
+                    if _row and _row[0] and str(_row[0]).strip() not in ('0', 'None', ''):
+                        state_id = str(_row[0]).strip()
+                except Exception:
+                    pass
+        
+        if state_id:
+            self.logger.info(f"_redeem_for_member: Using state_id={state_id} for fid={fid}")
+        else:
+            self.logger.warning(f"_redeem_for_member: No state_id found for fid={fid} — redemption may fail with USER_INFO_ERROR")
+            
         WOS_SECRET = "tB87#kPtkxqOS2"
         WOS_API_BASE = "https://wos-giftcode-api.centurygame.com"
         WOS_PLAYER_URL = f"{WOS_API_BASE}/api/player"

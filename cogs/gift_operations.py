@@ -1264,16 +1264,7 @@ class GiftOperations(commands.Cog):
             import aiohttp
             session = getattr(self, 'session', None) or aiohttp.ClientSession()
             
-            # Step 1: Player login (fire and forget for cookies)
-            ts_ms = str(int(time.time() * 1000))
-            player_payload = make_sign({"fid": fid, "time": ts_ms})
-            try:
-                async with session.post(WOS_PLAYER_URL, headers=HEADERS, data=player_payload, timeout=10, ssl=False) as r:
-                    await r.read()
-            except Exception:
-                pass
-                
-            await asyncio.sleep(1.0)
+            # Step 1: Removed obsolete player login
             
             # Step 2: Redeem Gift Code
             ts_s = str(int(time.time()))

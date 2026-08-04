@@ -5756,6 +5756,11 @@ class PlayerStateAdapter:
             return None
 
     @staticmethod
+    async def get_kid_async(fid: str) -> Optional[str]:
+        import asyncio
+        return await asyncio.to_thread(PlayerStateAdapter.get_kid, fid)
+
+    @staticmethod
     def set_kid(fid: str, kid: str) -> bool:
         try:
             db = _get_db_main()

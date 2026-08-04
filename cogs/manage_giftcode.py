@@ -2011,7 +2011,7 @@ class ManageGiftCode(commands.Cog):
         if not state_id:
             try:
                 if 'mongo_enabled' in globals() and mongo_enabled() and 'PlayerStateAdapter' in globals():
-                    _global_kid = PlayerStateAdapter.get_kid(fid)
+                    _global_kid = await PlayerStateAdapter.get_kid_async(fid)
                     if _global_kid and _global_kid not in ('0', 'None', ''):
                         state_id = _global_kid
             except Exception as e:
@@ -2030,8 +2030,11 @@ class ManageGiftCode(commands.Cog):
             
             if not state_id:
                 try:
-                    self.cursor.execute("SELECT state_id FROM auto_redeem_members WHERE fid = ? AND guild_id = ?", (fid, guild_id))
-                    _row = self.cursor.fetchone()
+                    import asyncio
+                    def fetch_sqlite_kid():
+                        self.cursor.execute("SELECT state_id FROM auto_redeem_members WHERE fid = ? AND guild_id = ?", (fid, guild_id))
+                        return self.cursor.fetchone()
+                    _row = await asyncio.to_thread(fetch_sqlite_kid)
                     if _row and _row[0] and str(_row[0]).strip() not in ('0', 'None', ''):
                         state_id = str(_row[0]).strip()
                 except Exception:
@@ -2040,7 +2043,10 @@ class ManageGiftCode(commands.Cog):
             if not state_id:
                 try:
                     if 'mongo_enabled' in globals() and mongo_enabled() and 'AutoRedeemSettingsAdapter' in globals():
-                        settings = AutoRedeemSettingsAdapter.get_settings(guild_id)
+                        if hasattr(AutoRedeemSettingsAdapter, 'get_settings_async'):
+                            settings = await AutoRedeemSettingsAdapter.get_settings_async(guild_id)
+                        else:
+                            settings = AutoRedeemSettingsAdapter.get_settings(guild_id)
                         if settings and settings.get('default_state') and str(settings.get('default_state')).strip() not in ('0', 'None', ''):
                             state_id = str(settings.get('default_state')).strip()
                 except Exception:
@@ -4117,10 +4123,13 @@ class ManageGiftCode(commands.Cog):
         enabled_guilds_dict = {}
         
         # 1. Try MongoDB
-        if mongo_enabled() and AutoRedeemSettingsAdapter and hasattr(AutoRedeemSettingsAdapter, 'get_all_settings'):
+        if mongo_enabled() and AutoRedeemSettingsAdapter:
             try:
                 self.logger.info("📊 Checking MongoDB for enabled guilds...")
-                all_settings = AutoRedeemSettingsAdapter.get_all_settings()
+                if hasattr(AutoRedeemSettingsAdapter, 'get_all_settings_async'):
+                    all_settings = await AutoRedeemSettingsAdapter.get_all_settings_async()
+                else:
+                    all_settings = AutoRedeemSettingsAdapter.get_all_settings()
                 if all_settings:
                     mongo_count = 0
                     for s in all_settings:
@@ -4136,8 +4145,11 @@ class ManageGiftCode(commands.Cog):
         # 2. Try SQLite (Always check SQLite as backup/source)
         try:
             self.logger.info("📂 Checking SQLite for enabled guilds...")
-            self.cursor.execute("SELECT guild_id, priority FROM auto_redeem_settings WHERE enabled = 1")
-            sqlite_rows = self.cursor.fetchall()
+            import asyncio
+            def fetch_sqlite_guilds():
+                self.cursor.execute("SELECT guild_id, priority FROM auto_redeem_settings WHERE enabled = 1")
+                return self.cursor.fetchall()
+            sqlite_rows = await asyncio.to_thread(fetch_sqlite_guilds)
             self.logger.info(f"✅ SQLite: Found {len(sqlite_rows)} enabled guilds")
             for row in sqlite_rows:
                 gid = int(row[0])
@@ -4207,18 +4219,23 @@ class ManageGiftCode(commands.Cog):
 
     async def _is_code_already_processed(self, code):
         """Check if a code is marked as fully processed in MongoDB or SQLite."""
+        import asyncio
         code_up = str(code).upper()
         if mongo_enabled() and GiftCodesAdapter:
             try:
-                code_data = GiftCodesAdapter.get_code(code_up)
+                def fetch_mongo_code():
+                    return GiftCodesAdapter.get_code(code_up)
+                code_data = await asyncio.to_thread(fetch_mongo_code)
                 if code_data and code_data.get('auto_redeem_processed', False):
                     return True
             except Exception as e:
                 self.logger.warning(f"Failed to check code status in MongoDB: {e}")
         
         try:
-            self.cursor.execute("SELECT auto_redeem_processed FROM gift_codes WHERE giftcode = ?", (code_up,))
-            result = self.cursor.fetchone()
+            def fetch_sqlite_code():
+                self.cursor.execute("SELECT auto_redeem_processed FROM gift_codes WHERE giftcode = ?", (code_up,))
+                return self.cursor.fetchone()
+            result = await asyncio.to_thread(fetch_sqlite_code)
             return result and result[0]
         except Exception as e:
             self.logger.error(f"Failed to check code status in SQLite: {e}")
@@ -4227,13 +4244,44 @@ class ManageGiftCode(commands.Cog):
     async def _get_completed_guilds(self, code):
         """Get a set of guild IDs that have already completed redemption for a code."""
         try:
+            import asyncio
             code_up = str(code).upper()
-            self.cursor.execute("SELECT guild_id FROM auto_redeem_completed_guilds WHERE giftcode = ?", (code_up,))
-            return {row[0] for row in self.cursor.fetchall()}
+            def fetch_sqlite_completed():
+                self.cursor.execute("SELECT guild_id FROM auto_redeem_completed_guilds WHERE giftcode = ?", (code_up,))
+                return {row[0] for row in self.cursor.fetchall()}
+            return await asyncio.to_thread(fetch_sqlite_completed)
         except Exception as e:
             self.logger.error(f"Failed to fetch completed guilds for code {code}: {e}")
             return set()
 
+    async def mark_code_invalid(self, code):
+        """Mark a code as invalid/expired globally and stop processing it."""
+        import asyncio
+        code_up = code.upper()
+        self.logger.warning(f"🚫 Marking code {code_up} as INVALID/EXPIRED globally")
+        
+        # Mark in MongoDB
+        if mongo_enabled() and GiftCodesAdapter:
+            try:
+                def mark_mongo_invalid():
+                    GiftCodesAdapter.update_code_status(code_up, 'invalid')
+                await asyncio.to_thread(mark_mongo_invalid)
+                self.logger.info(f"✅ Marked {code_up} as invalid in MongoDB")
+            except Exception as e:
+                self.logger.error(f"❌ Failed to mark code invalid in MongoDB: {e}")
+        
+        # Mark in SQLite
+        try:
+            def mark_sqlite_invalid():
+                self.cursor.execute(
+                    "UPDATE gift_codes SET status = 'invalid' WHERE giftcode = ?",
+                    (code_up,)
+                )
+                self.giftcode_db.commit()
+            await asyncio.to_thread(mark_sqlite_invalid)
+            self.logger.info(f"✅ Marked {code_up} as invalid in SQLite")
+        except Exception as e:
+            self.logger.error(f"❌ Failed to mark code invalid in SQLite: {e}")
 
     async def wait_for_code_completion(self, code, expected_jobs, already_initialized=False):
         """Wait until the number of completed jobs for a code reaches the expected count."""
@@ -4268,12 +4316,15 @@ class ManageGiftCode(commands.Cog):
 
     async def _mark_code_done(self, code):
         """Internal helper to mark code as processed in DBs without waiting for queue."""
+        import asyncio
         code_up = code.upper()
         # Mark in MongoDB if available
         mongo_marked = False
         if mongo_enabled() and GiftCodesAdapter:
             try:
-                GiftCodesAdapter.mark_code_processed(code_up)
+                def mark_mongo():
+                    GiftCodesAdapter.mark_code_processed(code_up)
+                await asyncio.to_thread(mark_mongo)
                 mongo_marked = True
                 self.logger.info(f"✅ Marked {code_up} as processed in MongoDB")
             except Exception as e:
@@ -4282,11 +4333,13 @@ class ManageGiftCode(commands.Cog):
         # Mark in SQLite for consistency
         sqlite_marked = False
         try:
-            self.cursor.execute(
-                "UPDATE gift_codes SET auto_redeem_processed = 1 WHERE giftcode = ?",
-                (code_up,)
-            )
-            self.giftcode_db.commit()
+            def mark_sqlite():
+                self.cursor.execute(
+                    "UPDATE gift_codes SET auto_redeem_processed = 1 WHERE giftcode = ?",
+                    (code_up,)
+                )
+                self.giftcode_db.commit()
+            await asyncio.to_thread(mark_sqlite)
             sqlite_marked = True
             self.logger.info(f"✅ Marked {code_up} as processed in SQLite")
         except Exception as e:

@@ -2037,6 +2037,33 @@ class ManageGiftCode(commands.Cog):
                 except Exception:
                     pass
             
+            if not state_id:
+                try:
+                    if 'mongo_enabled' in globals() and mongo_enabled() and 'AutoRedeemSettingsAdapter' in globals():
+                        settings = AutoRedeemSettingsAdapter.get_settings(guild_id)
+                        if settings and settings.get('default_state') and str(settings.get('default_state')).strip() not in ('0', 'None', ''):
+                            state_id = str(settings.get('default_state')).strip()
+                except Exception:
+                    pass
+            
+            if not state_id:
+                try:
+                    bot_obj = getattr(self, 'bot', getattr(self, 'cog', getattr(self, 'client', None)))
+                    if bot_obj:
+                        guild = bot_obj.get_guild(int(guild_id))
+                        if guild and guild.name:
+                            import re
+                            match = re.search(r'(?i)(?:state|s)\s*#?\s*(\d{1,4})', guild.name)
+                            if match:
+                                state_id = match.group(1)
+                except Exception:
+                    pass
+            
+            if state_id and 'mongo_enabled' in globals() and mongo_enabled() and 'PlayerStateAdapter' in globals():
+                try:
+                    PlayerStateAdapter.set_kid(fid, state_id)
+                except Exception:
+                    pass
 
         
         if state_id:

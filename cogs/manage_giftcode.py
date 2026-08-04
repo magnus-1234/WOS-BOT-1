@@ -25,7 +25,7 @@ AUTO_REDEEM_ADMIN_PRIORITY_MIN = 11
 AUTO_REDEEM_UNASSIGNED_SORT_PRIORITY = 1_000_000
 
 try:
-    from db.mongo_adapters import mongo_enabled, GiftCodesAdapter, AutoRedeemSettingsAdapter, AutoRedeemChannelsAdapter, GiftCodeRedemptionAdapter, AutoRedeemMembersAdapter, AutoRedeemedCodesAdapter, _get_db, ServerLimitsAdapter
+    from db.mongo_adapters import mongo_enabled, GiftCodesAdapter, AutoRedeemSettingsAdapter, AutoRedeemChannelsAdapter, GiftCodeRedemptionAdapter, AutoRedeemMembersAdapter, AutoRedeemedCodesAdapter, _get_db, ServerLimitsAdapter, PlayerStateAdapter
 except Exception:
     mongo_enabled = lambda: False
     GiftCodesAdapter = None
@@ -2008,6 +2008,15 @@ class ManageGiftCode(commands.Cog):
         fid = str(fid).strip()
         state_id = str(state_id).strip() if state_id and str(state_id) not in ('0', 'None', '') else None
         
+        if not state_id:
+            try:
+                if 'mongo_enabled' in globals() and mongo_enabled() and 'PlayerStateAdapter' in globals():
+                    _global_kid = PlayerStateAdapter.get_kid(fid)
+                    if _global_kid and _global_kid not in ('0', 'None', ''):
+                        state_id = _global_kid
+            except Exception as e:
+                self.logger.error(f"Error fetching global kid for {fid}: {e}")
+
         if not state_id:
             try:
                 if 'mongo_enabled' in globals() and mongo_enabled() and 'AutoRedeemMembersAdapter' in globals():

@@ -2073,6 +2073,18 @@ class AutoRedeemMembersAdapter:
                 },
                 upsert=True
             )
+            
+            # Save to global PlayerStateAdapter if state_id is provided
+            if 'state_id' in member_data and member_data['state_id'] and str(member_data['state_id']).strip() not in ('0', 'None', ''):
+                db[AutoRedeemMembersAdapter.COLL].update_one(
+                    {'guild_id': int(guild_id), 'fid': str(fid)},
+                    {'$set': {'state_id': str(member_data['state_id']).strip()}}
+                )
+                try:
+                    PlayerStateAdapter.set_kid(fid, str(member_data['state_id']).strip())
+                except Exception as ex:
+                    logger.error(f'Failed to set global kid for {fid}: {ex}')
+            
             logger.info(f'Added auto-redeem member {fid} for guild {guild_id}')
             return True
         except Exception as e:
@@ -2105,6 +2117,18 @@ class AutoRedeemMembersAdapter:
                 },
                 upsert=True
             )
+            
+            # Save to global PlayerStateAdapter if state_id is provided
+            if 'state_id' in member_data and member_data['state_id'] and str(member_data['state_id']).strip() not in ('0', 'None', ''):
+                await db[AutoRedeemMembersAdapter.COLL].update_one(
+                    {'guild_id': int(guild_id), 'fid': str(fid)},
+                    {'$set': {'state_id': str(member_data['state_id']).strip()}}
+                )
+                try:
+                    PlayerStateAdapter.set_kid(fid, str(member_data['state_id']).strip())
+                except Exception as ex:
+                    logger.error(f'Failed to set global kid for {fid}: {ex}')
+            
             return True
         except Exception as e:
             logger.error(f'Failed to add auto-redeem member (async) {fid} for guild {guild_id}: {e}')
@@ -5713,4 +5737,34 @@ class PendingConfigAdapter:
 
         except Exception as e:
             logger.error(f'Failed to delete registration for guild {guild_id}: {e}')
+            return False
+
+class PlayerStateAdapter:
+    """Manages the global mapping of Player ID (fid) to State Number (kid) for Auto-Redeem."""
+    COLL = 'player_states'
+
+    @staticmethod
+    def get_kid(fid: str) -> Optional[str]:
+        try:
+            db = _get_db_main()
+            doc = db[PlayerStateAdapter.COLL].find_one({'_id': str(fid)})
+            if doc and 'kid' in doc:
+                return str(doc['kid'])
+            return None
+        except Exception as e:
+            logger.error(f'Failed to get kid for fid {fid}: {e}')
+            return None
+
+    @staticmethod
+    def set_kid(fid: str, kid: str) -> bool:
+        try:
+            db = _get_db_main()
+            db[PlayerStateAdapter.COLL].update_one(
+                {'_id': str(fid)},
+                {'$set': {'kid': str(kid)}},
+                upsert=True
+            )
+            return True
+        except Exception as e:
+            logger.error(f'Failed to set kid for fid {fid}: {e}')
             return False

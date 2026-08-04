@@ -147,21 +147,98 @@ class IDChannel(commands.Cog):
                     if user == self.bot.user:
                         return
             
-            # Import LoginHandler
-            from cogs.login_handler import LoginHandler
-            login_handler = LoginHandler()
+            # Determine the server's default state number
+            guild_id = message.guild.id if message.guild else 0
+            state_id = None
+            try:
+                from db.mongo_adapters import AutoRedeemSettingsAdapter, mongo_enabled
+                if mongo_enabled():
+                    settings = AutoRedeemSettingsAdapter.get_settings(guild_id)
+                    if settings and settings.get('default_state') and str(settings.get('default_state')).strip() not in ('0', 'None', ''):
+                        state_id = str(settings.get('default_state')).strip()
+            except Exception:
+                pass
             
-            # Fetch player data
-            result = await login_handler.fetch_player_data(str(fid))
+            if not state_id and message.guild and message.guild.name:
+                import re
+                match = re.search(r'(?i)(?:state|s)\s*#?\s*(\d{1,4})', message.guild.name)
+                if match:
+                    state_id = match.group(1)
             
-            if result['status'] == 'success' and result['data']:
-                player_data = result['data']
-                nickname = player_data.get('nickname', 'Unknown')
-                furnace_lv = player_data.get('stove_lv', 0)
-                kid = player_data.get('kid', '')
-                stove_lv_content = player_data.get('stove_lv_content', '')
-                avatar_image = player_data.get('avatar_image', '')
+            if not state_id:
+                await message.add_reaction('❌')
+                await message.reply("❌ Your Discord server does not have a default State Number configured. Please ask an Admin to run `/autoredeem setup`.")
+                return
+
+            # Verify the player belongs to this state via dummy gift code request
+            import aiohttp
+            import hashlib
+            import time
+            import json
+            
+            api_verified = False
+            async with aiohttp.ClientSession() as session:
+                WOS_SECRET = 'tB87#kPtkxqOS2'
+                url = 'https://wos-giftcode-api.centurygame.com/api/gift_code'
+                headers = {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Origin': 'https://wos-giftcode.centurygame.com',
+                    'User-Agent': 'Mozilla/5.0'
+                }
                 
+                active_code = 'WOS0803'
+                try:
+                    from db.mongo_adapters import GiftCodesAdapter, mongo_enabled
+                    if mongo_enabled():
+                        docs = GiftCodesAdapter.get_all()
+                        valid_codes = [d['code'] for d in docs if d.get('status') != 'invalid']
+                        if valid_codes:
+                            active_code = valid_codes[0]
+                except Exception:
+                    pass
+
+                # Make payload
+                data = {
+                    'cdk': active_code,
+                    'fid': str(fid),
+                    'kid': str(state_id),
+                    'time': str(int(time.time()))
+                }
+                sorted_keys = sorted(data.keys())
+                encoded = '&'.join(f"{k}={json.dumps(data[k]) if isinstance(data[k], dict) else data[k]}" for k in sorted_keys)
+                sign = hashlib.md5(f'{encoded}{WOS_SECRET}'.encode()).hexdigest()
+                payload = {**data, 'sign': sign}
+                
+                try:
+                    async with session.post(url, headers=headers, data=payload, timeout=10) as resp:
+                        if resp.status == 200:
+                            resp_json = await resp.json()
+                            err_code = resp_json.get('err_code')
+                            if err_code == 40020: # USER_INFO_ERROR -> mismatch!
+                                await message.add_reaction('❌')
+                                await message.reply(f"❌ Player ID `{fid}` does not belong to State `#{state_id}`. Registration failed.", delete_after=15)
+                                return
+                            else:
+                                api_verified = True
+                except Exception as e:
+                    self._log_debug(f"State verification failed during request: {e}")
+            
+            if True:
+                nickname = 'Unknown'
+                furnace_lv = 0
+                kid = str(state_id)
+                stove_lv_content = '0'
+                avatar_image = ''
+                
+                # Save state globally so the global db is up-to-date
+                try:
+                    from db.mongo_adapters import PlayerStateAdapter, mongo_enabled
+                    if mongo_enabled():
+                        PlayerStateAdapter.set_kid(str(fid), kid)
+                except Exception:
+                    pass
+                
+
                 # Cross-server Auto-Redeem Check
                 from db.mongo_adapters import AutoRedeemMembersAdapter
                 if mongo_enabled() and AutoRedeemMembersAdapter:
@@ -246,9 +323,7 @@ class IDChannel(commands.Cog):
                 else:
                     await message.add_reaction('❌')
                     await message.reply("❌ Failed to register FID. Please try again.", delete_after=10)
-            else:
-                await message.add_reaction('❌')
-                await message.reply(f"❌ Player with FID `{fid}` not found.", delete_after=10)
+            
                 
         except Exception as e:
             print(f"Error processing FID {fid}: {e}")

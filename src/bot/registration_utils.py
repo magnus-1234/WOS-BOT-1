@@ -35,9 +35,9 @@ async def setup_approved_guild_channels(bot: discord.Client, guild_id: int, alli
             return False, f"Bot is not in guild {guild_id}"
 
         # auto-redeem logs channel (formerly player-ids)
-        logs_channel = discord.utils.get(guild.text_channels, name="📝┃auto-redeem-logs")
+        logs_channel = discord.utils.get(guild.text_channels, name="player-id-wos")
         if not logs_channel:
-            logs_channel = await guild.create_text_channel("📝┃auto-redeem-logs")
+            logs_channel = await guild.create_text_channel("player-id-wos")
             await logs_channel.send(
                 "This channel will log auto-redeem activities and user registrations."
             )

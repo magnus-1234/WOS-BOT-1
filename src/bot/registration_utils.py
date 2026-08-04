@@ -35,19 +35,15 @@ async def setup_approved_guild_channels(bot: discord.Client, guild_id: int, alli
             return False, f"Bot is not in guild {guild_id}"
 
         # auto-redeem logs channel (formerly player-ids)
-        logs_channel = discord.utils.get(guild.text_channels, name="player-id-wos")
+        logs_channel = discord.utils.get(guild.text_channels, name="🆔┃𝐩𝐥𝐚𝐲𝐞𝐫-𝐢𝐝𝐬")
         if not logs_channel:
-            logs_channel = await guild.create_text_channel("player-id-wos")
+            logs_channel = await guild.create_text_channel("🆔┃𝐩𝐥𝐚𝐲𝐞𝐫-𝐢𝐝𝐬")
             await logs_channel.send(
                 "This channel will log auto-redeem activities and user registrations."
             )
             
-        # register auto-redeem channel
-        register_channel = discord.utils.get(guild.text_channels, name="🚀┃register-auto-redeem")
-        if not register_channel:
-            register_channel = await guild.create_text_channel("🚀┃register-auto-redeem")
             try:
-                # Post the persistent panel
+                # Post the persistent panel in the same channel
                 from cogs.manage_giftcode import AutoRedeemPanelView
                 embed = discord.Embed(
                     title="🎁 Auto-Redeem Registration",
@@ -64,7 +60,7 @@ async def setup_approved_guild_channels(bot: discord.Client, guild_id: int, alli
                 embed.set_thumbnail(url=bot.user.display_avatar.url if bot.user.display_avatar else None)
                 manage_gc_cog = bot.get_cog("ManageGiftCode")
                 if manage_gc_cog:
-                    await register_channel.send(embed=embed, view=AutoRedeemPanelView(manage_gc_cog))
+                    await logs_channel.send(embed=embed, view=AutoRedeemPanelView(manage_gc_cog))
             except Exception as e:
                 logger.error(f"Error posting auto-redeem panel: {e}")
             

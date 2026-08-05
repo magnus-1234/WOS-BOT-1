@@ -2169,10 +2169,12 @@ class ManageGiftCode(commands.Cog):
                         )
                         
                     if 'AutoRedeemedCodesAdapter' in globals() and 'mongo_enabled' in globals() and mongo_enabled():
-                        if redemption_successful or final_status == "ALREADY_RECEIVED":
+                        is_terminal = final_status in ["USER_INFO_ERROR", "PLAYER_NOT_FOUND", "CDK_NOT_FOUND", "EXPIRED", "TIME_ERROR", "SAME TYPE EXCHANGE", "ALREADY_RECEIVED", "USAGE_LIMIT", "INVALID_CODE", "LEVEL_TOO_LOW"]
+                        if redemption_successful or final_status == "ALREADY_RECEIVED" or is_terminal:
+                            tracking_status = "success" if redemption_successful else "already_redeemed" if final_status == "ALREADY_RECEIVED" else "failed"
                             await AutoRedeemedCodesAdapter.mark_code_redeemed_for_member_async(
                                 guild_id=guild_id, code=giftcode, fid=str(fid),
-                                status="success" if redemption_successful else "already_redeemed"
+                                status=tracking_status
                             )
                 except Exception as e:
                     self.logger.error(f"Error tracking redemption: {e}")
@@ -2730,7 +2732,8 @@ class ManageGiftCode(commands.Cog):
                                     "fid": str(fid),
                                     "status": tracking_status,
                                 })
-                                if success or already_redeemed:
+                                is_terminal = status in ["USER_INFO_ERROR", "PLAYER_NOT_FOUND", "CDK_NOT_FOUND", "EXPIRED", "TIME_ERROR", "SAME TYPE EXCHANGE", "ALREADY_RECEIVED", "USAGE_LIMIT", "INVALID_CODE", "LEVEL_TOO_LOW"]
+                                if success or already_redeemed or is_terminal:
                                     redeemed_members_batch.append({
                                         "fid": str(fid),
                                         "status": tracking_status,

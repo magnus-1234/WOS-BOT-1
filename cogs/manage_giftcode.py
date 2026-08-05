@@ -25,7 +25,7 @@ AUTO_REDEEM_ADMIN_PRIORITY_MIN = 11
 AUTO_REDEEM_UNASSIGNED_SORT_PRIORITY = 1_000_000
 
 try:
-    from db.mongo_adapters import mongo_enabled, GiftCodesAdapter, AutoRedeemSettingsAdapter, AutoRedeemChannelsAdapter, GiftCodeRedemptionAdapter, AutoRedeemMembersAdapter, AutoRedeemedCodesAdapter, _get_db, ServerLimitsAdapter, PlayerStateAdapter
+    from db.mongo_adapters import mongo_enabled, GiftCodesAdapter, AutoRedeemSettingsAdapter, AutoRedeemChannelsAdapter, GiftCodeRedemptionAdapter, AutoRedeemMembersAdapter, AutoRedeemedCodesAdapter, _get_db, _get_db_wos, ServerLimitsAdapter, PlayerStateAdapter
 except Exception:
     mongo_enabled = lambda: False
     GiftCodesAdapter = None
@@ -34,6 +34,7 @@ except Exception:
     AutoRedeemMembersAdapter = None
     AutoRedeemedCodesAdapter = None
     _get_db = lambda: None
+    _get_db_wos = lambda: None
     
     class ServerLimitsAdapter:
         @staticmethod
@@ -3582,7 +3583,7 @@ class ManageGiftCode(commands.Cog):
                         )
                         if mongo_enabled() and GiftCodesAdapter:
                             try:
-                                db = _get_db()
+                                db = _get_db_wos()
                                 if db is not None:
                                     db[GiftCodesAdapter.COLL].update_one({'_id': code_up}, {'$set': {'giftcode_original': code}})
                             except Exception as me:
@@ -3609,7 +3610,7 @@ class ManageGiftCode(commands.Cog):
                             self.cursor.execute("UPDATE gift_codes SET auto_redeem_processed = 0, date = ? WHERE giftcode = ?", (date, code_up))
                             if mongo_enabled() and GiftCodesAdapter:
                                 try:
-                                    db = _get_db()
+                                    db = _get_db_wos()
                                     if db is not None:
                                         db[GiftCodesAdapter.COLL].update_one({'_id': code_up}, {'$set': {'auto_redeem_processed': False, 'date': date}})
                                 except Exception as me:
@@ -3645,10 +3646,10 @@ class ManageGiftCode(commands.Cog):
                     self.logger.info(f"Added new code to SQLite: {code_up} (original case: {code})")
 
                     # CRITICAL: Also insert into MongoDB if enabled
-                    if mongo_enabled() and GiftCodesAdapter and _get_db:
+                    if mongo_enabled() and GiftCodesAdapter and _get_db_wos:
                         try:
                             # Insert the code with auto_redeem_processed = False
-                            db = _get_db()
+                            db = _get_db_wos()
                             if db is not None:
                                 db[GiftCodesAdapter.COLL].update_one(
                                     {'_id': code_up},
@@ -4333,13 +4334,11 @@ class ManageGiftCode(commands.Cog):
         # Mark in SQLite for consistency
         sqlite_marked = False
         try:
-            def mark_sqlite():
-                self.cursor.execute(
-                    "UPDATE gift_codes SET auto_redeem_processed = 1 WHERE giftcode = ?",
-                    (code_up,)
-                )
-                self.giftcode_db.commit()
-            await asyncio.to_thread(mark_sqlite)
+            self.cursor.execute(
+                "UPDATE gift_codes SET auto_redeem_processed = 1 WHERE giftcode = ?",
+                (code_up,)
+            )
+            self.giftcode_db.commit()
             sqlite_marked = True
             self.logger.info(f"✅ Marked {code_up} as processed in SQLite")
         except Exception as e:

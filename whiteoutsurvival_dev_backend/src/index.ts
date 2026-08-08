@@ -802,13 +802,14 @@ const normalizeRedeemStatus = (payload: any) => {
   return { state: 'unknown', message: message || 'Unable to redeem this code right now.' };
 };
 
-const redeemViaBotDashboard = async (playerId: string, code: string) => {
+const redeemViaBotDashboard = async (playerId: string, code: string, stateId?: string) => {
   const response = await fetch('https://bot.whiteoutsurvival.dev/api/giftcodes/redeem', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({
       id: playerId,
       fid: playerId,
+      state: stateId,
       codes: [code],
       guild_id: 0,
     }),
@@ -1693,6 +1694,7 @@ app.post('/api/gift-codes/redeem', async (req, res) => {
     const playerId = cleanPlayerId(req.body?.playerId);
     const code = cleanGiftCode(req.body?.code);
     const captchaCode = cleanText(req.body?.captchaCode, 12).replace(/[^A-Za-z0-9]/g, '').trim();
+    const stateId = cleanText(req.body?.stateId || req.body?.state, 10).replace(/[^0-9]/g, '').trim();
 
     if (!/^\d{8,10}$/.test(playerId)) {
       res.status(400).json({ error: 'Enter a valid player ID.' });
@@ -1710,7 +1712,7 @@ app.post('/api/gift-codes/redeem', async (req, res) => {
         return;
       }
 
-      const autoResult = await redeemViaBotDashboard(playerId, code);
+      const autoResult = await redeemViaBotDashboard(playerId, code, stateId);
       res.json({
         ...autoResult,
         player,
@@ -1731,6 +1733,7 @@ app.post('/api/gift-codes/redeem', async (req, res) => {
         captcha_code: captchaCode,
         cdk: code,
         fid: playerId,
+        kid: stateId || '',
         time: String(Date.now()),
       }),
     });

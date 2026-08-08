@@ -1314,12 +1314,16 @@ class ManageGiftCode(commands.Cog):
         """Mark a guild as having completed processing for a specific gift code (Case-Insensitive)."""
         try:
             # Always store standardized uppercase
-            code_raw = giftcode.strip()
-            self.cursor.execute(
-                "INSERT OR IGNORE INTO auto_redeem_completed_guilds (guild_id, giftcode, status, completed_at) VALUES (?, ?, ?, ?)",
-                (guild_id, code_raw, "completed", datetime.now().isoformat())
-            )
-            self.giftcode_db.commit()
+            code_raw = giftcode.strip().upper()
+            
+            def mark_in_sqlite():
+                self.cursor.execute(
+                    "INSERT OR IGNORE INTO auto_redeem_completed_guilds (guild_id, giftcode, status, completed_at) VALUES (?, ?, ?, ?)",
+                    (guild_id, code_raw, "completed", datetime.now().isoformat())
+                )
+                self.giftcode_db.commit()
+                
+            await asyncio.to_thread(mark_in_sqlite)
             self.logger.info(f"✅ Marked guild {guild_id} as completed for code {code_raw}")
         except Exception as e:
             self.logger.error(f"Failed to mark guild completion for {giftcode}: {e}")
@@ -4304,7 +4308,8 @@ class ManageGiftCode(commands.Cog):
             self.logger.info(f"🏁 All {expected_jobs} jobs for code {code_up} completed. Marking as fully processed.")
             await self._mark_code_done(code_up)
         except asyncio.TimeoutError:
-            self.logger.error(f"⌛️ Timeout waiting for code {code_up} to complete. It may be stuck (Remaining: {self._pending_jobs_per_code.get(code_up, 'unknown')}).")
+            self.logger.error(f"⌛️ Timeout waiting for code {code_up} to complete. It may be stuck (Remaining: {self._pending_jobs_per_code.get(code_up, 'unknown')}). Forcing done state to prevent infinite loops.")
+            await self._mark_code_done(code_up)
         finally:
             self._pending_jobs_per_code.pop(code_up, None)
             self._completion_events.pop(code_up, None)
@@ -4337,11 +4342,14 @@ class ManageGiftCode(commands.Cog):
         # Mark in SQLite for consistency
         sqlite_marked = False
         try:
-            self.cursor.execute(
-                "UPDATE gift_codes SET auto_redeem_processed = 1 WHERE giftcode = ?",
-                (code_up,)
-            )
-            self.giftcode_db.commit()
+            def mark_sqlite():
+                self.cursor.execute(
+                    "UPDATE gift_codes SET auto_redeem_processed = 1 WHERE giftcode = ?",
+                    (code_up,)
+                )
+                self.giftcode_db.commit()
+            
+            await asyncio.to_thread(mark_sqlite)
             sqlite_marked = True
             self.logger.info(f"✅ Marked {code_up} as processed in SQLite")
         except Exception as e:

@@ -1418,7 +1418,8 @@ class GiftCodesAdapter:
                         'auto_redeem_processed': True,
                         'updated_at': datetime.utcnow().isoformat()
                     }
-                }
+                },
+                upsert=True
             )
             return result.modified_count > 0 or result.matched_count > 0
         except Exception as e:
@@ -1437,7 +1438,8 @@ class GiftCodesAdapter:
                         'auto_redeem_processed': True,
                         'updated_at': datetime.utcnow().isoformat()
                     }
-                }
+                },
+                upsert=True
             )
             return result.modified_count > 0 or result.matched_count > 0
         except Exception as e:

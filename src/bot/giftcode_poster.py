@@ -268,18 +268,6 @@ class GiftCodePoster:
 
     async def get_sent_set(self, guild_id: int):
         async with self.lock:
-            # === PRIMARY SOURCE: MongoDB (Most Reliable) ===
-            if mongo_enabled() and SentGiftCodesAdapter is not None:
-                try:
-                    mongo_codes = SentGiftCodesAdapter.get_sent_codes(guild_id)
-                    if mongo_codes:
-                        logger.debug(f"📊 MongoDB: Retrieved {len(mongo_codes)} sent codes for guild {guild_id}")
-                        return mongo_codes
-                    else:
-                        logger.debug(f"MongoDB: No codes found for guild {guild_id}, checking fallback storage")
-                except Exception as e:
-                    logger.warning(f"⚠️ MongoDB retrieval failed for guild {guild_id}: {e}, using fallback")
-            
             # === FALLBACK: Local State (Legacy) ===
             sent = self.state.setdefault('sent', {})
             guild_codes = sent.setdefault(str(guild_id), [])
@@ -287,10 +275,24 @@ class GiftCodePoster:
             combined = list((guild_codes or []) + (global_codes or []))
             fallback_set = set(self._normalize_code(c) for c in combined if c)
             
-            if fallback_set:
-                logger.debug(f"📂 Fallback: Retrieved {len(fallback_set)} sent codes for guild {guild_id}")
+            # === PRIMARY SOURCE: MongoDB (Most Reliable) ===
+            mongo_codes = set()
+            if mongo_enabled() and SentGiftCodesAdapter is not None:
+                try:
+                    m_codes = SentGiftCodesAdapter.get_sent_codes(guild_id)
+                    if m_codes:
+                        mongo_codes = m_codes
+                        logger.debug(f"📊 MongoDB: Retrieved {len(mongo_codes)} sent codes for guild {guild_id}")
+                    else:
+                        logger.debug(f"MongoDB: No codes found for guild {guild_id}")
+                except Exception as e:
+                    logger.warning(f"⚠️ MongoDB retrieval failed for guild {guild_id}: {e}")
             
-            return fallback_set
+            final_set = fallback_set.union(mongo_codes)
+            if final_set:
+                logger.debug(f"📂 Final Set: Retrieved {len(final_set)} sent codes for guild {guild_id}")
+            
+            return final_set
 
 
 poster = GiftCodePoster()

@@ -338,13 +338,17 @@ class GiftCodeAPI:
                                     try:
                                         # First add as pending
                                         if self.mongo_enabled:
-                                            self.gift_codes_adapter.insert(code, formatted_date, "pending")
+                                            success = self.gift_codes_adapter.insert(code, formatted_date, "pending")
+                                            if success:
+                                                new_codes.append((code, formatted_date))
+                                            else:
+                                                self.logger.warning(f"Skipping notification for {code} as DB insertion failed.")
                                         else:
                                             self.cursor.execute(
                                                 "INSERT OR IGNORE INTO gift_codes (giftcode, date, validation_status) VALUES (?, ?, ?)",
                                                 (code, formatted_date, "pending")
                                             )
-                                        new_codes.append((code, formatted_date))
+                                            new_codes.append((code, formatted_date))
                                     except Exception as e:
                                         self.logger.exception(f"Error inserting new code {code}: {e}")
 

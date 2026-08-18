@@ -179,6 +179,84 @@ class GiftCodePoster:
     def list_channels(self) -> Dict[str, int]:
         return {int(k): int(v) for k, v in self.state.get('channels', {}).items()}
 
+    def _get_sent_set_unlocked(self, guild_id: int):
+        sent = self.state.setdefault('sent', {})
+        guild_codes = sent.setdefault(str(guild_id), [])
+        global_codes = sent.setdefault('global', [])
+        combined = list((guild_codes or []) + (global_codes or []))
+        fallback_set = set(self._normalize_code(c) for c in combined if c)
+
+        mongo_codes = set()
+        if mongo_enabled() and SentGiftCodesAdapter is not None:
+            try:
+                m_codes = SentGiftCodesAdapter.get_sent_codes(guild_id)
+                if m_codes:
+                    mongo_codes = set(self._normalize_code(c) for c in m_codes if c)
+                    logger.debug(f"📊 MongoDB: Retrieved {len(mongo_codes)} sent codes for guild {guild_id}")
+                else:
+                    logger.debug(f"MongoDB: No codes found for guild {guild_id}")
+            except Exception as e:
+                logger.warning(f"⚠️ MongoDB retrieval failed for guild {guild_id}: {e}")
+
+        final_set = fallback_set.union(mongo_codes)
+        if final_set:
+            logger.debug(f"📂 Final Set: Retrieved {len(final_set)} sent codes for guild {guild_id}")
+        return final_set
+
+    async def reserve_unsent_codes(self, guild_id: int, codes: List[str]):
+        """Atomically find unsent codes and record them before Discord posting."""
+        async with self.lock:
+            sent_set = self._get_sent_set_unlocked(guild_id)
+            new_codes = []
+            for code in codes or []:
+                normalized = self._normalize_code(code)
+                if normalized and normalized not in sent_set:
+                    new_codes.append(normalized)
+                    sent_set.add(normalized)
+
+            if not new_codes:
+                return []
+
+            self.state.setdefault('sent', {})[str(guild_id)] = list(sorted(sent_set))
+
+            if mongo_enabled() and SentGiftCodesAdapter is not None:
+                try:
+                    SentGiftCodesAdapter.mark_codes_sent(
+                        guild_id=guild_id,
+                        codes=new_codes,
+                        source='auto_reserve'
+                    )
+                except Exception as e:
+                    logger.error(f"❌ MongoDB: Exception reserving codes for guild {guild_id}: {e}")
+
+            try:
+                import os
+                os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
+                with open(STATE_FILE, 'w', encoding='utf-8') as f:
+                    import json
+                    json.dump(self.state, f, ensure_ascii=False, indent=2)
+            except Exception as e:
+                logger.error(f"❌ Local File: Failed to reserve codes for guild {guild_id}: {e}")
+
+            if mongo_enabled() and GiftcodeStateAdapter is not None:
+                try:
+                    GiftcodeStateAdapter.set_state(self.state)
+                except Exception as e:
+                    logger.debug(f"GiftcodeStateAdapter reserve save failed: {e}")
+
+            if mongo_enabled() and GiftCodesAdapter is not None:
+                try:
+                    now = datetime.utcnow().isoformat()
+                    for code in new_codes:
+                        try:
+                            GiftCodesAdapter.insert(code, now, validation_status='posted')
+                        except Exception:
+                            logger.debug(f"Failed to insert reserved code into GiftCodesAdapter: {code}")
+                except Exception:
+                    pass
+
+            return new_codes
+
     async def mark_sent(self, guild_id: int, codes: List[str]):
         async with self.lock:
             sent_list = self.state.setdefault('sent', {}).setdefault(str(guild_id), [])
@@ -268,31 +346,7 @@ class GiftCodePoster:
 
     async def get_sent_set(self, guild_id: int):
         async with self.lock:
-            # === FALLBACK: Local State (Legacy) ===
-            sent = self.state.setdefault('sent', {})
-            guild_codes = sent.setdefault(str(guild_id), [])
-            global_codes = sent.setdefault('global', [])
-            combined = list((guild_codes or []) + (global_codes or []))
-            fallback_set = set(self._normalize_code(c) for c in combined if c)
-            
-            # === PRIMARY SOURCE: MongoDB (Most Reliable) ===
-            mongo_codes = set()
-            if mongo_enabled() and SentGiftCodesAdapter is not None:
-                try:
-                    m_codes = SentGiftCodesAdapter.get_sent_codes(guild_id)
-                    if m_codes:
-                        mongo_codes = m_codes
-                        logger.debug(f"📊 MongoDB: Retrieved {len(mongo_codes)} sent codes for guild {guild_id}")
-                    else:
-                        logger.debug(f"MongoDB: No codes found for guild {guild_id}")
-                except Exception as e:
-                    logger.warning(f"⚠️ MongoDB retrieval failed for guild {guild_id}: {e}")
-            
-            final_set = fallback_set.union(mongo_codes)
-            if final_set:
-                logger.debug(f"📂 Final Set: Retrieved {len(final_set)} sent codes for guild {guild_id}")
-            
-            return final_set
+            return self._get_sent_set_unlocked(guild_id)
 
 
 poster = GiftCodePoster()
@@ -663,41 +717,18 @@ async def run_check_once(bot: discord.Client, detected_codes: Optional[List] = N
                     logger.warning(f"Configured gift channel {channel_id} not found for guild {guild_id}")
                     continue
 
-                sent_set = await poster.get_sent_set(guild_id)
-                logger.info(f"Guild {guild_id} ({guild.name}): sent_set has {len(sent_set)} codes")
-                
-                # If this guild has no recorded sent codes (e.g. newly configured),
-                # post the CURRENT active codes immediately (so the channel gets seeded
-                # with the latest codes right away), then mark them as sent.
-                if not sent_set:
-                    if fetched_set:
-                        logger.info(f"New guild {guild_id} ({guild.name}): posting {len(fetched_set)} current codes on first run")
-                        try:
-                            new_code_dicts = [code_map[k] for k in fetched_codes if k in code_map]
-                            await post_new_codes_to_channel(bot, channel, new_code_dicts)
-                            await poster.mark_sent(guild_id, list(fetched_set))
-                            posted_total += len(fetched_set)
-                        except Exception as e:
-                            logger.error(f"Failed to post initial codes for guild {guild_id}: {e}")
-                            # Still mark as sent to avoid spamming on next cycle
-                            await poster.mark_sent(guild_id, list(fetched_set))
-                    continue
-
-                # fetched_codes and sent_set are normalized already
-                new_code_keys = [k for k in fetched_codes if k and k not in sent_set]
+                new_code_keys = await poster.reserve_unsent_codes(guild_id, fetched_codes)
                 if not new_code_keys:
                     logger.info(f"No new codes for guild {guild_id}")
                     continue
 
-                logger.info(f"Found {len(new_code_keys)} new codes for guild {guild_id}: {new_code_keys}")
+                logger.info(f"Reserved {len(new_code_keys)} new codes for guild {guild_id}: {new_code_keys}")
 
                 # Prepare list of dicts for embed (use original casing from fetched map)
                 new_code_dicts = [code_map[k] for k in new_code_keys if k in code_map]
 
                 # Post new codes in one message (embed)
                 await post_new_codes_to_channel(bot, channel, new_code_dicts)
-                # Mark as sent (store code strings)
-                await poster.mark_sent(guild_id, new_code_keys)
                 posted_total += len(new_code_keys)
                 logger.info(f"Posted {len(new_code_keys)} new codes to guild {guild_id}")
 

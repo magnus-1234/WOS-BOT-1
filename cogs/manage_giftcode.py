@@ -2177,7 +2177,7 @@ class ManageGiftCode(commands.Cog):
                         if redemption_successful or final_status == "ALREADY_RECEIVED" or is_terminal:
                             tracking_status = "success" if redemption_successful else "already_redeemed" if final_status == "ALREADY_RECEIVED" else "failed"
                             await AutoRedeemedCodesAdapter.mark_code_redeemed_for_member_async(
-                                guild_id=guild_id, code=giftcode, fid=str(fid),
+                                guild_id=guild_id, code=str(giftcode).strip().upper(), fid=str(fid),
                                 status=tracking_status
                             )
                 except Exception as e:
@@ -2199,6 +2199,12 @@ class ManageGiftCode(commands.Cog):
         if already_redeemed:
             return "already_redeemed"
         return "failed"
+
+    def _display_fail_reason(self, status):
+        status_key = str(status or "UNKNOWN")
+        if status_key == "USER_INFO_ERROR":
+            return "Missing State info"
+        return status_key
 
     async def _flush_bulk_redemption_tracking(self, guild_id, giftcode, redemption_records, redeemed_records):
         """Write high-volume redemption history in bulk after a batch finishes."""
@@ -2424,7 +2430,7 @@ class ManageGiftCode(commands.Cog):
                     # Run batch check in thread pool to avoid blocking event loop
                     redeemed_status = await AutoRedeemedCodesAdapter.batch_check_members_async(
                         guild_id,
-                        giftcode,
+                        code_up,
                         all_fids
                     )
                     
@@ -2757,7 +2763,7 @@ class ManageGiftCode(commands.Cog):
                                 else:
                                     failed_count += failed
                                     # Add status reason mapping
-                                    reason_key = str(status) if status else "UNKNOWN"
+                                    reason_key = self._display_fail_reason(status)
                                     fail_reasons[reason_key] = fail_reasons.get(reason_key, 0) + 1
                             completed_count += 1
                             
@@ -2840,7 +2846,7 @@ class ManageGiftCode(commands.Cog):
 
             await self._flush_bulk_redemption_tracking(
                 guild_id,
-                giftcode,
+                code_up,
                 redemption_tracking_batch,
                 redeemed_members_batch,
             )

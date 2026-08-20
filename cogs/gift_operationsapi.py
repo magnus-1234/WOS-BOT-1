@@ -113,10 +113,11 @@ class GiftCodeAPI:
     def _update_gift_code_status(self, code: str, status: str) -> bool:
         """Helper to update gift code status in either MongoDB or SQLite"""
         try:
+            code_key = str(code).strip().upper()
             if self.mongo_enabled:
-                return self.gift_codes_adapter.update_status(code, status)
+                return self.gift_codes_adapter.update_status(code_key, status)
             else:
-                self.cursor.execute("UPDATE gift_codes SET validation_status = ? WHERE giftcode = ?", (status, code))
+                self.cursor.execute("UPDATE gift_codes SET validation_status = ? WHERE giftcode = ?", (status, code_key))
                 self.conn.commit()
                 return True
         except Exception as e:
@@ -126,14 +127,15 @@ class GiftCodeAPI:
     def _get_gift_code_status(self, code: str) -> Optional[str]:
         """Helper to get gift code status from either MongoDB or SQLite"""
         try:
+            code_key = str(code).strip().upper()
             if self.mongo_enabled:
                 docs = self.gift_codes_adapter.get_all()
                 for doc_code, doc_date, doc_status in docs:
-                    if doc_code == code:
+                    if str(doc_code).strip().upper() == code_key:
                         return doc_status
                 return None
             else:
-                self.cursor.execute("SELECT validation_status FROM gift_codes WHERE giftcode = ?", (code,))
+                self.cursor.execute("SELECT validation_status FROM gift_codes WHERE giftcode = ?", (code_key,))
                 result = self.cursor.fetchone()
                 return result[0] if result else None
         except Exception as e:
@@ -145,10 +147,10 @@ class GiftCodeAPI:
         try:
             if self.mongo_enabled:
                 docs = self.gift_codes_adapter.get_all()
-                return [doc[0] for doc in docs if doc[2] != 'invalid']
+                return [str(doc[0]).strip().upper() for doc in docs if doc[2] != 'invalid']
             else:
                 self.cursor.execute("SELECT giftcode FROM gift_codes WHERE validation_status != 'invalid'")
-                return [row[0] for row in self.cursor.fetchall()]
+                return [str(row[0]).strip().upper() for row in self.cursor.fetchall()]
         except Exception as e:
             self.logger.error(f"Failed to get valid codes: {e}")
             return []
@@ -252,14 +254,14 @@ class GiftCodeAPI:
                 db_codes = {}
                 try:
                     codes_list = self.gift_codes_adapter.get_all()
-                    db_codes = {row[0]: (row[1], row[2]) for row in codes_list}
+                    db_codes = {str(row[0]).strip().upper(): (row[1], row[2]) for row in codes_list}
                 except Exception as e:
                     self.logger.error(f"Failed to get codes from MongoDB: {e}")
                     return False
             else:
                 # Use SQLite
                 self.cursor.execute("SELECT giftcode, date, validation_status FROM gift_codes")
-                db_codes = {row[0]: (row[1], row[2]) for row in self.cursor.fetchall()}
+                db_codes = {str(row[0]).strip().upper(): (row[1], row[2]) for row in self.cursor.fetchall()}
             
             connector = aiohttp.TCPConnector(ssl=self.ssl_context)
             async with aiohttp.ClientSession(connector=connector) as session:
@@ -333,12 +335,13 @@ class GiftCodeAPI:
 
                             new_codes = []
                             for code, date_obj in valid_codes:
+                                code_key = str(code).strip().upper()
                                 formatted_date = date_obj.strftime("%Y-%m-%d")
-                                if code not in db_codes:
+                                if code_key not in db_codes:
                                     try:
                                         # First add as pending
                                         if self.mongo_enabled:
-                                            success = self.gift_codes_adapter.insert(code, formatted_date, "pending")
+                                            success = self.gift_codes_adapter.insert(code_key, formatted_date, "pending")
                                             if success:
                                                 new_codes.append((code, formatted_date))
                                             else:
@@ -346,9 +349,10 @@ class GiftCodeAPI:
                                         else:
                                             self.cursor.execute(
                                                 "INSERT OR IGNORE INTO gift_codes (giftcode, date, validation_status) VALUES (?, ?, ?)",
-                                                (code, formatted_date, "pending")
+                                                (code_key, formatted_date, "pending")
                                             )
-                                            new_codes.append((code, formatted_date))
+                                            if self.cursor.rowcount > 0:
+                                                new_codes.append((code, formatted_date))
                                     except Exception as e:
                                         self.logger.exception(f"Error inserting new code {code}: {e}")
 
@@ -491,7 +495,7 @@ class GiftCodeAPI:
                             except Exception as e:
                                 self.logger.exception(f"Error committing new codes: {e}")
                             
-                            api_code_set = {code for code, _ in valid_codes}
+                            api_code_set = {str(code).strip().upper() for code, _ in valid_codes}
                             codes_to_push = []
                             for db_code, (db_date, db_status) in db_codes.items(): # Push our valid codes to the API if they're not already there
                                 if db_status != 'invalid' and db_status != 'pending':

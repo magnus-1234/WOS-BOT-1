@@ -39,7 +39,7 @@ class GiftCodePoster:
         """Normalize code strings for consistent comparison/storage."""
         if not code:
             return ""
-        return str(code).strip()
+        return str(code).strip().upper()
 
     def _load_state(self):
         loaded_from_mongo = False
@@ -631,7 +631,7 @@ def _coerce_codes_for_posting(raw_codes) -> List[Dict]:
             rewards = 'Rewards not specified'
             source = 'active_fetch'
 
-        code = poster._normalize_code(code)
+        code = str(code).strip() if code else ''
         if not code:
             continue
         normalized.append({

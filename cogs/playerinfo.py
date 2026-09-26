@@ -428,7 +428,6 @@ class PlayerInfoCog(commands.Cog):
         power = pick("power", "total_power", "player_power")
         vip = pick("vip", "vip_level")
         kills = pick("kills", "kill_count", "total_kills")
-        life_tree = pick("life_tree_level", "life_tree")
         avatar = pick("avatar_url", "avatar_image", "avatar")
         stove_icon = pick("stove_lv_content", "furnace_icon", "furnace_icon_url")
 
@@ -479,8 +478,6 @@ class PlayerInfoCog(commands.Cog):
             embed.add_field(name="💎 VIP", value=f"```{pretty(vip)}```", inline=True)
         if kills is not None:
             embed.add_field(name="⚔️ Kills", value=f"```{pretty(kills)}```", inline=True)
-        if life_tree is not None:
-            embed.add_field(name="🌳 Life Tree", value=f"```{pretty(life_tree)}```", inline=True)
         self._set_embed_footer(embed, context)
         return embed
 

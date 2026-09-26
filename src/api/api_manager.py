@@ -100,6 +100,15 @@ class RobustOpenRouterManager:
     def __init__(self, api_keys: List[str], model: Optional[str] = None):
         self.api_keys = [APIKeyInfo(key=key, index=i) for i, key in enumerate(api_keys)]
         self.model = model
+        # Optional per-key overrides allow keys with provider restrictions to
+        # use a compatible model while keeping the default for all other keys.
+        self.key_models = {
+            key_info.index: os.getenv(
+                f"OPENROUTER_MODEL_{key_info.index + 1}",
+                "nvidia/nemotron-3.5-lightning:free" if key_info.index == 2 else model,
+            )
+            for key_info in self.api_keys
+        }
         self.sheets_manager = SheetsManager()
         self.spreadsheet_id = os.getenv('GOOGLE_SHEET_ID')
         self.cache: Dict[str, str] = {}
@@ -186,8 +195,9 @@ class RobustOpenRouterManager:
     async def _request_with_key(self, key_info: APIKeyInfo, messages: List[Dict[str, str]], max_tokens: int) -> str:
         """Make a single request with a specific key"""
         url = "https://openrouter.ai/api/v1/chat/completions"
+        request_model = self.key_models.get(key_info.index, self.model)
         payload = {
-            "model": self.model,
+            "model": request_model,
             "messages": messages,
             "max_tokens": max_tokens
         }
@@ -202,7 +212,7 @@ class RobustOpenRouterManager:
         # Enhanced logging for diagnostics
         system_prompt_len = len(messages[0]['content']) if messages and messages[0].get('role') == 'system' else 0
         user_msg_len = len(messages[-1]['content']) if messages and messages[-1].get('role') == 'user' else 0
-        logger.info(f"Making API request to {url} with model {self.model}, max_tokens={max_tokens}")
+        logger.info(f"Making API request to {url} with model {request_model}, key {key_info.index + 1}, max_tokens={max_tokens}")
         logger.info(f"Message count: {len(messages)}, System prompt: {system_prompt_len} chars, User message: {user_msg_len} chars")
         logger.debug(f"Using API key {key_info.index + 1}")
 

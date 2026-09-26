@@ -26,6 +26,7 @@ import urllib.parse
 from thinking_animation import ThinkingAnimation
 from command_animator import command_animation
 from db.mongo_adapters import mongo_enabled, AllianceMembersAdapter, AutoRedeemChannelsAdapter
+from src.api.wosoracle import fetch_player_info as fetch_oracle_player_info, WoSOracleError
 
 # Player API endpoint and secret (keep this in sync with your other code)
 API_URL = "https://wos-giftcode-api.centurygame.com/api/player"
@@ -43,6 +44,7 @@ except Exception:
 # an actual image URL for icon fields. We attempt to set it and will quietly
 # fall back if Discord rejects it.
 WATERMARK_URL = "https://cdn.discordapp.com/attachments/1435569370389807144/1436437186424606741/unnamed_4.png?ex=690f99e0&is=690e4860&hm=2262bc4ceea28787c91c5bfcb2d6e7fac28cda152c4963a9b4375eac4913b063"
+ORACLE_TEST_GUILD_ID = 1394263768501846068
 
 
 def map_furnace(lv: int) -> Optional[str]:
@@ -160,9 +162,12 @@ class PlayerInfoCog(commands.Cog):
             if content.strip().startswith(('!Add', '!Remove')):
                 return
 
-            # Skip channels that have dedicated cogs handling FID input
-            # (auto-redeem channels and ID-registration channels)
-            if self._is_managed_channel(message):
+            # Preserve dedicated channel handlers elsewhere, but allow the
+            # requested test guild to resolve player IDs in every channel.
+            if (
+                self._is_managed_channel(message)
+                and getattr(message.guild, "id", None) != ORACLE_TEST_GUILD_ID
+            ):
                 return
             
             m = re.search(r"\b(\d{8,9})\b", content)
@@ -209,6 +214,21 @@ class PlayerInfoCog(commands.Cog):
                 thinking_msg = await message.reply(embed=thinking_embed, mention_author=False)
             except Exception as e:
                 self.logger.debug(f"Failed to show thinking animation: {e}")
+
+            # Test Oracle enrichment only in the explicitly selected guild.
+            # All other guilds keep the existing Century Games response path.
+            if getattr(message.guild, "id", None) == ORACLE_TEST_GUILD_ID:
+                try:
+                    oracle_profile = await fetch_oracle_player_info(fid, timeout=8)
+                    oracle_embed = self._build_oracle_embed(fid, oracle_profile, message)
+                    if thinking_msg:
+                        await thinking_msg.delete()
+                    await message.reply(embed=oracle_embed, mention_author=False)
+                    return
+                except WoSOracleError as e:
+                    self.logger.info("WoSOracle enrichment unavailable for fid=%s: %s", fid, e)
+                except Exception:
+                    self.logger.exception("Unexpected WoSOracle lookup error for fid=%s", fid)
 
             # prepare request pieces
             ssl_context = ssl.create_default_context()
@@ -375,6 +395,95 @@ class PlayerInfoCog(commands.Cog):
         except Exception as outer_e:
             self.logger.exception("Unexpected error in playerinfo handler: %s", outer_e)
 
+    def _build_oracle_embed(self, fid: str, profile: dict, context) -> discord.Embed:
+        """Format a WoSOracle player profile for the channel lookup response."""
+        player = profile.get("player") or profile.get("data") or profile
+        if not isinstance(player, dict):
+            raise WoSOracleError("WoSOracle returned an unexpected player profile")
+
+        def pick(*keys):
+            for key in keys:
+                value = player.get(key)
+                if value not in (None, "", [], {}):
+                    return value
+            return None
+
+        def label(value):
+            if isinstance(value, dict):
+                return value.get("name") or value.get("username") or value.get("id") or value.get("number")
+            return value
+
+        nickname = str(pick("username", "name", "nickname", "chief_name") or f"Player {fid}")
+        state = label(pick("state", "state_id", "kid", "kingdom", "kingdom_id"))
+        state = str(state) if state is not None else "Unknown"
+        if state.isdigit():
+            state = f"#{state}"
+
+        alliance = pick("alliance", "alliance_name", "alliance_abbr", "alliance_tag")
+        alliance_name = label(alliance)
+        alliance_abbr = alliance.get("abbr") or alliance.get("tag") if isinstance(alliance, dict) else pick("alliance_abbr", "alliance_tag")
+        alliance_rank = pick("alliance_rank")
+        alliance_role = pick("alliance_role", "role")
+        furnace = pick("furnace_level", "furnace", "stove_level", "stove_lv", "town_hall_level")
+        power = pick("power", "total_power", "player_power")
+        vip = pick("vip", "vip_level")
+        kills = pick("kills", "kill_count", "total_kills")
+        life_tree = pick("life_tree_level", "life_tree")
+        avatar = pick("avatar_url", "avatar_image", "avatar")
+        stove_icon = pick("stove_lv_content", "furnace_icon", "furnace_icon_url")
+
+        embed = discord.Embed(
+            colour=discord.Colour.blurple(),
+            url=f"https://wosoracle.com/player/{fid}",
+        )
+        author_icon = stove_icon if isinstance(stove_icon, str) and stove_icon.startswith(("https://", "http://")) else None
+        embed.set_author(name=nickname, **({"icon_url": author_icon} if author_icon else {}))
+        if isinstance(avatar, str):
+            avatar_url = urllib.parse.urljoin("https://wosoracle.com/", avatar)
+            if avatar_url.startswith(("https://", "http://")):
+                embed.set_thumbnail(url=avatar_url)
+
+        alliance_text = str(alliance_name or "Unknown")
+        if alliance_abbr:
+            alliance_text = f"[{alliance_abbr}] {alliance_text}"
+        if alliance_role:
+            alliance_text += f" · {alliance_role}"
+        if alliance_rank is not None:
+            rank_match = re.fullmatch(r"R?([1-5])", str(alliance_rank).strip(), re.IGNORECASE)
+            if rank_match:
+                alliance_text += f" · R{rank_match.group(1)}"
+
+        def pretty(value):
+            if isinstance(value, int):
+                return f"{value:,}"
+            if isinstance(value, float):
+                return f"{value:,.0f}"
+            return str(label(value))
+
+        furnace_display = pretty(furnace) if furnace is not None else None
+        if furnace is not None:
+            try:
+                furnace_level = int(furnace)
+                furnace_display = map_furnace(furnace_level) or str(furnace_level)
+            except (TypeError, ValueError):
+                pass
+
+        embed.add_field(name="🪪 Player ID", value=f"```{fid}```", inline=True)
+        embed.add_field(name="🏠 STATE", value=f"```{state}```", inline=True)
+        if furnace is not None:
+            embed.add_field(name="Furnace Level", value=f"```{furnace_display}```", inline=True)
+        embed.add_field(name="🏰 Alliance", value=f"```{alliance_text[:1000]}```", inline=True)
+        if power is not None:
+            embed.add_field(name="⚡ Power", value=f"```{pretty(power)}```", inline=True)
+        if vip is not None:
+            embed.add_field(name="💎 VIP", value=f"```{pretty(vip)}```", inline=True)
+        if kills is not None:
+            embed.add_field(name="⚔️ Kills", value=f"```{pretty(kills)}```", inline=True)
+        if life_tree is not None:
+            embed.add_field(name="🌳 Life Tree", value=f"```{pretty(life_tree)}```", inline=True)
+        self._set_embed_footer(embed, context)
+        return embed
+
     def _set_embed_footer(self, embed: discord.Embed, context):
         """Set the personalized footer for the bot embeds."""
         guild_name = getattr(context, 'guild', None)
@@ -420,6 +529,32 @@ class PlayerInfoCog(commands.Cog):
                     ephemeral=True,
                 )
             return
+
+        # Use the same richer profile for slash lookups in the test guild.
+        # IDs that are unavailable from WoSOracle continue through the legacy
+        # Century Games lookup below.
+        if getattr(interaction.guild, "id", None) == ORACLE_TEST_GUILD_ID:
+            oracle_sem = asyncio.Semaphore(3)
+
+            async def fetch_oracle(fid: str):
+                async with oracle_sem:
+                    try:
+                        profile = await fetch_oracle_player_info(fid, timeout=12)
+                        return fid, self._build_oracle_embed(fid, profile, interaction), None
+                    except Exception as exc:
+                        return fid, None, exc
+
+            oracle_results = await asyncio.gather(*(fetch_oracle(fid) for fid in ids))
+            fallback_ids = []
+            for fid, embed, error in oracle_results:
+                if embed is not None:
+                    await interaction.followup.send(embed=embed)
+                else:
+                    self.logger.info("WoSOracle slash lookup unavailable for fid=%s: %s", fid, error)
+                    fallback_ids.append(fid)
+            if not fallback_ids:
+                return
+            ids = fallback_ids
 
         # prepare shared SSL/context and headers
         ssl_context = ssl.create_default_context()

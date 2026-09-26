@@ -924,6 +924,60 @@ class RemindersAdapter:
 class AllianceMembersAdapter:
     """Stores alliance members with all their data (player IDs, levels, etc.)"""
     COLL = 'alliance_members'
+    SERVER_COLL = 'premium_alliance_members'
+
+    @staticmethod
+    async def upsert_server_member_async(guild_id: int, alliance_id: int, fid: str, data: Dict[str, Any]) -> bool:
+        """Persist a member in one server's alliance roster without changing shared membership."""
+        try:
+            db = await _get_db_wos_async()
+            now = datetime.utcnow().isoformat()
+            payload = data.copy()
+            payload.update({
+                'guild_id': int(guild_id),
+                'alliance_id': int(alliance_id),
+                'fid': str(fid),
+                'updated_at': now,
+            })
+            payload.pop('created_at', None)
+            await db[AllianceMembersAdapter.SERVER_COLL].update_one(
+                {'_id': f'{int(guild_id)}:{str(fid)}'},
+                {'$set': payload, '$setOnInsert': {'created_at': now}},
+                upsert=True,
+            )
+            return True
+        except Exception as e:
+            logger.error(f'Failed to upsert server alliance member {fid} for guild {guild_id}: {e}')
+            return False
+
+    @staticmethod
+    async def get_server_members_async(guild_id: int, alliance_id: int) -> list:
+        """Fetch the roster assigned to a single Discord server."""
+        try:
+            db = await _get_db_wos_async()
+            cursor = db[AllianceMembersAdapter.SERVER_COLL].find({
+                'guild_id': int(guild_id), 'alliance_id': int(alliance_id),
+            })
+            docs = await cursor.to_list(length=None)
+            for doc in docs:
+                doc.pop('_id', None)
+            return docs
+        except Exception as e:
+            logger.error(f'Failed to fetch server alliance members for guild {guild_id}: {e}')
+            return []
+
+    @staticmethod
+    async def delete_server_member_async(guild_id: int, fid: str) -> bool:
+        """Remove a member from one server's roster, preserving shared player data."""
+        try:
+            db = await _get_db_wos_async()
+            result = await db[AllianceMembersAdapter.SERVER_COLL].delete_one(
+                {'_id': f'{int(guild_id)}:{str(fid)}'}
+            )
+            return result.deleted_count > 0
+        except Exception as e:
+            logger.error(f'Failed to remove server alliance member {fid} for guild {guild_id}: {e}')
+            return False
 
     @staticmethod
     def upsert_member(fid: str, data: Dict[str, Any]) -> bool:
@@ -1110,6 +1164,28 @@ class AllianceMembersAdapter:
             return result.deleted_count > 0
         except Exception as e:
             logger.error(f'Failed to delete alliance member (async) {fid} from Mongo: {e}')
+            return False
+
+    @staticmethod
+    async def remove_from_alliance_async(fid: str, alliance_id: int) -> bool:
+        """Remove one alliance membership without deleting the shared player record."""
+        try:
+            db = await _get_db_wos_async()
+            await db[AllianceMembersAdapter.COLL].update_one(
+                {
+                    '_id': str(fid),
+                    '$or': [
+                        {'alliance': int(alliance_id)},
+                        {'alliance': str(alliance_id)},
+                        {'alliance_id': int(alliance_id)},
+                        {'alliance_id': str(alliance_id)},
+                    ],
+                },
+                {'$unset': {'alliance': '', 'alliance_id': ''}},
+            )
+            return True
+        except Exception as e:
+            logger.error(f'Failed to remove member {fid} from alliance {alliance_id}: {e}')
             return False
 
     @staticmethod
@@ -3381,6 +3457,29 @@ class AllianceMonitoringAdapter:
             return []
 
     @staticmethod
+    async def claim_scan_async(guild_id: int, alliance_id: int, check_interval: int) -> bool:
+        """Atomically claim a monitor scan once its configured seconds have elapsed."""
+        try:
+            db = await _get_db_main_async()
+            now = datetime.utcnow()
+            cutoff = now - timedelta(seconds=max(1, int(check_interval)))
+            result = await db[AllianceMonitoringAdapter.COLL].update_one(
+                {
+                    'guild_id': int(guild_id),
+                    'alliance_id': int(alliance_id),
+                    '$or': [
+                        {'last_scan_started_at': {'$exists': False}},
+                        {'last_scan_started_at': {'$lte': cutoff}},
+                    ],
+                },
+                {'$set': {'last_scan_started_at': now}},
+            )
+            return result.modified_count == 1
+        except Exception as e:
+            logger.error(f"Error claiming alliance monitor scan: {e}")
+            return True
+
+    @staticmethod
     def upsert_monitor(guild_id: int, alliance_id: int, channel_id: int, enabled: int = 1, check_interval: int = 240) -> bool:
         try:
             db = _get_db_main()
@@ -3456,7 +3555,7 @@ class ServerAllianceAdapter:
     COLL = 'server_alliances'
 
     @staticmethod
-    def set_alliance(guild_id: int, alliance_id: int, assigned_by: int) -> bool:
+    def set_alliance(guild_id: int, alliance_id: int, assigned_by: int, oracle_alliance_id: int = None, oracle_alliance_name: str = None) -> bool:
         """Assign an alliance to a Discord server"""
         try:
             db = _get_db_main()
@@ -3476,11 +3575,33 @@ class ServerAllianceAdapter:
                 },
                 upsert=True
             )
+            oracle_metadata = {}
+            if oracle_alliance_id is not None:
+                oracle_metadata['oracle_alliance_id'] = int(oracle_alliance_id)
+            if oracle_alliance_name is not None:
+                oracle_metadata['oracle_alliance_name'] = str(oracle_alliance_name)
+            if oracle_metadata:
+                db[ServerAllianceAdapter.COLL].update_one(
+                    {'_id': str(guild_id)},
+                    {'$set': oracle_metadata}
+                )
             logger.info(f'Assigned alliance {alliance_id} to server {guild_id}')
             return True
         except Exception as e:
             logger.error(f'Failed to assign alliance to server {guild_id}: {e}')
             return False
+
+    @staticmethod
+    def get_oracle_alliance_id(guild_id: int) -> Optional[int]:
+        """Get the WoS Oracle alliance ID mapped to a server's local alliance."""
+        try:
+            db = _get_db_main()
+            doc = db[ServerAllianceAdapter.COLL].find_one({'_id': str(guild_id)})
+            value = doc.get('oracle_alliance_id') if doc else None
+            return int(value) if value is not None else None
+        except Exception as e:
+            logger.error(f'Failed to get Oracle alliance for server {guild_id}: {e}')
+            return None
 
     @staticmethod
     def get_alliance(guild_id: int) -> Optional[int]:

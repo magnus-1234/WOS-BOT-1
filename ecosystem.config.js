@@ -45,6 +45,7 @@ module.exports = {
         PORT: "8080",
 
         PYTHONUNBUFFERED: "1",
+        WOSORACLE_BROWSER_SERVICE_URL: "http://127.0.0.1:8765",
       },
 
       // ── Log files ───────────────────────────────────────────────────────
@@ -71,6 +72,26 @@ module.exports = {
       // ── Log files ───────────────────────────────────────────────────────
       out_file: "/home/ubuntu/bot/keepalive-out.log",
       error_file: "/home/ubuntu/bot/keepalive-error.log",
+      log_date_format: "YYYY-MM-DD HH:mm:ss",
+      merge_logs: false,
+    },
+    {
+      name: "wosoracle-browser",
+      script: "wosoracle_browser_start.sh",
+      interpreter: "bash",
+      cwd: "/home/ubuntu/bot",
+      restart_delay: 10000,
+      max_restarts: 10,
+      min_uptime: "30s",
+      watch: false,
+      autorestart: true,
+      env: {
+        PYTHONUNBUFFERED: "1",
+        WOSORACLE_BROWSER: "firefox",
+        WOSORACLE_PROFILE_DIR: "/home/ubuntu/.wosoracle-firefox-profile",
+      },
+      out_file: "/home/ubuntu/wosoracle-browser-out.log",
+      error_file: "/home/ubuntu/wosoracle-browser-error.log",
       log_date_format: "YYYY-MM-DD HH:mm:ss",
       merge_logs: false,
     },

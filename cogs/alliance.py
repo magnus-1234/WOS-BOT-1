@@ -8,6 +8,7 @@ from discord.ext import tasks
 from typing import List, Dict, Optional
 import os
 from .login_handler import LoginHandler
+from src.api.wosoracle import fetch_alliance_members, fetch_player_info as fetch_oracle_player_info, WoSOracleError
 from command_animator import command_animation
 from bot_activity import publish_bot_activity
 from admin_utils import is_admin, is_global_admin, grant_admin_if_discord_admin, is_bot_owner, get_level_mapping, format_furnace_level
@@ -3269,6 +3270,61 @@ class Alliance(commands.Cog):
         with open(self.log_file, 'a', encoding='utf-8') as f:
             f.write(log_entry)
 
+    def _is_premium_monitor_guild(self, guild_id: int) -> bool:
+        """Use WOS Oracle for servers enabled in the bot's premium server list."""
+        try:
+            if int(guild_id) == 1394263768501846068:
+                return True
+            with get_db_connection('giftcode.sqlite') as conn:
+                row = conn.execute(
+                    "SELECT 1 FROM premium_auto_redeem_guilds WHERE guild_id = ?",
+                    (int(guild_id),),
+                ).fetchone()
+            return row is not None
+        except Exception as exc:
+            self.log_message(f"Could not determine premium status for guild {guild_id}: {exc}")
+            return False
+
+    @staticmethod
+    def _oracle_monitor_profile(profile: Dict) -> Dict:
+        """Normalize the Oracle player payload to the monitor's profile fields."""
+        player = profile.get('player') or profile.get('data') or profile
+        if not isinstance(player, dict):
+            return {}
+        alliance = player.get('alliance')
+        if isinstance(alliance, dict):
+            alliance_id = alliance.get('id') or alliance.get('alliance_id') or alliance.get('aid')
+            alliance_name = alliance.get('name') or alliance.get('abbr') or alliance.get('tag')
+        else:
+            alliance_id = player.get('alliance_id') or player.get('allianceId') or player.get('aid')
+            alliance_name = alliance if isinstance(alliance, str) else None
+        furnace = (player.get('furnace_level') or player.get('town_hall_level') or player.get('furnace') or
+                   player.get('stove_level') or player.get('stove_lv'))
+        return {
+            'nickname': player.get('username') or player.get('name') or player.get('nickname') or player.get('chief_name'),
+            'stove_lv': furnace,
+            'kid': player.get('state_id') or player.get('kid') or player.get('kingdom_id'),
+            'avatar_image': player.get('avatar_url') or player.get('avatar_image') or player.get('avatar'),
+            'alliance_id': alliance_id,
+            'alliance_name': alliance_name,
+        }
+
+    @staticmethod
+    def _oracle_roster_entries(payload: Dict) -> list:
+        """Find member rows in Oracle's alliance response without accepting error envelopes."""
+        candidates = [payload]
+        while candidates:
+            value = candidates.pop(0)
+            if isinstance(value, dict):
+                for key in ('members', 'players', 'roster'):
+                    rows = value.get(key)
+                    if isinstance(rows, list):
+                        return rows
+                candidates.extend(v for v in value.values() if isinstance(v, dict))
+            elif isinstance(value, list):
+                return value
+        return []
+
     def _set_embed_footer(self, embed: discord.Embed, guild: Optional[discord.Guild] = None):
         """Set the standard footer for alliance monitoring embeds"""
         server_name = guild.name if guild else "ICE"
@@ -3408,11 +3464,17 @@ class Alliance(commands.Cog):
         """
         mongo_fids: set = set()
         res: list = []
+        server_scoped = bool(
+            guild_id and mongo_enabled() and self._is_premium_monitor_guild(guild_id)
+        )
 
         # --- MongoDB: targeted query by alliance_id ---
         if mongo_enabled() and AllianceMembersAdapter is not None:
             try:
-                docs = await AllianceMembersAdapter.get_members_by_alliance_async(alliance_id)
+                if server_scoped:
+                    docs = await AllianceMembersAdapter.get_server_members_async(guild_id, alliance_id)
+                else:
+                    docs = await AllianceMembersAdapter.get_members_by_alliance_async(alliance_id)
                 for d in docs:
                     try:
                         fid = str(d.get('fid') or d.get('id') or d.get('_id') or '').strip()
@@ -3429,21 +3491,22 @@ class Alliance(commands.Cog):
                 self.log_message(f"[Monitor] Error querying MongoDB members for alliance {alliance_id}: {e}")
 
         # --- SQLite: always check to pick up newly added members not yet in MongoDB ---
-        try:
-            with get_db_connection('users.sqlite') as users_db:
-                cursor = users_db.cursor()
-                cursor.execute(
-                    "SELECT fid, nickname, furnace_lv, kid FROM users WHERE alliance = ?",
-                    (alliance_id,)
-                )
-                for row in cursor.fetchall():
-                    fid = str(row[0]).strip()
-                    if fid and fid not in mongo_fids:
-                        res.append((fid, row[1] or '', int(row[2] or 0), str(row[3] or '')))
-        except Exception as e:
-            self.log_message(f"[Monitor] Error querying SQLite members for alliance {alliance_id}: {e}")
+        if not server_scoped:
+            try:
+                with get_db_connection('users.sqlite') as users_db:
+                    cursor = users_db.cursor()
+                    cursor.execute(
+                        "SELECT fid, nickname, furnace_lv, kid FROM users WHERE alliance = ?",
+                        (alliance_id,)
+                    )
+                    for row in cursor.fetchall():
+                        fid = str(row[0]).strip()
+                        if fid and fid not in mongo_fids:
+                            res.append((fid, row[1] or '', int(row[2] or 0), str(row[3] or '')))
+            except Exception as e:
+                self.log_message(f"[Monitor] Error querying SQLite members for alliance {alliance_id}: {e}")
 
-        if guild_id:
+        if guild_id and not server_scoped:
             try:
                 from db.mongo_adapters import ServerLimitsAdapter, mongo_enabled
                 if mongo_enabled() and ServerLimitsAdapter:
@@ -3454,6 +3517,71 @@ class Alliance(commands.Cog):
                 self.log_message(f"[Monitor] Error getting limit for guild {guild_id}: {e}")
 
         return res
+
+    async def _sync_oracle_alliance_roster(self, guild_id: int, alliance_id: int) -> bool:
+        """Refresh this guild's Mongo roster from the assigned live Oracle alliance."""
+        if not mongo_enabled() or AllianceMembersAdapter is None:
+            return False
+        try:
+            from db.mongo_adapters import ServerAllianceAdapter
+            oracle_alliance_id = ServerAllianceAdapter.get_oracle_alliance_id(guild_id)
+            if not oracle_alliance_id:
+                self.log_message(f"[Monitor] No Oracle alliance ID configured for guild {guild_id}")
+                return False
+            payload = await fetch_alliance_members(3063, oracle_alliance_id)
+            rows = self._oracle_roster_entries(payload)
+            if not rows:
+                self.log_message(f"[Monitor] Oracle returned an empty or unrecognized roster; keeping saved members for guild {guild_id}")
+                return False
+
+            live = {}
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                player = row.get('player') if isinstance(row.get('player'), dict) else row
+                fid = str(player.get('fid') or player.get('player_id') or player.get('id') or player.get('chief_id') or '').strip()
+                if not fid.isdigit():
+                    continue
+                normalized = self._oracle_monitor_profile(player)
+                row_alliance = normalized.get('alliance_id')
+                row_kid = normalized.get('kid')
+                if row_alliance is not None and str(row_alliance) != str(oracle_alliance_id):
+                    continue
+                if row_kid is not None and str(row_kid) not in ('3063', '3063000000'):
+                    continue
+                nickname = normalized.get('nickname') or player.get('name') or player.get('nickname') or ''
+                furnace = normalized.get('stove_lv') or player.get('town_hall_level') or player.get('furnace_level') or 0
+                avatar = normalized.get('avatar_image') or ''
+                if avatar.startswith('/'):
+                    avatar = f"https://wosoracle.com{avatar}"
+                live[fid] = {
+                    'fid': fid,
+                    'oracle_alliance_id': int(oracle_alliance_id),
+                    'nickname': nickname,
+                    'furnace_lv': int(furnace or 0),
+                    'kid': 3063,
+                    'state_id': '3063',
+                    'avatar_image': avatar,
+                    'last_checked': datetime.utcnow(),
+                }
+            if not live:
+                self.log_message(f"[Monitor] Oracle roster had no valid member IDs; keeping saved members for guild {guild_id}")
+                return False
+            for fid, data in live.items():
+                stored = await AllianceMembersAdapter.upsert_server_member_async(guild_id, alliance_id, fid, data)
+                if not stored:
+                    self.log_message(f"[Monitor] Could not save Oracle member {fid}; skipping roster pruning for guild {guild_id}")
+                    return False
+            saved = await AllianceMembersAdapter.get_server_members_async(guild_id, alliance_id)
+            stale = [str(doc.get('fid') or '') for doc in saved if str(doc.get('fid') or '') not in live]
+            for fid in stale:
+                if fid:
+                    await AllianceMembersAdapter.delete_server_member_async(guild_id, fid)
+            self.log_message(f"[Monitor] Synced {len(live)} current Oracle members for guild {guild_id}; removed {len(stale)} departed members.")
+            return True
+        except Exception as exc:
+            self.log_message(f"[Monitor] Oracle roster refresh failed for guild {guild_id}; keeping saved roster: {exc}")
+            return False
     
     async def _get_monitored_alliances(self) -> List[Dict]:
         """Get all alliances that are being monitored"""
@@ -3487,6 +3615,8 @@ class Alliance(commands.Cog):
     async def _check_alliance_changes(self, alliance_id: int, channel_id: int, guild_id: int):
         """Check for changes in an alliance and post notifications"""
         try:
+            if self._is_premium_monitor_guild(guild_id):
+                await self._sync_oracle_alliance_roster(guild_id, alliance_id)
             # Get guild object for footer
             guild = self.bot.get_guild(guild_id)
             
@@ -3525,18 +3655,45 @@ class Alliance(commands.Cog):
                 state_id = m[3] if len(m) > 3 else ''
                 member_map[fid] = (nickname, furnace_lv, state_id)
             
-            self.log_message(f"Fetching data for {len(fids)} members using {'dual-API' if self.login_handler.dual_api_mode else 'single-API'} mode...")
-            
-            # Fetch all member data concurrently using batch processing
-            api_results = await self.login_handler.fetch_player_batch(
-                fids,
-                alliance_id=str(alliance_id)
-            )
+            use_oracle = self._is_premium_monitor_guild(guild_id)
+            if use_oracle:
+                self.log_message(f"Fetching {len(fids)} candidate members from WoS Oracle for premium guild {guild_id}...")
+
+                async def fetch_oracle_result(fid):
+                    try:
+                        raw = await fetch_oracle_player_info(fid, timeout=12)
+                        return {'status': 'success', 'data': self._oracle_monitor_profile(raw)}
+                    except WoSOracleError as exc:
+                        return {'status': 'failed', 'error_message': str(exc)}
+                    except Exception as exc:
+                        return {'status': 'failed', 'error_message': str(exc)}
+
+                # Oracle supports a small request rate; stagger requests to avoid
+                # exhausting the server quota when monitoring a large alliance.
+                api_results = []
+                for offset in range(0, len(fids), 3):
+                    batch = fids[offset:offset + 3]
+                    api_results.extend(await asyncio.gather(*(fetch_oracle_result(fid) for fid in batch)))
+                    if offset + 3 < len(fids):
+                        await asyncio.sleep(1)
+            else:
+                self.log_message(f"Fetching data for {len(fids)} members using {'dual-API' if self.login_handler.dual_api_mode else 'single-API'} mode...")
+                api_results = await self.login_handler.fetch_player_batch(
+                    fids,
+                    alliance_id=str(alliance_id)
+                )
             
             # Process results and detect changes
             changes_detected = []
             successful_fetches = 0
             failed_fetches = 0
+            expected_oracle_alliance_id = None
+            if use_oracle and mongo_enabled():
+                try:
+                    from db.mongo_adapters import ServerAllianceAdapter
+                    expected_oracle_alliance_id = ServerAllianceAdapter.get_oracle_alliance_id(guild_id)
+                except Exception as exc:
+                    self.log_message(f"[Monitor] Could not resolve Oracle alliance for guild {guild_id}: {exc}")
             
             for i, api_result in enumerate(api_results):
                 fid = fids[i]
@@ -3545,12 +3702,85 @@ class Alliance(commands.Cog):
                 if api_result['status'] == 'success':
                     successful_fetches += 1
                     api_data = api_result['data']
-                    api_nickname = api_data.get('nickname', current_nickname)
-                    api_furnace_lv = api_data.get('stove_lv', current_furnace_lv)
-                    api_state_id = str(api_data.get('kid', current_state_id))
+                    if use_oracle:
+                        oracle_alliance_id = api_data.get('alliance_id')
+                        membership_matches = (
+                            str(oracle_alliance_id) == str(expected_oracle_alliance_id)
+                            if oracle_alliance_id is not None and expected_oracle_alliance_id is not None
+                            else False
+                        )
+                        if not membership_matches:
+                            # Oracle's live alliance membership is authoritative for
+                            # premium scans; never track/send events for departed or
+                            # otherwise out-of-alliance players.
+                            self.log_message(f"Skipping FID {fid}: Oracle alliance {oracle_alliance_id!r} does not match assigned Oracle alliance {expected_oracle_alliance_id!r}")
+                            if oracle_alliance_id is not None and mongo_enabled() and AllianceMembersAdapter is not None:
+                                # Oracle confirmed this player has left the assigned alliance.
+                                # Remove only the alliance membership, keeping their shared profile.
+                                try:
+                                    if self._is_premium_monitor_guild(guild_id):
+                                        await AllianceMembersAdapter.delete_server_member_async(guild_id, fid)
+                                    else:
+                                        await AllianceMembersAdapter.remove_from_alliance_async(fid, alliance_id)
+                                        with get_db_connection('users.sqlite') as users_db:
+                                            users_db.execute(
+                                                "DELETE FROM users WHERE fid = ? AND alliance = ?",
+                                                (int(fid), str(alliance_id)),
+                                            )
+                                            users_db.commit()
+                                except Exception as exc:
+                                    self.log_message(f"[Monitor] Failed to remove departed FID {fid} from alliance {alliance_id}: {exc}")
+                            continue
+                    api_nickname = api_data.get('nickname') or current_nickname
+                    api_furnace_lv = api_data.get('stove_lv') or current_furnace_lv
+                    api_state_id = str(api_data.get('kid') or current_state_id)
+                    api_avatar_value = api_data.get('avatar_image') or ''
+                    if api_avatar_value.startswith('/'):
+                        api_avatar_value = f"https://wosoracle.com{api_avatar_value}"
                     
-                    # Get historical data
-                    if mongo_enabled() and AllianceMembersAdapter is not None:
+                    # Premium monitoring keeps its own history per alliance.
+                    # Shared Mongo member records can outlive alliance membership
+                    # or be overwritten by another server's alliance sync.
+                    if use_oracle:
+                        with get_db_connection('settings.sqlite') as conn:
+                            cursor = conn.cursor()
+                            cursor.execute("""
+                                SELECT nickname, furnace_lv, avatar_image, state_id
+                                FROM member_history WHERE fid = ? AND alliance_id = ?
+                            """, (str(fid), alliance_id))
+                            history = cursor.fetchone()
+                            if history:
+                                old_nickname, old_furnace_lv = history[0], history[1]
+                                old_avatar = history[2] or ''
+                                old_state_id = history[3] or ''
+                                if old_nickname and api_nickname and api_nickname != old_nickname:
+                                    changes_detected.append({'type': 'name_change', 'fid': fid, 'old_value': old_nickname, 'new_value': api_nickname, 'furnace_lv': api_furnace_lv, 'state_id': api_state_id, 'alliance_name': alliance_name, 'avatar_image': api_avatar_value})
+                                if api_avatar_value and old_avatar and api_avatar_value != old_avatar:
+                                    changes_detected.append({'type': 'avatar_change', 'fid': fid, 'nickname': api_nickname, 'old_value': old_avatar, 'new_value': api_avatar_value, 'furnace_lv': api_furnace_lv, 'state_id': api_state_id, 'alliance_name': alliance_name})
+                                if api_furnace_lv and old_furnace_lv and int(api_furnace_lv) != int(old_furnace_lv):
+                                    changes_detected.append({'type': 'furnace_change', 'fid': fid, 'nickname': api_nickname, 'old_value': old_furnace_lv, 'new_value': api_furnace_lv, 'state_id': api_state_id, 'alliance_name': alliance_name, 'avatar_image': api_avatar_value})
+                                if old_state_id and api_state_id and api_state_id != str(old_state_id):
+                                    changes_detected.append({'type': 'state_change', 'fid': fid, 'nickname': api_nickname, 'old_value': old_state_id, 'new_value': api_state_id, 'furnace_lv': api_furnace_lv, 'state_id': api_state_id, 'alliance_name': alliance_name, 'avatar_image': api_avatar_value})
+                            cursor.execute("""
+                                INSERT OR REPLACE INTO member_history
+                                (fid, alliance_id, nickname, furnace_lv, state_id, avatar_image, last_checked)
+                                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                            """, (str(fid), alliance_id, api_nickname or current_nickname, api_furnace_lv or current_furnace_lv, api_state_id, api_avatar_value or (history[2] if history else '')))
+                            conn.commit()
+                        if mongo_enabled() and AllianceMembersAdapter is not None:
+                            await AllianceMembersAdapter.upsert_server_member_async(guild_id, alliance_id, str(fid), {
+                                'fid': str(fid),
+                                'oracle_alliance_id': int(oracle_alliance_id),
+                                'nickname': api_nickname or current_nickname,
+                                'furnace_lv': int(api_furnace_lv or 0),
+                                'kid': int(api_state_id or 0),
+                                'state_id': api_state_id,
+                                'avatar_image': api_avatar_value,
+                                'last_checked': datetime.utcnow(),
+                            })
+
+                    # Get historical data for the legacy MongoDB path
+                    elif mongo_enabled() and AllianceMembersAdapter is not None:
                         # MongoDB Logic
                         try:
                             doc = await AllianceMembersAdapter.get_member_async(str(fid)) or {}
@@ -3569,11 +3799,11 @@ class Alliance(commands.Cog):
                                     'furnace_lv': api_furnace_lv,
                                     'state_id': api_state_id,
                                     'alliance_name': alliance_name,
-                                    'avatar_image': api_data.get('avatar_image', '')
+                                    'avatar_image': api_avatar_value
                                 })
                             
                             # Check for avatar change
-                            api_avatar = api_data.get('avatar_image', '')
+                            api_avatar = api_avatar_value
                             if api_avatar and old_avatar and api_avatar != old_avatar:
                                 changes_detected.append({
                                     'type': 'avatar_change',
@@ -3596,7 +3826,7 @@ class Alliance(commands.Cog):
                                     'new_value': api_furnace_lv,
                                     'state_id': api_state_id,
                                     'alliance_name': alliance_name,
-                                    'avatar_image': api_data.get('avatar_image', '')
+                                    'avatar_image': api_avatar_value
                                 })
                             
                             # Check for state change (Transfer)
@@ -3620,7 +3850,7 @@ class Alliance(commands.Cog):
                             doc['nickname'] = api_nickname
                             doc['furnace_lv'] = api_furnace_lv
                             doc['state_id'] = api_state_id
-                            doc['avatar_image'] = api_data.get('avatar_image', '')
+                            doc['avatar_image'] = api_avatar_value
                             doc['last_checked'] = datetime.utcnow()
                             
                             await AllianceMembersAdapter.upsert_member_async(str(fid), doc)
@@ -3654,11 +3884,11 @@ class Alliance(commands.Cog):
                                         'furnace_lv': api_furnace_lv,
                                         'state_id': api_state_id,
                                         'alliance_name': alliance_name,
-                                        'avatar_image': api_data.get('avatar_image', '')
+                                        'avatar_image': api_avatar_value
                                     })
                                 
                                 # Check for avatar change
-                                api_avatar = api_data.get('avatar_image', '')
+                                api_avatar = api_avatar_value
                                 old_avatar = history[2] if len(history) > 2 else ''
                                 
                                 if api_avatar and old_avatar and api_avatar != old_avatar:
@@ -3683,7 +3913,7 @@ class Alliance(commands.Cog):
                                         'new_value': api_furnace_lv,
                                         'state_id': api_state_id,
                                         'alliance_name': alliance_name,
-                                        'avatar_image': api_data.get('avatar_image', '')
+                                        'avatar_image': api_avatar_value
                                     })
                                 
                                 # Check for state change
@@ -3698,11 +3928,11 @@ class Alliance(commands.Cog):
                                         'furnace_lv': api_furnace_lv,
                                         'state_id': api_state_id,
                                         'alliance_name': alliance_name,
-                                        'avatar_image': api_data.get('avatar_image', '')
+                                        'avatar_image': api_avatar_value
                                     })
                             
                             # Update or insert history
-                            api_avatar = api_data.get('avatar_image', '')
+                            api_avatar = api_avatar_value
                             cursor.execute("""
                                 INSERT OR REPLACE INTO member_history 
                                 (fid, alliance_id, nickname, furnace_lv, state_id, avatar_image, last_checked)
@@ -3970,6 +4200,15 @@ class Alliance(commands.Cog):
                         return
                 except Exception:
                     pass  # fail-open
+
+                # The task wakes every four minutes, but each server's
+                # configured interval controls how often its scan actually runs.
+                if mongo_enabled() and not await AllianceMonitoringAdapter.claim_scan_async(
+                    guild_id,
+                    config['alliance_id'],
+                    config.get('check_interval', 240),
+                ):
+                    return
 
                 # Resolve alliance name for the activity feed
                 alliance_name = "Unknown Alliance"

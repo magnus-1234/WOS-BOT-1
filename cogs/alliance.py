@@ -8,7 +8,7 @@ from discord.ext import tasks
 from typing import List, Dict, Optional
 import os
 from .login_handler import LoginHandler
-from src.api.wosoracle import fetch_alliance_members, fetch_player_info as fetch_oracle_player_info, WoSOracleError
+from src.api.wosoracle import fetch_alliance_members
 from command_animator import command_animation
 from bot_activity import publish_bot_activity
 from admin_utils import is_admin, is_global_admin, grant_admin_if_discord_admin, is_bot_owner, get_level_mapping, format_furnace_level
@@ -3508,7 +3508,7 @@ class Alliance(commands.Cog):
 
         if guild_id and not server_scoped:
             try:
-                from db.mongo_adapters import ServerLimitsAdapter, mongo_enabled
+                from db.mongo_adapters import ServerLimitsAdapter
                 if mongo_enabled() and ServerLimitsAdapter:
                     limit = await ServerLimitsAdapter.get_max_redeem_members_async(guild_id)
                     if limit is not None and limit >= 0:
@@ -3518,21 +3518,21 @@ class Alliance(commands.Cog):
 
         return res
 
-    async def _sync_oracle_alliance_roster(self, guild_id: int, alliance_id: int) -> bool:
-        """Refresh this guild's Mongo roster from the assigned live Oracle alliance."""
+    async def _sync_oracle_alliance_roster(self, guild_id: int, alliance_id: int) -> Optional[Dict[str, Dict]]:
+        """Refresh Mongo and return the assigned alliance's live Oracle roster."""
         if not mongo_enabled() or AllianceMembersAdapter is None:
-            return False
+            return None
         try:
             from db.mongo_adapters import ServerAllianceAdapter
             oracle_alliance_id = ServerAllianceAdapter.get_oracle_alliance_id(guild_id)
             if not oracle_alliance_id:
                 self.log_message(f"[Monitor] No Oracle alliance ID configured for guild {guild_id}")
-                return False
+                return None
             payload = await fetch_alliance_members(3063, oracle_alliance_id)
             rows = self._oracle_roster_entries(payload)
             if not rows:
                 self.log_message(f"[Monitor] Oracle returned an empty or unrecognized roster; keeping saved members for guild {guild_id}")
-                return False
+                return None
 
             live = {}
             for row in rows:
@@ -3566,22 +3566,22 @@ class Alliance(commands.Cog):
                 }
             if not live:
                 self.log_message(f"[Monitor] Oracle roster had no valid member IDs; keeping saved members for guild {guild_id}")
-                return False
+                return None
             for fid, data in live.items():
                 stored = await AllianceMembersAdapter.upsert_server_member_async(guild_id, alliance_id, fid, data)
                 if not stored:
                     self.log_message(f"[Monitor] Could not save Oracle member {fid}; skipping roster pruning for guild {guild_id}")
-                    return False
+                    return None
             saved = await AllianceMembersAdapter.get_server_members_async(guild_id, alliance_id)
             stale = [str(doc.get('fid') or '') for doc in saved if str(doc.get('fid') or '') not in live]
             for fid in stale:
                 if fid:
                     await AllianceMembersAdapter.delete_server_member_async(guild_id, fid)
             self.log_message(f"[Monitor] Synced {len(live)} current Oracle members for guild {guild_id}; removed {len(stale)} departed members.")
-            return True
+            return live
         except Exception as exc:
             self.log_message(f"[Monitor] Oracle roster refresh failed for guild {guild_id}; keeping saved roster: {exc}")
-            return False
+            return None
     
     async def _get_monitored_alliances(self) -> List[Dict]:
         """Get all alliances that are being monitored"""
@@ -3615,8 +3615,18 @@ class Alliance(commands.Cog):
     async def _check_alliance_changes(self, alliance_id: int, channel_id: int, guild_id: int):
         """Check for changes in an alliance and post notifications"""
         try:
+            live_oracle_roster = None
             if self._is_premium_monitor_guild(guild_id):
-                await self._sync_oracle_alliance_roster(guild_id, alliance_id)
+                # The Oracle roster is the source of truth for current premium
+                # membership. Never fall back to a possibly stale Mongo roster
+                # when Oracle cannot refresh it.
+                live_oracle_roster = await self._sync_oracle_alliance_roster(guild_id, alliance_id)
+                if not live_oracle_roster:
+                    self.log_message(
+                        f"[Monitor] Skipping premium scan for guild {guild_id}: "
+                        "could not refresh the live WoS Oracle alliance roster"
+                    )
+                    return
             # Get guild object for footer
             guild = self.bot.get_guild(guild_id)
             
@@ -3657,25 +3667,26 @@ class Alliance(commands.Cog):
             
             use_oracle = self._is_premium_monitor_guild(guild_id)
             if use_oracle:
-                self.log_message(f"Fetching {len(fids)} candidate members from WoS Oracle for premium guild {guild_id}...")
-
-                async def fetch_oracle_result(fid):
-                    try:
-                        raw = await fetch_oracle_player_info(fid, timeout=12)
-                        return {'status': 'success', 'data': self._oracle_monitor_profile(raw)}
-                    except WoSOracleError as exc:
-                        return {'status': 'failed', 'error_message': str(exc)}
-                    except Exception as exc:
-                        return {'status': 'failed', 'error_message': str(exc)}
-
-                # Oracle supports a small request rate; stagger requests to avoid
-                # exhausting the server quota when monitoring a large alliance.
+                self.log_message(f"Checking {len(fids)} current alliance members from the live WoS Oracle roster for premium guild {guild_id}...")
+                # The authenticated alliance response already contains live
+                # name, furnace, and avatar data for current members. Avoid 1
+                # profile request per player and never inspect outside this roster.
                 api_results = []
-                for offset in range(0, len(fids), 3):
-                    batch = fids[offset:offset + 3]
-                    api_results.extend(await asyncio.gather(*(fetch_oracle_result(fid) for fid in batch)))
-                    if offset + 3 < len(fids):
-                        await asyncio.sleep(1)
+                for fid in fids:
+                    member = live_oracle_roster.get(fid)
+                    if member:
+                        api_results.append({
+                            'status': 'success',
+                            'data': {
+                                'alliance_id': member.get('oracle_alliance_id'),
+                                'nickname': member.get('nickname'),
+                                'stove_lv': member.get('furnace_lv'),
+                                'kid': member.get('state_id') or member.get('kid'),
+                                'avatar_image': member.get('avatar_image'),
+                            },
+                        })
+                    else:
+                        api_results.append({'status': 'failed', 'error_message': 'Member missing from live Oracle roster'})
             else:
                 self.log_message(f"Fetching data for {len(fids)} members using {'dual-API' if self.login_handler.dual_api_mode else 'single-API'} mode...")
                 api_results = await self.login_handler.fetch_player_batch(
@@ -3703,13 +3714,16 @@ class Alliance(commands.Cog):
                     successful_fetches += 1
                     api_data = api_result['data']
                     if use_oracle:
-                        oracle_alliance_id = api_data.get('alliance_id')
-                        membership_matches = (
-                            str(oracle_alliance_id) == str(expected_oracle_alliance_id)
-                            if oracle_alliance_id is not None and expected_oracle_alliance_id is not None
-                            else False
-                        )
-                        if not membership_matches:
+                        oracle_alliance_id = api_data.get('alliance_id') or expected_oracle_alliance_id
+                        # The freshly fetched Oracle alliance roster already
+                        # establishes current membership. Player profiles do not
+                        # consistently include alliance metadata, so only reject
+                        # a profile when it explicitly names a different alliance.
+                        if (
+                            oracle_alliance_id is not None
+                            and expected_oracle_alliance_id is not None
+                            and str(oracle_alliance_id) != str(expected_oracle_alliance_id)
+                        ):
                             # Oracle's live alliance membership is authoritative for
                             # premium scans; never track/send events for departed or
                             # otherwise out-of-alliance players.

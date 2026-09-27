@@ -7,6 +7,7 @@ returned to, or written by, the Discord bot. The HTTP bridge binds to loopback.
 from __future__ import annotations
 
 import asyncio
+import hmac
 import json
 import logging
 import os
@@ -26,6 +27,7 @@ DEFAULT_PROFILE_DIR = Path.home() / ".wosoracle-local-profile"
 PROFILE_DIR = Path(os.environ.get("WOSORACLE_PROFILE_DIR", str(DEFAULT_PROFILE_DIR)))
 CDP_HTTP_PORT = 8765
 BROWSER_NAME = os.environ.get("WOSORACLE_BROWSER", "chromium").strip().lower()
+HEADLESS = not bool(os.environ.get("DISPLAY"))
 
 
 class BrowserSession:
@@ -41,7 +43,7 @@ class BrowserSession:
         if BROWSER_NAME == "firefox":
             self.context = await self.playwright.firefox.launch_persistent_context(
                 user_data_dir=str(PROFILE_DIR),
-                headless=False,
+                headless=HEADLESS,
                 viewport=viewport,
             )
         elif BROWSER_NAME == "chromium":
@@ -66,7 +68,7 @@ class BrowserSession:
         except Exception as exc:
             # Keep the browser open for interactive sign-in even if the site is
             # temporarily unavailable during startup.
-            LOG.warning("Could not load WoSOracle at startup: %s", exc)
+            LOG.warning("Could not load the player data service at startup: %s", exc)
         LOG.info("WoSOracle %s browser ready; persistent profile is %s", BROWSER_NAME, PROFILE_DIR)
 
     async def close(self) -> None:
@@ -106,8 +108,8 @@ class BrowserSession:
                 }""", fid)
                 return int(result["status"]), result["body"]
             except Exception as exc:
-                LOG.warning("WoSOracle lookup failed for %s: %s", fid, exc)
-                return 502, "WoSOracle browser request failed"
+                LOG.warning("Player lookup failed for %s: %s", fid, exc)
+                return 502, "Player lookup request failed"
 
     async def alliance(self, kid: str, alliance_id: str) -> tuple[int, dict | str]:
         if not self.page:
@@ -126,8 +128,8 @@ class BrowserSession:
                 }""", {"kid": kid, "allianceId": alliance_id})
                 return int(result["status"]), result["body"]
             except Exception as exc:
-                LOG.warning("WoSOracle alliance lookup failed for %s/%s: %s", kid, alliance_id, exc)
-                return 502, "WoSOracle browser request failed"
+                LOG.warning("Alliance lookup failed for %s/%s: %s", kid, alliance_id, exc)
+                return 502, "Alliance lookup request failed"
 
 
 async def health(request: web.Request) -> web.Response:
@@ -141,16 +143,16 @@ async def player(request: web.Request) -> web.Response:
         raise web.HTTPBadRequest(text="Player ID must contain 8 to 12 digits")
     browser: BrowserSession = request.app["browser"]
     if not await browser.authenticated():
-        raise web.HTTPUnauthorized(text="Sign in to WoSOracle in the VM browser window")
+        raise web.HTTPUnauthorized(text="Sign in in the browser window")
     status, body = await browser.player(fid)
     if status in (401, 403):
-        raise web.HTTPUnauthorized(text="WoSOracle session expired; sign in again in the VM browser window")
+        raise web.HTTPUnauthorized(text="The browser session expired; sign in again in the browser window")
     if status == 404:
-        raise web.HTTPNotFound(text="Player not found in WoSOracle")
+        raise web.HTTPNotFound(text="Player not found")
     if status == 429:
-        raise web.HTTPTooManyRequests(text="WoSOracle rate limit reached; retry later")
+        raise web.HTTPTooManyRequests(text="Rate limit reached; retry later")
     if status >= 400:
-        raise web.HTTPBadGateway(text=f"WoSOracle returned HTTP {status}")
+        raise web.HTTPBadGateway(text=f"The service returned HTTP {status}")
     return web.json_response(body)
 
 
@@ -161,23 +163,31 @@ async def alliance(request: web.Request) -> web.Response:
         raise web.HTTPBadRequest(text="Invalid kingdom or alliance ID")
     browser: BrowserSession = request.app["browser"]
     if not await browser.authenticated():
-        raise web.HTTPUnauthorized(text="Sign in to WoSOracle in the VM browser window")
+        raise web.HTTPUnauthorized(text="Sign in in the browser window")
     status, body = await browser.alliance(kid, alliance_id)
     if status in (401, 403):
-        raise web.HTTPUnauthorized(text="WoSOracle session expired; sign in again in the VM browser window")
+        raise web.HTTPUnauthorized(text="The browser session expired; sign in again in the browser window")
     if status == 404:
-        raise web.HTTPNotFound(text="Alliance not found in WoSOracle")
+        raise web.HTTPNotFound(text="Alliance not found")
     if status == 429:
-        raise web.HTTPTooManyRequests(text="WoSOracle rate limit reached; retry later")
+        raise web.HTTPTooManyRequests(text="Rate limit reached; retry later")
     if status >= 400:
-        raise web.HTTPBadGateway(text=f"WoSOracle returned HTTP {status}")
+        raise web.HTTPBadGateway(text=f"The service returned HTTP {status}")
     return web.json_response(body)
 
 
 async def create_app() -> web.Application:
     browser = BrowserSession()
     await browser.start()
-    app = web.Application()
+    @web.middleware
+    async def require_service_token(request: web.Request, handler):
+        expected = os.environ.get("WOSORACLE_BROWSER_SERVICE_TOKEN", "").strip()
+        supplied = request.headers.get("Authorization", "")
+        if expected and not hmac.compare_digest(supplied, f"Bearer {expected}"):
+            return web.json_response({"error": "Unauthorized"}, status=401)
+        return await handler(request)
+
+    app = web.Application(middlewares=[require_service_token])
     app["browser"] = browser
     app.router.add_get("/health", health)
     app.router.add_get("/player/{fid}", player)

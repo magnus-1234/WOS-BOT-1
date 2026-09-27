@@ -4556,6 +4556,39 @@ class ManageGiftCode(commands.Cog):
                     
                     if success:
                         formatted_fc = self.format_furnace_level(player_data['furnace_lv'])
+
+        # ID-channel registration owns the full lookup + enrollment flow.
+        # Check MongoDB as well as SQLite because IDChannel reads both stores;
+        # otherwise this listener can process the same message a second time.
+        id_channel_match = False
+        try:
+            from db.mongo_adapters import IDChannelsAdapter
+            if mongo_enabled() and IDChannelsAdapter:
+                id_channel_config = await IDChannelsAdapter.get_channel_async(message.guild.id)
+                id_channel_match = bool(
+                    id_channel_config
+                    and int(id_channel_config.get('channel_id') or 0) == message.channel.id
+                )
+        except Exception as exc:
+            self.logger.debug("Could not check MongoDB ID-channel config: %s", exc)
+
+        if not id_channel_match:
+            try:
+                with sqlite3.connect('db/id_channel.sqlite') as id_db:
+                    id_row = id_db.execute(
+                        # Match IDChannel's legacy lookup, which identifies its
+                        # configured channel by channel_id alone. Older rows can
+                        # have a missing or stale guild_id, so filtering on both
+                        # columns lets this listener process the same FID again.
+                        "SELECT 1 FROM id_channels WHERE channel_id = ?",
+                        (message.channel.id,),
+                    ).fetchone()
+                id_channel_match = id_row is not None
+            except Exception as exc:
+                self.logger.debug("Could not check SQLite ID-channel config: %s", exc)
+
+        if id_channel_match:
+            return
                         embed = discord.Embed(
                             title="✨ Auto-Redeem Registered",
                             description=f"✅ **{player_data['nickname']}** is now enrolled for automated gift codes.",

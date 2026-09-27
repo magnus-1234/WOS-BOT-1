@@ -1,3 +1,4 @@
+import asyncio
 import discord
 from discord.ext import commands, tasks
 import sqlite3
@@ -10,8 +11,11 @@ import ssl
 
 from db.mongo_adapters import mongo_enabled, AllianceMembersAdapter, IDChannelsAdapter
 from admin_utils import get_level_mapping, format_furnace_level
+from src.api.wosoracle import fetch_player_info as fetch_oracle_player_info
+from src.api.wosatlas import fetch_player_profile
 
 SECRET = "tB87#kPtkxqOS2"
+ORACLE_AUTO_REDEEM_GUILD_ID = 1394263768501846068
 
 class IDChannel(commands.Cog):
     def __init__(self, bot):
@@ -22,6 +26,7 @@ class IDChannel(commands.Cog):
             os.makedirs(self.log_directory)
             
         self.level_mapping = get_level_mapping()
+        self._processing_message_ids = set()
 
     def setup_database(self):
         """Initialize ID channel database"""
@@ -140,6 +145,10 @@ class IDChannel(commands.Cog):
 
     async def process_fid(self, message: discord.Message, fid: int, alliance_id: int):
         """Process a FID from an ID channel"""
+        processing_key = (message.id, str(fid))
+        if processing_key in self._processing_message_ids:
+            return
+        self._processing_message_ids.add(processing_key)
         try:
             # Check if already processed (has bot reaction)
             for reaction in message.reactions:
@@ -150,22 +159,54 @@ class IDChannel(commands.Cog):
             # Determine the server's default state number
             guild_id = message.guild.id if message.guild else 0
             state_id = None
+            oracle_player = None
+            atlas_profile = None
+            manage_cog = self.bot.get_cog("ManageGiftCode")
+            premium_guild = bool(manage_cog and manage_cog.is_premium_guild(guild_id))
+            if premium_guild:
+                try:
+                    profile = await fetch_oracle_player_info(str(fid), timeout=12)
+                    oracle_player = profile.get("player") or profile.get("data") or profile
+                    if not isinstance(oracle_player, dict):
+                        raise ValueError("WoSOracle returned an unexpected profile")
+                    oracle_state = oracle_player.get("state") or oracle_player.get("state_id") or oracle_player.get("kid")
+                    if isinstance(oracle_state, dict):
+                        oracle_state = oracle_state.get("id") or oracle_state.get("number")
+                    state_id = str(oracle_state).strip() if oracle_state is not None else None
+                    if not state_id or not state_id.isdigit():
+                        raise ValueError("WoSOracle profile has no numeric state")
+                except Exception as exc:
+                    self._log_debug(f"WoSOracle lookup failed for FID {fid}: {exc}")
+                    atlas_profile = await fetch_player_profile(str(fid))
+                    atlas_state = atlas_profile.get("state_id") if atlas_profile else None
+                    if not atlas_profile or not str(atlas_state or "").isdigit():
+                        await message.add_reaction('❌')
+                        await message.reply(f"❌ Could not verify Player ID `{fid}` right now. Registration was not completed; please try again later.")
+                        return
+                    state_id = str(atlas_state)
+                    oracle_player = {
+                        "username": atlas_profile.get("nickname") or "Unknown",
+                        "town_hall_level": atlas_profile.get("furnace_lv") or 0,
+                        "state_id": state_id,
+                        "alliance_abbr": atlas_profile.get("alliance_abbr") or "",
+                        "power": atlas_profile.get("power"),
+                    }
             try:
                 from db.mongo_adapters import AutoRedeemSettingsAdapter, mongo_enabled
-                if mongo_enabled():
+                if not premium_guild and mongo_enabled():
                     settings = AutoRedeemSettingsAdapter.get_settings(guild_id)
                     if settings and settings.get('default_state') and str(settings.get('default_state')).strip() not in ('0', 'None', ''):
                         state_id = str(settings.get('default_state')).strip()
             except Exception:
                 pass
             
-            if not state_id and message.guild and message.guild.name:
+            if not premium_guild and not state_id and message.guild and message.guild.name:
                 import re
                 match = re.search(r'(?i)(?:state|s)\s*#?\s*(\d{1,4})', message.guild.name)
                 if match:
                     state_id = match.group(1)
             
-            if not state_id:
+            if not premium_guild and not state_id:
                 await message.add_reaction('❌')
                 await message.reply("❌ Your Discord server does not have a default State Number configured. Please ask an Admin to run `/autoredeem setup`.")
                 return
@@ -201,7 +242,7 @@ class IDChannel(commands.Cog):
                 data = {
                     'cdk': active_code,
                     'fid': str(fid),
-                    'kid': str(state_id),
+                    'kid': str(state_id or '0'),
                     'time': str(int(time.time()))
                 }
                 sorted_keys = sorted(data.keys())
@@ -214,7 +255,7 @@ class IDChannel(commands.Cog):
                         if resp.status == 200:
                             resp_json = await resp.json()
                             err_code = resp_json.get('err_code')
-                            if err_code == 40020: # USER_INFO_ERROR -> mismatch!
+                            if err_code == 40020 and not premium_guild: # USER_INFO_ERROR -> mismatch!
                                 await message.add_reaction('❌')
                                 await message.reply(f"❌ Player ID `{fid}` does not belong to State `#{state_id}`. Registration failed.", delete_after=15)
                                 return
@@ -224,11 +265,19 @@ class IDChannel(commands.Cog):
                     self._log_debug(f"State verification failed during request: {e}")
             
             if True:
-                nickname = 'Unknown'
-                furnace_lv = 0
+                nickname = str(oracle_player.get('username') or oracle_player.get('name') or 'Unknown') if oracle_player else 'Unknown'
+                furnace_lv = int((oracle_player.get('town_hall_level') or oracle_player.get('furnace_level') or oracle_player.get('stove_lv') or 0) if oracle_player else 0)
                 kid = str(state_id)
-                stove_lv_content = '0'
-                avatar_image = ''
+                stove_lv_content = str(oracle_player.get('stove_lv_content') or '0') if oracle_player else '0'
+                avatar_image = str((oracle_player.get('avatar_url') or oracle_player.get('avatar_image') or '') if oracle_player else '')
+                if avatar_image.startswith('/'):
+                    avatar_image = f"https://wosoracle.com{avatar_image}"
+                alliance_name = str(oracle_player.get('alliance_name') or '') if oracle_player else ''
+                alliance_abbr = str(oracle_player.get('alliance_abbr') or '') if oracle_player else ''
+                player_power = oracle_player.get('power') if oracle_player else None
+                player_vip = (oracle_player.get('vip') or oracle_player.get('vip_label')) if oracle_player else None
+                player_kills = oracle_player.get('kills') if oracle_player else None
+                life_tree = oracle_player.get('life_tree_level') if oracle_player else None
                 
                 # Save state globally so the global db is up-to-date
                 try:
@@ -272,11 +321,36 @@ class IDChannel(commands.Cog):
                     except Exception as e:
                         self._log_debug(f"Cross-server check error: {e}")
 
+                if atlas_profile is None:
+                    atlas_profile = await fetch_player_profile(str(fid))
+                atlas_coordinates = atlas_profile.get("coordinates") if atlas_profile else None
+
                 # Save to database
                 success = self._upsert_member_from_api(
                     fid, nickname, furnace_lv, kid, 
                     stove_lv_content, alliance_id, avatar_image
                 )
+                manage_cog = None
+
+                if success and premium_guild:
+                    manage_cog = self.bot.get_cog("ManageGiftCode")
+                    if not manage_cog:
+                        await message.reply("❌ Auto-redeem is temporarily unavailable, so this player was not enrolled.")
+                        return
+                    redeem_member = {
+                        "nickname": nickname,
+                        "furnace_lv": furnace_lv,
+                        "avatar_image": avatar_image,
+                        "added_by": message.author.id,
+                        "state_id": kid,
+                    }
+                    if atlas_coordinates:
+                        redeem_member["coordinates"] = atlas_coordinates
+                    if not manage_cog.AutoRedeemDB.add_member(manage_cog, guild_id, str(fid), redeem_member):
+                        await message.reply("❌ Could not save this player to the auto-redeem list. Please try again.")
+                        return
+
+                    # Queue after the registration embed exists so workers can update it in place.
                 
                 if success:
                     # Add success reaction
@@ -292,10 +366,28 @@ class IDChannel(commands.Cog):
                     )
                     
                     success_embed.add_field(name="Player ID", value=f"`{fid}`", inline=True)
+                    success_embed.add_field(name="State", value=f"`#{kid}`", inline=True)
                     success_embed.add_field(name="Furnace", value=f"`{formatted_fc}`", inline=True)
+                    if atlas_coordinates:
+                        success_embed.add_field(
+                            name="📍 Coordinates",
+                            value=f"`{atlas_coordinates['x']}, {atlas_coordinates['y']}` (X, Y)",
+                            inline=True,
+                        )
+                    alliance_display = f"[{alliance_abbr}] {alliance_name}".strip() if alliance_abbr else (alliance_name or "Unknown")
+                    success_embed.add_field(name="Alliance", value=f"`{alliance_display[:900]}`", inline=True)
+                    if player_power is not None:
+                        success_embed.add_field(name="Power", value=f"`{int(player_power):,}`", inline=True)
+                    if player_vip is not None:
+                        success_embed.add_field(name="VIP", value=f"`{player_vip}`", inline=True)
+                    if player_kills is not None:
+                        success_embed.add_field(name="Kills", value=f"`{int(player_kills):,}`", inline=True)
+                    if life_tree is not None:
+                        success_embed.add_field(name="Life Tree", value=f"`{life_tree}`", inline=True)
                     
-                    # This field indicates auto-redeem is starting (handled by ManageGiftCode cog if same channel)
-                    success_embed.add_field(name="🚀 Auto-Processing", value="`Initializing...`", inline=False)
+                    # The same embed will show live status for each active gift code.
+                    progress_field_index = len(success_embed.fields)
+                    success_embed.add_field(name="🚀 Auto-Processing", value="`Loading active codes...`", inline=False)
 
                     if avatar_image and str(avatar_image).startswith('http'):
                         success_embed.set_thumbnail(url=avatar_image)
@@ -307,7 +399,36 @@ class IDChannel(commands.Cog):
                         icon_url="https://cdn.discordapp.com/attachments/1435569370389807144/1436745053442805830/unnamed_5.png"
                     )
 
-                    await message.reply(embed=success_embed)
+                    sent_message = await message.reply(embed=success_embed)
+                    if premium_guild and manage_cog:
+                        async def queue_existing_codes():
+                            try:
+                                active_codes = list((await manage_cog.get_active_gift_codes_consolidated()).keys())
+                                if not active_codes:
+                                    success_embed.set_field_at(
+                                        progress_field_index, name="🚀 Auto-Processing",
+                                        value="`No active codes found to redeem.`", inline=False
+                                    )
+                                    await sent_message.edit(embed=success_embed)
+                                    return
+                                await manage_cog._start_registration_progress(
+                                    guild_id, str(fid), sent_message, success_embed,
+                                    progress_field_index, active_codes
+                                )
+                                for active_code in active_codes:
+                                    await manage_cog.auto_redeem_queue.put((guild_id, active_code, True, str(fid)))
+                                    await asyncio.sleep(0.1)
+                            except Exception as exc:
+                                self._log_debug(f"Could not queue active auto-redeem codes for {fid}: {exc}")
+                                success_embed.set_field_at(
+                                    progress_field_index, name="🚀 Auto-Processing",
+                                    value="`Could not load active gift codes.`", inline=False
+                                )
+                                try:
+                                    await sent_message.edit(embed=success_embed)
+                                except Exception:
+                                    pass
+                        asyncio.create_task(queue_existing_codes())
                     
                     await self.log_action(
                         "ADD_MEMBER",
@@ -329,6 +450,8 @@ class IDChannel(commands.Cog):
             print(f"Error processing FID {fid}: {e}")
             await message.add_reaction('❌')
             await message.reply("❌ An error occurred during the process.", delete_after=10)
+        finally:
+            self._processing_message_ids.discard(processing_key)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):

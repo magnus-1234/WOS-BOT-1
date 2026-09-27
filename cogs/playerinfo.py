@@ -27,6 +27,7 @@ from thinking_animation import ThinkingAnimation
 from command_animator import command_animation
 from db.mongo_adapters import mongo_enabled, AllianceMembersAdapter, AutoRedeemChannelsAdapter
 from src.api.wosoracle import fetch_player_info as fetch_oracle_player_info, WoSOracleError
+from src.api.wosatlas import fetch_player_profile as fetch_atlas_player_profile
 
 # Player API endpoint and secret (keep this in sync with your other code)
 API_URL = "https://wos-giftcode-api.centurygame.com/api/player"
@@ -87,6 +88,21 @@ class PlayerInfoCog(commands.Cog):
         self._sem = asyncio.Semaphore(6)
         # Thinking animation instance for message-based lookups
         self._thinking_animation = ThinkingAnimation()
+
+    async def _add_atlas_coordinates(self, embed: discord.Embed, fid: str) -> None:
+        """Add coordinates near the top of a player lookup when Atlas has them."""
+        try:
+            profile = await fetch_atlas_player_profile(fid, timeout=8)
+            coordinates = profile.get("coordinates") if profile else None
+            if coordinates:
+                embed.insert_field_at(
+                    min(3, len(embed.fields)),
+                    name="📍 Coordinates",
+                    value=f"`{coordinates['x']}, {coordinates['y']}` (X, Y)",
+                    inline=True,
+                )
+        except Exception as exc:
+            self.logger.debug("Atlas coordinates unavailable for fid=%s: %s", fid, exc)
 
     def _is_managed_channel(self, message: discord.Message) -> bool:
         """Return True if this channel is managed by another cog (auto-redeem or ID channel).
@@ -221,6 +237,7 @@ class PlayerInfoCog(commands.Cog):
                 try:
                     oracle_profile = await fetch_oracle_player_info(fid, timeout=8)
                     oracle_embed = self._build_oracle_embed(fid, oracle_profile, message)
+                    await self._add_atlas_coordinates(oracle_embed, fid)
                     if thinking_msg:
                         await thinking_msg.delete()
                     await message.reply(embed=oracle_embed, mention_author=False)
@@ -383,6 +400,7 @@ class PlayerInfoCog(commands.Cog):
 
             
 
+            await self._add_atlas_coordinates(embed, fid)
             self._set_embed_footer(embed, message)
 
             try:
@@ -537,7 +555,9 @@ class PlayerInfoCog(commands.Cog):
                 async with oracle_sem:
                     try:
                         profile = await fetch_oracle_player_info(fid, timeout=12)
-                        return fid, self._build_oracle_embed(fid, profile, interaction), None
+                        embed = self._build_oracle_embed(fid, profile, interaction)
+                        await self._add_atlas_coordinates(embed, fid)
+                        return fid, embed, None
                     except Exception as exc:
                         return fid, None, exc
 
@@ -694,6 +714,8 @@ class PlayerInfoCog(commands.Cog):
                         continue
                     # build embed from js (may be None if invalid json)
                     embed = build_embed_for(fid, js)
+                    if js and js.get("code") == 0:
+                        await self._add_atlas_coordinates(embed, fid)
                     await interaction.followup.send(embed=embed)
         except Exception as e:
             self.logger.exception("Unexpected error during batch fetch")
@@ -889,6 +911,8 @@ class PlayerInfoCog(commands.Cog):
                     embed.add_field(name="🏰 Alliance", value=f"```{alliance_name}```", inline=True)
             except Exception:
                 pass
+
+            await self._add_atlas_coordinates(embed, player_id)
 
             # Footer
             self._set_embed_footer(embed, interaction)

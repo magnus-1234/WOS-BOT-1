@@ -197,10 +197,8 @@ class IDChannel(commands.Cog):
                         "power": atlas_profile.get("power"),
                     }
                 if not state_id or not state_id.isdigit():
-                    await message.add_reaction('❌')
                     reason = f"Oracle: {oracle_error}; Atlas did not return a state" if oracle_error else "Oracle and Atlas did not return a state"
                     self._log_debug(f"Could not resolve state for FID {fid}: {reason}")
-                    await message.reply(f"❌ Could not verify Player ID `{fid}` right now. Registration was not completed; please try again later.")
                     return
             try:
                 from db.mongo_adapters import AutoRedeemSettingsAdapter, mongo_enabled
@@ -458,9 +456,9 @@ class IDChannel(commands.Cog):
             
                 
         except Exception as e:
-            print(f"Error processing FID {fid}: {e}")
-            await message.add_reaction('❌')
-            await message.reply("❌ An error occurred during the process.", delete_after=10)
+            self._log_debug(
+                f"FID processing failed for {fid}: {type(e).__name__}: {e}"
+            )
         finally:
             self._processing_message_ids.discard(processing_key)
 

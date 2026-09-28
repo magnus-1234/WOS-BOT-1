@@ -107,6 +107,32 @@ class PlayerInfoCog(commands.Cog):
         except Exception as exc:
             self.logger.debug("Atlas coordinates unavailable for fid=%s: %s", fid, exc)
 
+    @staticmethod
+    def _merge_player_profiles(oracle_profile, atlas_profile) -> dict | None:
+        """Keep Oracle's values and fill missing profile details from Atlas."""
+        if isinstance(oracle_profile, dict):
+            player = oracle_profile.get("player") or oracle_profile.get("data") or oracle_profile
+            merged = dict(player) if isinstance(player, dict) else {}
+        else:
+            merged = {}
+        if isinstance(atlas_profile, dict):
+            atlas_fields = {
+                "username": atlas_profile.get("nickname"),
+                "state_id": atlas_profile.get("state_id"),
+                "town_hall_level": atlas_profile.get("furnace_lv"),
+                "alliance_abbr": atlas_profile.get("alliance_abbr"),
+                "alliance_id": atlas_profile.get("alliance_id"),
+                "power": atlas_profile.get("power"),
+            }
+            for key, value in atlas_fields.items():
+                if merged.get(key) in (None, "", [], {}) and value not in (None, "", [], {}):
+                    merged[key] = value
+            if not merged.get("alliance") and atlas_profile.get("alliance_abbr"):
+                merged["alliance"] = atlas_profile["alliance_abbr"]
+            if not merged.get("coordinates") and atlas_profile.get("coordinates"):
+                merged["coordinates"] = atlas_profile["coordinates"]
+        return merged or None
+
     def _is_managed_channel(self, message: discord.Message) -> bool:
         """Return True if this channel is managed by another cog (auto-redeem or ID channel).
         
@@ -244,16 +270,7 @@ class PlayerInfoCog(commands.Cog):
                 self.logger.warning("WoS Atlas lookup failed for fid=%s: %s", fid, atlas_profile)
                 atlas_profile = None
 
-            player_profile = oracle_profile
-            if not isinstance(player_profile, dict) and isinstance(atlas_profile, dict):
-                player_profile = {
-                    "username": atlas_profile.get("nickname"),
-                    "state_id": atlas_profile.get("state_id"),
-                    "town_hall_level": atlas_profile.get("furnace_lv"),
-                    "alliance_abbr": atlas_profile.get("alliance_abbr"),
-                    "alliance_id": atlas_profile.get("alliance_id"),
-                    "power": atlas_profile.get("power"),
-                }
+            player_profile = self._merge_player_profiles(oracle_profile, atlas_profile)
             if isinstance(player_profile, dict):
                 player_embed = self._build_oracle_embed(fid, player_profile, message)
                 await self._add_atlas_coordinates(player_embed, fid, atlas_profile)
@@ -317,7 +334,6 @@ class PlayerInfoCog(commands.Cog):
                     # Delete thinking message and add reaction
                     if thinking_msg:
                         await thinking_msg.delete()
-                    await message.add_reaction("❌")
                 except Exception:
                     pass
                 return
@@ -425,9 +441,7 @@ class PlayerInfoCog(commands.Cog):
             except Exception:
                 # non-critical; ignore DB lookup failures
                 pass
-
             
-
             await self._add_atlas_coordinates(embed, fid)
             self._set_embed_footer(embed, message)
 
@@ -480,23 +494,32 @@ class PlayerInfoCog(commands.Cog):
         alliance_abbr = alliance.get("abbr") or alliance.get("tag") if isinstance(alliance, dict) else pick("alliance_abbr", "alliance_tag")
         alliance_rank = pick("alliance_rank")
         alliance_role = pick("alliance_role", "role")
-        furnace = pick("furnace_level", "furnace", "stove_level", "stove_lv", "town_hall_level")
+        furnace = pick("furnace_level", "furnace_lv", "furnace", "stove_level", "stove_lv", "town_hall_level")
         power = pick("power", "total_power", "player_power")
-        vip = pick("vip", "vip_level")
-        kills = pick("kills", "kill_count", "total_kills")
-        avatar = pick("avatar_url", "avatar_image", "avatar")
-        stove_icon = pick("stove_lv_content", "furnace_icon", "furnace_icon_url")
+        vip = pick("vip", "vip_level", "vip_lv", "vipLevel")
+        kills = pick("kills", "kill_count", "total_kills", "totalKills")
+        avatar = pick("avatar_url", "avatarUrl", "avatar_image", "avatar", "portrait", "profile_image", "icon_url")
+        stove_icon = pick("stove_lv_content", "furnace_icon", "furnace_icon_url", "furnace_image")
+
+        def image_url(value):
+            if isinstance(value, dict):
+                value = value.get("url") or value.get("src") or value.get("image") or value.get("path")
+            if not isinstance(value, str) or not value.strip():
+                return None
+            value = value.strip()
+            if value.startswith("//"):
+                value = "https:" + value
+            return urllib.parse.urljoin("https://wosoracle.com/", value)
 
         embed = discord.Embed(
             colour=discord.Colour.blurple(),
             url=f"https://wosoracle.com/player/{fid}",
         )
-        author_icon = stove_icon if isinstance(stove_icon, str) and stove_icon.startswith(("https://", "http://")) else None
+        author_icon = image_url(stove_icon)
         embed.set_author(name=nickname, **({"icon_url": author_icon} if author_icon else {}))
-        if isinstance(avatar, str):
-            avatar_url = urllib.parse.urljoin("https://wosoracle.com/", avatar)
-            if avatar_url.startswith(("https://", "http://")):
-                embed.set_thumbnail(url=avatar_url)
+        avatar_url = image_url(avatar)
+        if avatar_url and avatar_url.startswith(("https://", "http://")):
+            embed.set_thumbnail(url=avatar_url)
 
         alliance_text = str(alliance_name or "Unknown")
         if alliance_abbr:
@@ -583,6 +606,11 @@ class PlayerInfoCog(commands.Cog):
                 )
             return
 
+        # Defer before external lookups so even slow bridge responses fit Discord's
+        # interaction deadline. Results are delivered as follow-up embeds.
+        if not interaction.response.is_done():
+            await interaction.response.defer()
+
         # Prefer the Cloudflare-backed WoS Oracle session for every slash lookup.
         # IDs unavailable from Oracle continue through the legacy Century Games path.
         oracle_sem = asyncio.Semaphore(3)
@@ -590,9 +618,20 @@ class PlayerInfoCog(commands.Cog):
         async def fetch_oracle(fid: str):
             async with oracle_sem:
                 try:
-                    profile = await fetch_oracle_player_info(fid, timeout=12)
+                    oracle_profile, atlas_profile = await asyncio.gather(
+                        fetch_oracle_player_info(fid, timeout=12),
+                        fetch_atlas_player_profile(fid, timeout=12),
+                        return_exceptions=True,
+                    )
+                    if isinstance(oracle_profile, Exception):
+                        oracle_profile = None
+                    if isinstance(atlas_profile, Exception):
+                        atlas_profile = None
+                    profile = self._merge_player_profiles(oracle_profile, atlas_profile)
+                    if profile is None:
+                        raise WoSOracleError("Neither player profile service returned data")
                     embed = self._build_oracle_embed(fid, profile, interaction)
-                    await self._add_atlas_coordinates(embed, fid)
+                    await self._add_atlas_coordinates(embed, fid, atlas_profile)
                     return fid, embed, None
                 except Exception as exc:
                     return fid, None, exc
@@ -744,14 +783,27 @@ class PlayerInfoCog(commands.Cog):
                     fid, js, exc = await coro
                     if exc:
                         self.logger.warning("Network error for fid=%s: %s", fid, exc)
-                        embed = discord.Embed(colour=discord.Colour.blurple(), description=f"Request error: {exc}")
-                        self._set_embed_footer(embed, interaction)
-                        await interaction.followup.send(embed=embed)
+                        await interaction.followup.send(
+                            f"Player lookup is temporarily unavailable for {fid}. Please try again shortly.",
+                            ephemeral=True,
+                        )
                         continue
                     # build embed from js (may be None if invalid json)
                     embed = build_embed_for(fid, js)
                     if js and js.get("code") == 0:
-                        await self._add_atlas_coordinates(embed, fid)
+                        oracle_legacy, atlas_profile = await asyncio.gather(
+                            fetch_oracle_player_info(fid, timeout=12),
+                            fetch_atlas_player_profile(fid, timeout=12),
+                            return_exceptions=True,
+                        )
+                        if isinstance(oracle_legacy, Exception):
+                            oracle_legacy = None
+                        if isinstance(atlas_profile, Exception):
+                            atlas_profile = None
+                        merged_profile = self._merge_player_profiles(oracle_legacy, atlas_profile)
+                        if merged_profile:
+                            embed = self._build_oracle_embed(fid, merged_profile, interaction)
+                        await self._add_atlas_coordinates(embed, fid, atlas_profile)
                     await interaction.followup.send(embed=embed)
         except Exception as e:
             self.logger.exception("Unexpected error during batch fetch")
@@ -779,7 +831,8 @@ class PlayerInfoCog(commands.Cog):
             await interaction.response.send_message("Invalid player ID. Must be 8 or 9 digits.", ephemeral=True)
             return
 
-        await interaction.response.defer(ephemeral=True)
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
 
         # Fetch message
         try:
@@ -796,11 +849,22 @@ class PlayerInfoCog(commands.Cog):
             await interaction.followup.send("I can only edit my own messages.", ephemeral=True)
             return
 
-        # Fetch data through the Cloudflare-backed Oracle session first.
+        # Combine the Cloudflare-backed Oracle session and Atlas profile.
         try:
-            oracle_profile = await fetch_oracle_player_info(player_id, timeout=12)
-            embed = self._build_oracle_embed(player_id, oracle_profile, interaction)
-            await self._add_atlas_coordinates(embed, player_id)
+            oracle_profile, atlas_profile = await asyncio.gather(
+                fetch_oracle_player_info(player_id, timeout=12),
+                fetch_atlas_player_profile(player_id, timeout=12),
+                return_exceptions=True,
+            )
+            if isinstance(oracle_profile, Exception):
+                oracle_profile = None
+            if isinstance(atlas_profile, Exception):
+                atlas_profile = None
+            profile = self._merge_player_profiles(oracle_profile, atlas_profile)
+            if profile is None:
+                raise WoSOracleError("Neither player profile service returned data")
+            embed = self._build_oracle_embed(player_id, profile, interaction)
+            await self._add_atlas_coordinates(embed, player_id, atlas_profile)
             await msg.edit(embed=embed)
             await interaction.followup.send(f"Updated message {message_id}.", ephemeral=True)
             return

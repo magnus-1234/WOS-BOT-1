@@ -394,7 +394,13 @@ async def fetch_player_info(
         player.get("furnace_level") or player.get("furnace_lv") or player.get("stove_lv"),
     )
     normalized.setdefault("state_id", player.get("state") or player.get("kid"))
-    normalized.setdefault("avatar_url", player.get("avatar_image"))
+    normalized.setdefault(
+        "avatar_url",
+        player.get("avatar_image")
+        or player.get("avatar")
+        or player.get("portrait")
+        or player.get("profile_image"),
+    )
     if "player" in result or "data" in result:
         return {**result, "player": normalized}
     return normalized

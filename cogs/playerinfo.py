@@ -89,10 +89,13 @@ class PlayerInfoCog(commands.Cog):
         # Thinking animation instance for message-based lookups
         self._thinking_animation = ThinkingAnimation()
 
-    async def _add_atlas_coordinates(self, embed: discord.Embed, fid: str) -> None:
+    async def _add_atlas_coordinates(
+        self, embed: discord.Embed, fid: str, profile: dict | None = None
+    ) -> None:
         """Add coordinates near the top of a player lookup when Atlas has them."""
         try:
-            profile = await fetch_atlas_player_profile(fid, timeout=8)
+            if profile is None:
+                profile = await fetch_atlas_player_profile(fid, timeout=12)
             coordinates = profile.get("coordinates") if profile else None
             if coordinates:
                 embed.insert_field_at(
@@ -178,14 +181,9 @@ class PlayerInfoCog(commands.Cog):
             if content.strip().startswith(('!Add', '!Remove')):
                 return
 
-            # Preserve dedicated channel handlers elsewhere, but allow the
-            # requested test guild to resolve player IDs in every channel.
-            if (
-                self._is_managed_channel(message)
-                and getattr(message.guild, "id", None) != ORACLE_TEST_GUILD_ID
-            ):
-                return
-            
+            # Player details are useful in registration channels too. The
+            # registration cogs may reject enrollment, but should not suppress
+            # this independent lookup response.
             m = re.search(r"\b(\d{8,9})\b", content)
             if not m:
                 return
@@ -202,6 +200,7 @@ class PlayerInfoCog(commands.Cog):
         This is separated so external code (like app.py's on_message)
         can invoke it directly when they detect a raw 8- or 9-digit message.
         """
+        thinking_msg = None
         try:
             # Avoid running twice on the same message (app.py may delegate and
             # the cog may also receive the event). Mark message when handled.
@@ -217,7 +216,6 @@ class PlayerInfoCog(commands.Cog):
             self.logger.info("playerinfo (message) detected fid=%s from user=%s in %s", fid, getattr(message.author, 'id', 'unknown'), channel_type)
 
             # Show thinking animation
-            thinking_msg = None
             try:
                 # Create a simple thinking embed
                 thinking_embed = discord.Embed(
@@ -231,21 +229,41 @@ class PlayerInfoCog(commands.Cog):
             except Exception as e:
                 self.logger.debug(f"Failed to show thinking animation: {e}")
 
-            # Test Oracle enrichment only in the explicitly selected guild.
-            # All other guilds keep the existing Century Games response path.
-            if getattr(message.guild, "id", None) == ORACLE_TEST_GUILD_ID:
-                try:
-                    oracle_profile = await fetch_oracle_player_info(fid, timeout=8)
-                    oracle_embed = self._build_oracle_embed(fid, oracle_profile, message)
-                    await self._add_atlas_coordinates(oracle_embed, fid)
-                    if thinking_msg:
+            # Query both sources independently: Oracle is authoritative for the
+            # player profile, while Atlas supplies coordinates and can provide
+            # a useful profile when Oracle is unavailable.
+            oracle_profile, atlas_profile = await asyncio.gather(
+                fetch_oracle_player_info(fid, timeout=12),
+                fetch_atlas_player_profile(fid, timeout=12),
+                return_exceptions=True,
+            )
+            if isinstance(oracle_profile, Exception):
+                self.logger.warning("WoS Oracle lookup failed for fid=%s: %s", fid, oracle_profile)
+                oracle_profile = None
+            if isinstance(atlas_profile, Exception):
+                self.logger.warning("WoS Atlas lookup failed for fid=%s: %s", fid, atlas_profile)
+                atlas_profile = None
+
+            player_profile = oracle_profile
+            if not isinstance(player_profile, dict) and isinstance(atlas_profile, dict):
+                player_profile = {
+                    "username": atlas_profile.get("nickname"),
+                    "state_id": atlas_profile.get("state_id"),
+                    "town_hall_level": atlas_profile.get("furnace_lv"),
+                    "alliance_abbr": atlas_profile.get("alliance_abbr"),
+                    "alliance_id": atlas_profile.get("alliance_id"),
+                    "power": atlas_profile.get("power"),
+                }
+            if isinstance(player_profile, dict):
+                player_embed = self._build_oracle_embed(fid, player_profile, message)
+                await self._add_atlas_coordinates(player_embed, fid, atlas_profile)
+                if thinking_msg:
+                    try:
                         await thinking_msg.delete()
-                    await message.reply(embed=oracle_embed, mention_author=False)
-                    return
-                except WoSOracleError as e:
-                    self.logger.info("WoSOracle enrichment unavailable for fid=%s: %s", fid, e)
-                except Exception:
-                    self.logger.exception("Unexpected WoSOracle lookup error for fid=%s", fid)
+                    except Exception:
+                        pass
+                await message.reply(embed=player_embed, mention_author=False)
+                return
 
             # prepare request pieces
             ssl_context = ssl.create_default_context()
@@ -270,9 +288,19 @@ class PlayerInfoCog(commands.Cog):
                                 js = await resp.json()
                             except Exception:
                                 self.logger.debug("playerinfo (message) invalid json for fid=%s: %s", fid, text)
+                                if thinking_msg:
+                                    try:
+                                        await thinking_msg.delete()
+                                    except Exception:
+                                        pass
                                 return
                 except Exception as e:
                     self.logger.debug("playerinfo (message) network error for fid=%s: %s", fid, e)
+                    if thinking_msg:
+                        try:
+                            await thinking_msg.delete()
+                        except Exception:
+                            pass
                     return
 
             # Log API result for debugging (don't include full payload)
@@ -412,12 +440,22 @@ class PlayerInfoCog(commands.Cog):
                 self.logger.debug("Failed to send playerinfo reply: %s", send_err)
         except Exception as outer_e:
             self.logger.exception("Unexpected error in playerinfo handler: %s", outer_e)
+            if thinking_msg:
+                try:
+                    failure_embed = discord.Embed(
+                        title="Player lookup unavailable",
+                        description="WoS Oracle and WoS Atlas could not return player details right now. Please try again shortly.",
+                        color=discord.Color.orange(),
+                    )
+                    await thinking_msg.edit(embed=failure_embed)
+                except Exception:
+                    pass
 
     def _build_oracle_embed(self, fid: str, profile: dict, context) -> discord.Embed:
         """Format a WoSOracle player profile for the channel lookup response."""
         player = profile.get("player") or profile.get("data") or profile
         if not isinstance(player, dict):
-            raise WoSOracleError("WoSOracle returned an unexpected player profile")
+            raise WoSOracleError("The service returned an unexpected player profile")
 
         def pick(*keys):
             for key in keys:
@@ -493,7 +531,7 @@ class PlayerInfoCog(commands.Cog):
         if power is not None:
             embed.add_field(name="⚡ Power", value=f"```{pretty(power)}```", inline=True)
         if vip is not None:
-            embed.add_field(name="💎 VIP", value=f"```{pretty(vip)}```", inline=True)
+            embed.add_field(name="💎 VIP lvl", value=f"```{pretty(vip)}```", inline=True)
         if kills is not None:
             embed.add_field(name="⚔️ Kills", value=f"```{pretty(kills)}```", inline=True)
         self._set_embed_footer(embed, context)
@@ -545,33 +583,31 @@ class PlayerInfoCog(commands.Cog):
                 )
             return
 
-        # Use the same richer profile for slash lookups in the test guild.
-        # IDs that are unavailable from WoSOracle continue through the legacy
-        # Century Games lookup below.
-        if getattr(interaction.guild, "id", None) == ORACLE_TEST_GUILD_ID:
-            oracle_sem = asyncio.Semaphore(3)
+        # Prefer the Cloudflare-backed WoS Oracle session for every slash lookup.
+        # IDs unavailable from Oracle continue through the legacy Century Games path.
+        oracle_sem = asyncio.Semaphore(3)
 
-            async def fetch_oracle(fid: str):
-                async with oracle_sem:
-                    try:
-                        profile = await fetch_oracle_player_info(fid, timeout=12)
-                        embed = self._build_oracle_embed(fid, profile, interaction)
-                        await self._add_atlas_coordinates(embed, fid)
-                        return fid, embed, None
-                    except Exception as exc:
-                        return fid, None, exc
+        async def fetch_oracle(fid: str):
+            async with oracle_sem:
+                try:
+                    profile = await fetch_oracle_player_info(fid, timeout=12)
+                    embed = self._build_oracle_embed(fid, profile, interaction)
+                    await self._add_atlas_coordinates(embed, fid)
+                    return fid, embed, None
+                except Exception as exc:
+                    return fid, None, exc
 
-            oracle_results = await asyncio.gather(*(fetch_oracle(fid) for fid in ids))
-            fallback_ids = []
-            for fid, embed, error in oracle_results:
-                if embed is not None:
-                    await interaction.followup.send(embed=embed)
-                else:
-                    self.logger.info("WoSOracle slash lookup unavailable for fid=%s: %s", fid, error)
-                    fallback_ids.append(fid)
-            if not fallback_ids:
-                return
-            ids = fallback_ids
+        oracle_results = await asyncio.gather(*(fetch_oracle(fid) for fid in ids))
+        fallback_ids = []
+        for fid, embed, error in oracle_results:
+            if embed is not None:
+                await interaction.followup.send(embed=embed)
+            else:
+                self.logger.info("Player lookup unavailable for fid=%s: %s", fid, error)
+                fallback_ids.append(fid)
+        if not fallback_ids:
+            return
+        ids = fallback_ids
 
         # prepare shared SSL/context and headers
         ssl_context = ssl.create_default_context()
@@ -760,7 +796,18 @@ class PlayerInfoCog(commands.Cog):
             await interaction.followup.send("I can only edit my own messages.", ephemeral=True)
             return
 
-        # Fetch data
+        # Fetch data through the Cloudflare-backed Oracle session first.
+        try:
+            oracle_profile = await fetch_oracle_player_info(player_id, timeout=12)
+            embed = self._build_oracle_embed(player_id, oracle_profile, interaction)
+            await self._add_atlas_coordinates(embed, player_id)
+            await msg.edit(embed=embed)
+            await interaction.followup.send(f"Updated message {message_id}.", ephemeral=True)
+            return
+        except WoSOracleError as e:
+            self.logger.info("Player lookup unavailable for fid=%s; using fallback: %s", player_id, e)
+
+        # Fallback to the existing Century Games lookup when Oracle is unavailable.
         ssl_context = ssl.create_default_context()
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE

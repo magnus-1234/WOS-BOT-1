@@ -164,26 +164,31 @@ class IDChannel(commands.Cog):
             manage_cog = self.bot.get_cog("ManageGiftCode")
             premium_guild = bool(manage_cog and manage_cog.is_premium_guild(guild_id))
             if premium_guild:
+                oracle_error = None
                 try:
                     profile = await fetch_oracle_player_info(str(fid), timeout=12)
                     oracle_player = profile.get("player") or profile.get("data") or profile
                     if not isinstance(oracle_player, dict):
-                        raise ValueError("WoSOracle returned an unexpected profile")
+                        raise ValueError("The service returned an unexpected profile")
                     oracle_state = oracle_player.get("state") or oracle_player.get("state_id") or oracle_player.get("kid")
                     if isinstance(oracle_state, dict):
                         oracle_state = oracle_state.get("id") or oracle_state.get("number")
                     state_id = str(oracle_state).strip() if oracle_state is not None else None
                     if not state_id or not state_id.isdigit():
-                        raise ValueError("WoSOracle profile has no numeric state")
+                        raise ValueError("The profile has no numeric state")
                 except Exception as exc:
-                    self._log_debug(f"WoSOracle lookup failed for FID {fid}: {exc}")
+                    oracle_error = exc
+                    self._log_debug(f"Player lookup failed for FID {fid}: {exc}")
+                # Atlas complements Oracle (especially coordinates), and can
+                # also supply registration identity/state when Oracle is down.
+                try:
                     atlas_profile = await fetch_player_profile(str(fid))
-                    atlas_state = atlas_profile.get("state_id") if atlas_profile else None
-                    if not atlas_profile or not str(atlas_state or "").isdigit():
-                        await message.add_reaction('❌')
-                        await message.reply(f"❌ Could not verify Player ID `{fid}` right now. Registration was not completed; please try again later.")
-                        return
+                except Exception as exc:
+                    self._log_debug(f"WoS Atlas lookup failed for FID {fid}: {exc}")
+                atlas_state = atlas_profile.get("state_id") if atlas_profile else None
+                if not state_id and atlas_state is not None and str(atlas_state).isdigit():
                     state_id = str(atlas_state)
+                if oracle_player is None and atlas_profile and state_id:
                     oracle_player = {
                         "username": atlas_profile.get("nickname") or "Unknown",
                         "town_hall_level": atlas_profile.get("furnace_lv") or 0,
@@ -191,6 +196,12 @@ class IDChannel(commands.Cog):
                         "alliance_abbr": atlas_profile.get("alliance_abbr") or "",
                         "power": atlas_profile.get("power"),
                     }
+                if not state_id or not state_id.isdigit():
+                    await message.add_reaction('❌')
+                    reason = f"Oracle: {oracle_error}; Atlas did not return a state" if oracle_error else "Oracle and Atlas did not return a state"
+                    self._log_debug(f"Could not resolve state for FID {fid}: {reason}")
+                    await message.reply(f"❌ Could not verify Player ID `{fid}` right now. Registration was not completed; please try again later.")
+                    return
             try:
                 from db.mongo_adapters import AutoRedeemSettingsAdapter, mongo_enabled
                 if not premium_guild and mongo_enabled():

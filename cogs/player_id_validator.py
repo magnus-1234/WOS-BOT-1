@@ -4,6 +4,8 @@ import re
 import logging
 import sqlite3
 import json
+from src.api.wosoracle import fetch_player_info as fetch_oracle_player_info
+from src.api.wosatlas import fetch_player_profile
 
 # Import db_utils for consistent connection handling
 try:
@@ -73,39 +75,40 @@ class PlayerIDValidator(commands.Cog):
             return {"found": False}
 
     async def _validate_via_api(self, player_id: str):
-        """Validate via API using GiftOperations"""
+        """Fetch player details from Oracle and coordinates/state from Atlas."""
         try:
-            gift_ops = self.bot.get_cog('GiftOperations')
-            if not gift_ops:
-                return {"valid": False, "error": "GiftOperations cog not found"}
-            
-            # Use get_stove_info_wos directly to get details if possible, 
-            # or verify_test_fid which wraps it but might not return all details in the format we want.
-            # verify_test_fid returns (is_valid, msg).
-            # Let's try to use get_stove_info_wos if accessible for more data, 
-            # but verify_test_fid is safer if get_stove_info_wos isn't exposed or complex.
-            # Looking at GiftOperations source, verify_test_fid logs details but returns simple tuple.
-            # However, we can use get_stove_info_wos if we want the data.
-            
-            if hasattr(gift_ops, 'get_stove_info_wos'):
-                session, response = await gift_ops.get_stove_info_wos(player_id)
+            import asyncio
+
+            async def oracle_lookup():
                 try:
-                    data = response.json()
-                    if data.get("msg") == "success":
-                        player_data = data.get("data", {})
-                        return {
-                            "valid": True,
-                            "nickname": player_data.get("nickname", "Unknown"),
-                            "level": player_data.get("stove_lv", "Unknown")
-                        }
-                except Exception:
-                    pass
-            
-            # Fallback to verify_test_fid if get_stove_info_wos fails or isn't usable directly
-            is_valid, msg = await gift_ops.verify_test_fid(player_id)
-            if is_valid:
-                return {"valid": True, "nickname": "Unknown", "level": "Unknown"}
-            
+                    data = await fetch_oracle_player_info(player_id, timeout=12)
+                    return data.get("player") or data.get("data") or data
+                except Exception as exc:
+                    logger.warning("WoS Oracle lookup failed for %s: %s", player_id, exc)
+                    return None
+
+            oracle_info, atlas_info = await asyncio.gather(
+                oracle_lookup(), fetch_player_profile(player_id), return_exceptions=True
+            )
+            if isinstance(atlas_info, Exception):
+                logger.warning("WoS Atlas lookup failed for %s: %s", player_id, atlas_info)
+                atlas_info = None
+            if isinstance(oracle_info, dict) and oracle_info:
+                player = oracle_info
+                atlas = atlas_info if isinstance(atlas_info, dict) else {}
+                return {
+                    "valid": True,
+                    "nickname": player.get("username") or player.get("name") or player.get("nickname") or atlas.get("nickname", "Unknown"),
+                    "level": player.get("town_hall_level") or player.get("furnace_level") or player.get("stove_lv") or atlas.get("furnace_lv", "Unknown"),
+                    "coordinates": atlas.get("coordinates"),
+                }
+            if isinstance(atlas_info, dict) and atlas_info:
+                return {
+                    "valid": True,
+                    "nickname": atlas_info.get("nickname", "Unknown"),
+                    "level": atlas_info.get("furnace_lv", "Unknown"),
+                    "coordinates": atlas_info.get("coordinates"),
+                }
             return {"valid": False}
             
         except Exception as e:
@@ -159,6 +162,9 @@ class PlayerIDValidator(commands.Cog):
                         embed.add_field(name="👤 Nickname", value=api_info.get("nickname", "Unknown"), inline=True)
                         embed.add_field(name="🆔 Player ID", value=player_id, inline=True)
                         embed.add_field(name="🔥 Furnace Level", value=str(api_info.get("level", "Unknown")), inline=True)
+                        coordinates = api_info.get("coordinates")
+                        if coordinates:
+                            embed.add_field(name="📍 Coordinates", value=f"`{coordinates['x']}, {coordinates['y']}` (X, Y)", inline=True)
                         
                         await message.channel.send(embed=embed)
                         logger.info(f"API player ID detected: {player_id}")

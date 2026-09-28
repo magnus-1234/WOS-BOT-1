@@ -36,9 +36,14 @@ BASE_URL = "https://wosoracle.com"
 _PLAYER_ENDPOINT = "/api/v1/players/{fid}"
 _ALLIANCE_MEMBERS_ENDPOINT = "/alliance/{kid}/{alliance_id}"
 PLAYER_ID_RE = re.compile(r"^\d{6,12}$")
+# Prefer the Oracle VM's persistent Firefox session even when a caller forgets
+# to set an endpoint; never silently fall back to a browser on the local PC.
+_DEFAULT_BROWSER_SERVICE_URL = "https://wosoracle-session-bridge.yourbook444362.workers.dev"
+_BROWSER_SERVICE_MIN_TIMEOUT = 45.0
 _BROWSER_SERVICE_URL = os.getenv(
-    "WOSORACLE_BROWSER_SERVICE_URL", "http://127.0.0.1:8765"
+    "WOSORACLE_BROWSER_SERVICE_URL", _DEFAULT_BROWSER_SERVICE_URL
 ).strip().rstrip("/")
+_BROWSER_SERVICE_TOKEN = os.getenv("WOSORACLE_BROWSER_SERVICE_TOKEN", "").strip()
 
 
 async def fetch_alliance_members(
@@ -55,24 +60,28 @@ async def fetch_alliance_members(
         raise ValueError("Invalid kingdom or alliance ID")
     service_url = (browser_service_url if browser_service_url is not None else _BROWSER_SERVICE_URL).strip().rstrip("/")
     if not service_url:
-        raise WoSOracleAuthenticationError("Set WOSORACLE_BROWSER_SERVICE_URL for alliance roster lookups")
+        raise WoSOracleAuthenticationError("Set the browser service URL for alliance roster lookups")
     url = f"{service_url}{_ALLIANCE_MEMBERS_ENDPOINT.format(kid=kid, alliance_id=aid)}"
+    headers = {"Accept": "application/json"}
+    if _BROWSER_SERVICE_TOKEN:
+        headers["Authorization"] = f"Bearer {_BROWSER_SERVICE_TOKEN}"
     try:
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout)) as session:
-            async with session.get(url, headers={"Accept": "application/json"}) as response:
+        request_timeout = max(timeout, _BROWSER_SERVICE_MIN_TIMEOUT)
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=request_timeout)) as session:
+            async with session.get(url, headers=headers) as response:
                 if response.status == 200:
                     data = await response.json(content_type=None)
                     if not isinstance(data, dict):
-                        raise WoSOracleError("WoS Oracle returned an unexpected alliance response")
+                        raise WoSOracleError("The service returned an unexpected alliance response")
                     return data
                 detail = (await response.text())[:200].strip()
                 if response.status in (401, 403):
-                    raise WoSOracleAuthenticationError(detail or "WoS Oracle browser session expired")
+                    raise WoSOracleAuthenticationError(detail or "The browser session expired")
                 if response.status == 429:
-                    raise WoSOracleRateLimitError(detail or "WoS Oracle rate limit reached")
-                raise WoSOracleError(f"WoS Oracle alliance lookup failed ({response.status}): {detail}")
+                    raise WoSOracleRateLimitError(detail or "The service rate limit was reached")
+                raise WoSOracleError(f"Alliance lookup failed ({response.status}): {detail}")
     except aiohttp.ClientError as exc:
-        raise WoSOracleError(f"Cannot connect to WoS Oracle browser service: {exc}") from exc
+        raise WoSOracleError(f"Cannot connect to the browser service: {exc}") from exc
 
 
 # ── Exceptions ────────────────────────────────────────────────────────────────
@@ -127,8 +136,9 @@ class WoSOracleClient:
             session_cookie or os.getenv("WOSORACLE_SESSION_COOKIE", "")
         ).strip()
         self._browser_service_url = _BROWSER_SERVICE_URL
+        self._browser_service_token = _BROWSER_SERVICE_TOKEN
         self._base_url = base_url.rstrip("/")
-        self._timeout = timeout
+        self._timeout = max(timeout, _BROWSER_SERVICE_MIN_TIMEOUT) if self._browser_service_url else timeout
         self._max_retries = max_retries
         self._session: aiohttp.ClientSession | None = None
 
@@ -149,6 +159,8 @@ class WoSOracleClient:
     def _build_headers(self) -> dict[str, str]:
         headers: dict[str, str] = {"Accept": "application/json"}
         if self._browser_service_url:
+            if self._browser_service_token:
+                headers["Authorization"] = f"Bearer {self._browser_service_token}"
             return headers
         if self._api_token:
             headers["Authorization"] = f"Bearer {self._api_token}"
@@ -158,8 +170,7 @@ class WoSOracleClient:
             headers["Origin"] = self._base_url
         else:
             raise WoSOracleAuthenticationError(
-                "Set WOSORACLE_API_TOKEN (Bearer token, Oracle+) or "
-                "WOSORACLE_SESSION_COOKIE (Discord session cookie) in your .env"
+                "Configure an API token or browser session cookie in your .env"
             )
         return headers
 
@@ -218,7 +229,11 @@ class WoSOracleClient:
             while attempt <= self._max_retries:
                 attempt += 1
                 try:
-                    async with client.get(url, headers=headers) as resp:
+                    async with client.get(
+                        url,
+                        headers=headers,
+                        timeout=aiohttp.ClientTimeout(total=self._timeout),
+                    ) as resp:
                         status = resp.status
 
                         if status == 200:
@@ -226,11 +241,11 @@ class WoSOracleClient:
                                 data = await resp.json(content_type=None)
                             except (aiohttp.ContentTypeError, ValueError) as exc:
                                 raise WoSOracleError(
-                                    "WoS Oracle returned non-JSON"
+                                    "The service returned a non-JSON response"
                                 ) from exc
                             if not isinstance(data, dict):
                                 raise WoSOracleError(
-                                    "WoS Oracle returned unexpected response shape"
+                                    "The service returned an unexpected response shape"
                                 )
                             log.debug("WoSOracle: player %s fetched OK", fid)
                             return data
@@ -238,16 +253,16 @@ class WoSOracleClient:
                         if status in (401, 481):
                             detail = (await resp.text()).strip()
                             raise WoSOracleAuthenticationError(
-                                detail or f"WoS Oracle: invalid/expired credentials ({status})"
+                                detail or f"Invalid or expired credentials ({status})"
                             )
                         if status == 402:
                             detail = (await resp.text()).strip()
                             raise WoSOracleAuthenticationError(
-                                detail or "WoS Oracle: Oracle+ subscription required (402)"
+                                detail or "A subscription is required (402)"
                             )
                         if status == 404:
                             raise WoSOraclePlayerNotFoundError(
-                                f"Player {fid} not found on WoS Oracle"
+                                f"Player {fid} was not found"
                             )
                         if status == 429:
                             retry_after: float | None = None
@@ -256,18 +271,18 @@ class WoSOracleClient:
                             except (ValueError, TypeError):
                                 pass
                             raise WoSOracleRateLimitError(
-                                f"WoS Oracle rate limit hit for player {fid}",
+                                f"Rate limit reached for player {fid}",
                                 retry_after=retry_after,
                             )
                         if status >= 500:
                             detail = (await resp.text())[:200].strip()
                             last_exc = WoSOracleError(
-                                f"WoS Oracle server error {status}: {detail}"
+                                f"Service error {status}: {detail}"
                             )
                             if attempt <= self._max_retries:
                                 wait = 2.0 ** attempt
                                 log.warning(
-                                    "WoSOracle HTTP %s — retry %d/%d in %.1fs",
+                            "Service HTTP %s — retry %d/%d in %.1fs",
                                     status, attempt, self._max_retries + 1, wait,
                                 )
                                 await asyncio.sleep(wait)
@@ -277,16 +292,25 @@ class WoSOracleClient:
                         resp.raise_for_status()
 
                 except (aiohttp.ServerTimeoutError, asyncio.TimeoutError) as exc:
-                    last_exc = WoSOracleError(f"WoS Oracle request timed out: {exc}")
+                    last_exc = WoSOracleError(f"Request timed out: {exc}")
                     if attempt <= self._max_retries:
                         await asyncio.sleep(1.5 ** attempt)
                         continue
                     raise last_exc from exc
 
-                except aiohttp.ClientConnectorError as exc:
-                    raise WoSOracleError(f"Cannot connect to WoS Oracle: {exc}") from exc
+                except (aiohttp.ClientConnectionError, aiohttp.ClientPayloadError) as exc:
+                    last_exc = WoSOracleError(f"Network error: {exc}")
+                    if attempt <= self._max_retries:
+                        wait = min(2.0 * attempt, 6.0)
+                        log.warning(
+                            "Network error — retry %d/%d in %.1fs",
+                            attempt, self._max_retries + 1, wait,
+                        )
+                        await asyncio.sleep(wait)
+                        continue
+                    raise last_exc from exc
 
-            raise last_exc or WoSOracleError("WoS Oracle request failed after retries")
+            raise last_exc or WoSOracleError("Request failed after retries")
         finally:
             if owns_session:
                 await client.close()
@@ -320,17 +344,17 @@ class WoSOracleClient:
                 try:
                     results[fid] = await self.fetch_player(fid, cached=cached)
                 except WoSOraclePlayerNotFoundError:
-                    log.warning("WoSOracle: player %s not found — skipped", fid)
+                    log.warning("Player %s not found — skipped", fid)
                 except WoSOracleRateLimitError as exc:
                     wait = exc.retry_after or 60.0
-                    log.warning("WoSOracle rate limit — sleeping %.1fs", wait)
+                    log.warning("Rate limit reached — sleeping %.1fs", wait)
                     await asyncio.sleep(wait)
                     try:
                         results[fid] = await self.fetch_player(fid, cached=cached)
                     except WoSOracleError as retry_exc:
-                        log.error("WoSOracle retry failed for %s: %s", fid, retry_exc)
+                        log.error("Retry failed for %s: %s", fid, retry_exc)
                 except WoSOracleError as exc:
-                    log.warning("WoSOracle fetch failed for %s: %s", fid, exc)
+                    log.warning("Player lookup failed for %s: %s", fid, exc)
                 await asyncio.sleep(delay_between)
 
         await asyncio.gather(*(_one(pid) for pid in player_ids))
@@ -357,4 +381,20 @@ async def fetch_player_info(
         session_cookie=session_cookie,
         timeout=timeout,
     )
-    return await client.fetch_player(player_id, extra_session=session)
+    result = await client.fetch_player(player_id, extra_session=session)
+    # Normalize both the direct player object returned by the Firefox bridge
+    # and the older wrapped API shapes used by existing callers.
+    player = result.get("player") or result.get("data") or result
+    if not isinstance(player, dict):
+        return result
+    normalized = dict(player)
+    normalized.setdefault("username", player.get("nickname") or player.get("name"))
+    normalized.setdefault(
+        "town_hall_level",
+        player.get("furnace_level") or player.get("furnace_lv") or player.get("stove_lv"),
+    )
+    normalized.setdefault("state_id", player.get("state") or player.get("kid"))
+    normalized.setdefault("avatar_url", player.get("avatar_image"))
+    if "player" in result or "data" in result:
+        return {**result, "player": normalized}
+    return normalized
